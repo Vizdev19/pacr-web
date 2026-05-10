@@ -1,0 +1,370 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Pacr — Logo Exploration</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@300;400;500;600&family=Archivo:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&display=swap" />
+<style>
+  :root{
+    --bone:#F4F1EC;
+    --ink:#0E0E0C;
+    --graphite:#1C1C1A;
+    --paper:#FAF8F4;
+    --line:rgba(14,14,12,0.12);
+    --mute:rgba(14,14,12,0.55);
+    --accent:oklch(0.55 0.15 25);
+  }
+  html,body{margin:0;background:#f0eee9;font-family:'Inter Tight',sans-serif;color:var(--ink)}
+  .mono{font-family:'JetBrains Mono',monospace;letter-spacing:.02em}
+
+  /* shared artboard interior */
+  .ab{box-sizing:border-box;width:100%;height:100%;position:relative;overflow:hidden;display:flex;flex-direction:column}
+  .ab .meta{position:absolute;top:20px;left:24px;right:24px;display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--mute)}
+  .ab .footer{position:absolute;bottom:20px;left:24px;right:24px;display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--mute)}
+  .ab .stage{flex:1;display:flex;align-items:center;justify-content:center;padding:0 24px}
+  .ab .reg{position:absolute;width:10px;height:10px;border:1px solid currentColor;opacity:.35}
+  .ab .reg.tl{top:14px;left:14px;border-right:0;border-bottom:0}
+  .ab .reg.tr{top:14px;right:14px;border-left:0;border-bottom:0}
+  .ab .reg.bl{bottom:14px;left:14px;border-right:0;border-top:0}
+  .ab .reg.br{bottom:14px;right:14px;border-left:0;border-top:0}
+
+  /* === DIRECTION 01 — Pace tick === */
+  .v1{background:var(--bone);color:var(--ink)}
+  .v1 .word{font-family:'Inter Tight',sans-serif;font-weight:800;font-size:200px;letter-spacing:-0.06em;line-height:.8;display:flex;align-items:center}
+  .v1 .word .l{display:inline-block}
+  .v1 .word .tick{display:inline-flex;flex-direction:column;align-items:flex-start;margin-left:6px}
+  .v1 .word .tick .bar{width:14px;height:14px;background:var(--accent);border-radius:50%;margin-bottom:8px}
+  .v1 .word .tick .num{font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:500;letter-spacing:0;color:var(--mute)}
+
+  /* === DIRECTION 02 — Stride cut (sliced 'a') === */
+  .v2{background:var(--ink);color:var(--bone)}
+  .v2 .word{font-family:'Archivo',sans-serif;font-weight:900;font-size:220px;letter-spacing:-0.055em;line-height:.85;font-stretch:125%}
+  .v2 .word{display:inline-block;position:relative}
+  .v2 svg{display:block}
+
+  /* === DIRECTION 03 — Monogram tension (P with cut) === */
+  .v3{background:var(--paper);color:var(--ink)}
+  .v3 .word{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:180px;letter-spacing:-0.04em;line-height:.85}
+
+  /* === DIRECTION 04 — Chronometer dial (extended) === */
+  .v4{background:var(--bone);color:var(--ink)}
+  .v4 .word{font-family:'Archivo',sans-serif;font-weight:800;font-size:160px;letter-spacing:0.02em;line-height:.85;font-stretch:62.5%}
+
+  /* lockup detail rows for spec sheet style */
+  .specrow{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;border-top:1px solid var(--line);font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase}
+  .specrow > div{padding:14px 18px;border-right:1px solid var(--line)}
+  .specrow > div:last-child{border-right:0}
+  .specrow .k{color:var(--mute)}
+  .specrow .v{margin-top:4px;color:var(--ink);font-weight:500}
+
+  /* lockups grid */
+  .lockups{display:grid;grid-template-columns:1fr 1fr;gap:0;height:100%;background:var(--bone)}
+  .lockup{padding:32px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);display:flex;flex-direction:column;justify-content:space-between;gap:16px}
+  .lockup:nth-child(2n){border-right:0}
+  .lockup:nth-child(n+3){border-bottom:0}
+  .lockup .label{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--mute)}
+  .lockup .show{flex:1;display:flex;align-items:center;justify-content:center}
+
+  /* color swatches */
+  .swatches{display:grid;grid-template-columns:repeat(4,1fr);height:100%}
+  .sw{display:flex;flex-direction:column;justify-content:space-between;padding:24px;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase}
+  .sw.bone{background:var(--bone);color:var(--ink)}
+  .sw.ink{background:var(--ink);color:var(--bone)}
+  .sw.graphite{background:var(--graphite);color:var(--bone)}
+  .sw.accent{background:var(--accent);color:var(--bone)}
+  .sw .name{font-weight:600}
+  .sw .val{opacity:.7}
+
+  /* type spec */
+  .typespec{padding:32px;background:var(--paper);height:100%;box-sizing:border-box;display:flex;flex-direction:column;gap:24px}
+  .typespec .row{display:grid;grid-template-columns:120px 1fr;gap:24px;padding-bottom:20px;border-bottom:1px solid var(--line)}
+  .typespec .row:last-child{border-bottom:0}
+  .typespec .row .lbl{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--mute);padding-top:6px}
+  .typespec .display{font-family:'Inter Tight',sans-serif;font-weight:800;font-size:64px;letter-spacing:-0.04em;line-height:.95}
+  .typespec .heading{font-family:'Inter Tight',sans-serif;font-weight:600;font-size:32px;letter-spacing:-0.02em;line-height:1.05}
+  .typespec .body{font-family:'Inter Tight',sans-serif;font-weight:400;font-size:15px;line-height:1.5;color:var(--ink)}
+  .typespec .mono-spec{font-family:'JetBrains Mono',monospace;font-size:13px;letter-spacing:.02em;line-height:1.5;color:var(--ink)}
+
+</style>
+</head>
+<body>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script type="text/babel" src="design-canvas.jsx"></script>
+
+<div id="root"></div>
+
+<script type="text/babel">
+const { useEffect } = React;
+
+// === LOGO RENDERS ===
+
+// 01 — Pace tick (Inter Tight, accent dot, mono pace number)
+function Logo01({size=200}){
+  return (
+    <div className="word" style={{fontSize:size}}>
+      <span className="l">pacr</span>
+      <span className="tick">
+        <span className="bar"></span>
+        <span className="num">5'42"</span>
+      </span>
+    </div>
+  );
+}
+
+// 02 — Stride cut: the 'a' counter cut diagonally like a footstrike
+function Logo02({size=220, color='var(--bone)'}){
+  // Build with SVG so we can cleanly slice the 'a'
+  const w = size * 3.6, h = size * 0.95;
+  return (
+    <svg viewBox={`0 0 ${w} ${h}`} width="100%" style={{maxWidth: w, height: 'auto'}}>
+      <defs>
+        <clipPath id="strideClip">
+          <polygon points={`0,0 ${w},0 ${w},${h*0.55} 0,${h*0.95}`} />
+        </clipPath>
+      </defs>
+      <text x="0" y={h*0.78} fontFamily="Archivo, sans-serif" fontWeight="900"
+            fontSize={size} letterSpacing={-size*0.05} fill={color}
+            style={{fontStretch:'125%'}}>pacr</text>
+      <line x1={w*0.27} y1={h*0.18} x2={w*0.50} y2={h*0.92} stroke="oklch(0.55 0.15 25)" strokeWidth={size*0.04}/>
+    </svg>
+  );
+}
+
+// 03 — Monogram tension: P with a notch cut, tight kerning
+function Logo03({size=180}){
+  return (
+    <div className="word" style={{fontSize:size, position:'relative', display:'inline-flex', alignItems:'baseline'}}>
+      <span style={{position:'relative'}}>
+        <span>p</span>
+        <span style={{
+          position:'absolute',
+          left: size*0.40, top: size*0.18,
+          width: size*0.06, height: size*0.50,
+          background:'var(--paper)'
+        }}></span>
+      </span>
+      <span>acr</span>
+      <span style={{
+        display:'inline-block',
+        width: size*0.06, height: size*0.06,
+        background:'var(--accent)',
+        marginLeft: size*0.04,
+        alignSelf:'flex-end',
+        marginBottom: size*0.04
+      }}></span>
+    </div>
+  );
+}
+
+// 04 — Chronometer dial: extended/condensed type with tick marks under
+function Logo04({size=160}){
+  return (
+    <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:size*0.05}}>
+      <div className="word" style={{fontSize:size}}>PACR</div>
+      <svg viewBox="0 0 400 12" width={size*2.6} height={size*0.08}>
+        {Array.from({length:41}).map((_,i)=>{
+          const x = i*10;
+          const major = i%5===0;
+          return <line key={i} x1={x} y1={major?0:4} x2={x} y2={12} stroke="currentColor" strokeWidth={major?1.5:1}/>
+        })}
+      </svg>
+    </div>
+  );
+}
+
+// === ARTBOARDS ===
+
+const Frame = ({code, name, children, dark=false}) => (
+  <div className={`ab ${dark?'v2':'v1'}`} style={dark?{background:'var(--ink)',color:'var(--bone)'}:{}}>
+    <div className="reg tl"></div><div className="reg tr"></div><div className="reg bl"></div><div className="reg br"></div>
+    <div className="meta">
+      <span>{code}</span>
+      <span>Pacr · 2026</span>
+    </div>
+    <div className="stage">{children}</div>
+    <div className="footer">
+      <span>{name}</span>
+      <span>WORDMARK</span>
+    </div>
+  </div>
+);
+
+function App(){
+  return (
+    <DesignCanvas>
+      <DCSection id="intro" title="Pacr — Logo Exploration" subtitle="Four custom-wordmark directions. Each rooted in a single idea: pace, stride, tension, dial. All built on a sharp grotesk vocabulary.">
+        <DCArtboard id="brief" label="Brief" width={520} height={480}>
+          <div style={{padding:36, background:'var(--paper)', height:'100%', boxSizing:'border-box', display:'flex', flexDirection:'column', gap:18, fontFamily:"'Inter Tight',sans-serif", color:'var(--ink)'}}>
+            <div className="mono" style={{fontSize:10, letterSpacing:'.18em', textTransform:'uppercase', color:'var(--mute)'}}>01 / Brief</div>
+            <div style={{fontSize:34, fontWeight:700, letterSpacing:'-0.025em', lineHeight:1.05}}>A wordmark for runners who treat training like a craft.</div>
+            <div style={{fontSize:14, lineHeight:1.55, color:'rgba(14,14,12,0.75)'}}>Pacr is invite-only. The mark must feel quiet, technical, and disciplined — closer to a chronometer or a lab instrument than a sports brand. No symbols. No swooshes. Letterforms only, tuned with one small idea each.</div>
+            <div style={{flex:1}}></div>
+            <div className="specrow" style={{borderTop:'1px solid var(--line)'}}>
+              <div><div className="k">Type</div><div className="v">Sharp grotesk</div></div>
+              <div><div className="k">Tone</div><div className="v">Quiet · precise</div></div>
+              <div><div className="k">Use</div><div className="v">App · apparel</div></div>
+            </div>
+          </div>
+        </DCArtboard>
+
+        <DCArtboard id="palette" label="Palette" width={520} height={480}>
+          <div className="swatches">
+            <div className="sw bone"><span className="name">Bone</span><span><div>#F4F1EC</div><div className="val">Primary surface</div></span></div>
+            <div className="sw ink"><span className="name">Ink</span><span><div>#0E0E0C</div><div className="val">Type · mark</div></span></div>
+            <div className="sw graphite"><span className="name">Graphite</span><span><div>#1C1C1A</div><div className="val">Spec panels</div></span></div>
+            <div className="sw accent"><span className="name">Track</span><span><div>oklch(.55 .15 25)</div><div className="val">Single accent</div></span></div>
+          </div>
+        </DCArtboard>
+
+        <DCArtboard id="typesys" label="Type system" width={520} height={480}>
+          <div className="typespec">
+            <div className="row"><div className="lbl">Display</div><div className="display">Train like<br/>a craft.</div></div>
+            <div className="row"><div className="lbl">Heading</div><div className="heading">Inter Tight, weight 600</div></div>
+            <div className="row"><div className="lbl">Body</div><div className="body">A grotesk paired with a workhorse mono. The mono carries every distance, pace, and size — anywhere data appears.</div></div>
+            <div className="row"><div className="lbl">Mono</div><div className="mono-spec">5'42" / km · 21.1 km · M / L / XL</div></div>
+          </div>
+        </DCArtboard>
+      </DCSection>
+
+      <DCSection id="logos" title="Wordmark directions" subtitle="Four single-idea wordmarks. Each shown on a primary surface, with the lockup variants directly beside it.">
+
+        {/* DIRECTION 01 */}
+        <DCArtboard id="d1-mark" label="01 · Pace tick · primary" width={780} height={520}>
+          <Frame code="DIR.01" name="PACE TICK">
+            <Logo01 size={200}/>
+          </Frame>
+        </DCArtboard>
+        <DCArtboard id="d1-lock" label="01 · Lockups & rationale" width={520} height={520}>
+          <div style={{display:'grid',gridTemplateRows:'auto 1fr',height:'100%',background:'var(--paper)'}}>
+            <div style={{padding:'24px 28px', borderBottom:'1px solid var(--line)'}}>
+              <div className="mono" style={{fontSize:10, letterSpacing:'.18em', textTransform:'uppercase', color:'var(--mute)'}}>Direction 01</div>
+              <div style={{fontSize:22, fontWeight:600, letterSpacing:'-0.02em', marginTop:6}}>Pace tick</div>
+              <div style={{fontSize:13, lineHeight:1.5, color:'rgba(14,14,12,0.7)', marginTop:8}}>The wordmark sits beside a pace dot and the runner's current target. The mark <em>tells time</em>.</div>
+            </div>
+            <div className="lockups" style={{gridTemplateRows:'1fr 1fr',gridTemplateColumns:'1fr 1fr'}}>
+              <div className="lockup"><div className="label">Inline</div><div className="show"><Logo01 size={56}/></div></div>
+              <div className="lockup"><div className="label">App icon</div><div className="show"><div style={{width:90,height:90,background:'var(--ink)',color:'var(--bone)',borderRadius:20,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'Inter Tight',fontWeight:800,fontSize:54,letterSpacing:'-0.06em'}}>p<span style={{display:'inline-block',width:8,height:8,background:'oklch(0.55 0.15 25)',borderRadius:'50%',marginLeft:4,marginBottom:18}}></span></div></div></div>
+              <div className="lockup"><div className="label">Tagline lockup</div><div className="show" style={{flexDirection:'column',gap:4}}><Logo01 size={48}/><div className="mono" style={{fontSize:9,letterSpacing:'.2em',textTransform:'uppercase',color:'var(--mute)'}}>Coached running</div></div></div>
+              <div className="lockup"><div className="label">Reversed</div><div className="show" style={{background:'var(--ink)',color:'var(--bone)',borderRadius:0,height:'100%',width:'100%'}}><div style={{transform:'scale(0.5)'}}><Logo01 size={120}/></div></div></div>
+            </div>
+          </div>
+        </DCArtboard>
+
+        {/* DIRECTION 02 */}
+        <DCArtboard id="d2-mark" label="02 · Stride cut · primary" width={780} height={520}>
+          <Frame code="DIR.02" name="STRIDE CUT" dark>
+            <div style={{width:'80%'}}><Logo02 size={220} color="var(--bone)"/></div>
+          </Frame>
+        </DCArtboard>
+        <DCArtboard id="d2-lock" label="02 · Lockups & rationale" width={520} height={520}>
+          <div style={{display:'grid',gridTemplateRows:'auto 1fr',height:'100%',background:'var(--paper)'}}>
+            <div style={{padding:'24px 28px', borderBottom:'1px solid var(--line)'}}>
+              <div className="mono" style={{fontSize:10, letterSpacing:'.18em', textTransform:'uppercase', color:'var(--mute)'}}>Direction 02</div>
+              <div style={{fontSize:22, fontWeight:600, letterSpacing:'-0.02em', marginTop:6}}>Stride cut</div>
+              <div style={{fontSize:13, lineHeight:1.5, color:'rgba(14,14,12,0.7)', marginTop:8}}>A single accent line slashes through the wordmark like a footstrike — the only motion in an otherwise still mark.</div>
+            </div>
+            <div className="lockups" style={{gridTemplateRows:'1fr 1fr',gridTemplateColumns:'1fr 1fr'}}>
+              <div className="lockup"><div className="label">Black on bone</div><div className="show"><Logo02 size={48} color="var(--ink)"/></div></div>
+              <div className="lockup"><div className="label">App icon</div><div className="show"><div style={{width:90,height:90,background:'var(--ink)',borderRadius:20,display:'flex',alignItems:'center',justifyContent:'center',position:'relative'}}><div style={{fontFamily:'Archivo',fontWeight:900,fontSize:54,color:'var(--bone)',letterSpacing:'-0.06em',fontStretch:'125%'}}>p</div><div style={{position:'absolute',width:2,height:48,background:'oklch(0.55 0.15 25)',transform:'rotate(20deg)',top:22,left:50}}></div></div></div></div>
+              <div className="lockup"><div className="label">Tagline lockup</div><div className="show" style={{flexDirection:'column',gap:6,alignItems:'flex-start',width:'100%',padding:'0 12px'}}><Logo02 size={42} color="var(--ink)"/><div className="mono" style={{fontSize:9,letterSpacing:'.2em',textTransform:'uppercase',color:'var(--mute)'}}>Coached running</div></div></div>
+              <div className="lockup"><div className="label">On apparel</div><div className="show"><div style={{transform:'scale(0.4)',transformOrigin:'center'}}><Logo02 size={120} color="var(--ink)"/></div></div></div>
+            </div>
+          </div>
+        </DCArtboard>
+
+        {/* DIRECTION 03 */}
+        <DCArtboard id="d3-mark" label="03 · Monogram tension · primary" width={780} height={520}>
+          <Frame code="DIR.03" name="MONOGRAM TENSION">
+            <div style={{background:'var(--paper)'}}><Logo03 size={180}/></div>
+          </Frame>
+        </DCArtboard>
+        <DCArtboard id="d3-lock" label="03 · Lockups & rationale" width={520} height={520}>
+          <div style={{display:'grid',gridTemplateRows:'auto 1fr',height:'100%',background:'var(--paper)'}}>
+            <div style={{padding:'24px 28px', borderBottom:'1px solid var(--line)'}}>
+              <div className="mono" style={{fontSize:10, letterSpacing:'.18em', textTransform:'uppercase', color:'var(--mute)'}}>Direction 03</div>
+              <div style={{fontSize:22, fontWeight:600, letterSpacing:'-0.02em', marginTop:6}}>Monogram tension</div>
+              <div style={{fontSize:13, lineHeight:1.5, color:'rgba(14,14,12,0.7)', marginTop:8}}>A vertical notch cut into the 'p' counter — disciplined, considered, almost typographic. The accent square punctuates like a heartbeat.</div>
+            </div>
+            <div className="lockups" style={{gridTemplateRows:'1fr 1fr',gridTemplateColumns:'1fr 1fr'}}>
+              <div className="lockup"><div className="label">Small use</div><div className="show"><Logo03 size={42}/></div></div>
+              <div className="lockup"><div className="label">App icon</div><div className="show"><div style={{width:90,height:90,background:'var(--bone)',borderRadius:20,display:'flex',alignItems:'center',justifyContent:'center',position:'relative',border:'1px solid var(--line)'}}><div style={{fontFamily:'Space Grotesk',fontWeight:700,fontSize:60,letterSpacing:'-0.04em',color:'var(--ink)',position:'relative'}}>p<div style={{position:'absolute',width:4,height:18,background:'var(--bone)',top:18,left:24}}></div></div></div></div></div>
+              <div className="lockup"><div className="label">Editorial</div><div className="show" style={{flexDirection:'column',gap:6,alignItems:'flex-start',width:'100%',padding:'0 12px'}}><Logo03 size={36}/><div className="mono" style={{fontSize:9,letterSpacing:'.2em',textTransform:'uppercase',color:'var(--mute)'}}>An invite-only club</div></div></div>
+              <div className="lockup"><div className="label">Reversed</div><div className="show" style={{background:'var(--ink)',color:'var(--bone)',borderRadius:0,height:'100%',width:'100%',display:'flex',alignItems:'center',justifyContent:'center'}}><div style={{transform:'scale(0.4)',display:'flex',alignItems:'baseline'}}><div style={{fontFamily:'Space Grotesk',fontWeight:700,fontSize:180,letterSpacing:'-0.04em',position:'relative'}}>p<div style={{position:'absolute',width:11,height:90,background:'var(--ink)',top:32,left:72}}></div></div><div style={{fontFamily:'Space Grotesk',fontWeight:700,fontSize:180,letterSpacing:'-0.04em'}}>acr</div></div></div></div>
+            </div>
+          </div>
+        </DCArtboard>
+
+        {/* DIRECTION 04 */}
+        <DCArtboard id="d4-mark" label="04 · Chronometer dial · primary" width={780} height={520}>
+          <Frame code="DIR.04" name="CHRONOMETER">
+            <Logo04 size={160}/>
+          </Frame>
+        </DCArtboard>
+        <DCArtboard id="d4-lock" label="04 · Lockups & rationale" width={520} height={520}>
+          <div style={{display:'grid',gridTemplateRows:'auto 1fr',height:'100%',background:'var(--paper)'}}>
+            <div style={{padding:'24px 28px', borderBottom:'1px solid var(--line)'}}>
+              <div className="mono" style={{fontSize:10, letterSpacing:'.18em', textTransform:'uppercase', color:'var(--mute)'}}>Direction 04</div>
+              <div style={{fontSize:22, fontWeight:600, letterSpacing:'-0.02em', marginTop:6}}>Chronometer</div>
+              <div style={{fontSize:13, lineHeight:1.5, color:'rgba(14,14,12,0.7)', marginTop:8}}>Extended, all-caps letterforms paired with a tick scale below. Reads as instrumentation. Cleanest at large scale on apparel.</div>
+            </div>
+            <div className="lockups" style={{gridTemplateRows:'1fr 1fr',gridTemplateColumns:'1fr 1fr'}}>
+              <div className="lockup"><div className="label">Small use</div><div className="show"><div style={{fontFamily:'Archivo',fontWeight:800,fontSize:36,letterSpacing:'.02em',fontStretch:'62.5%'}}>PACR</div></div></div>
+              <div className="lockup"><div className="label">App icon</div><div className="show"><div style={{width:90,height:90,background:'var(--ink)',color:'var(--bone)',borderRadius:20,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:6}}><div style={{fontFamily:'Archivo',fontWeight:800,fontSize:24,letterSpacing:'.06em',fontStretch:'62.5%'}}>PACR</div><svg viewBox="0 0 60 6" width="56" height="6">{Array.from({length:13}).map((_,i)=>{const major=i%3===0;return <line key={i} x1={i*5} y1={major?0:2} x2={i*5} y2={6} stroke="currentColor" strokeWidth={major?1:.7}/>})}</svg></div></div></div>
+              <div className="lockup"><div className="label">On race bib</div><div className="show"><div style={{padding:'10px 16px',border:'1.5px solid var(--ink)',display:'flex',alignItems:'center',gap:10}}><div style={{fontFamily:'Archivo',fontWeight:800,fontSize:22,letterSpacing:'.04em',fontStretch:'62.5%'}}>PACR</div><div className="mono" style={{fontSize:9,letterSpacing:'.18em',color:'var(--mute)'}}>·002</div></div></div></div>
+              <div className="lockup"><div className="label">Reversed</div><div className="show" style={{background:'var(--ink)',color:'var(--bone)',borderRadius:0,height:'100%',width:'100%',display:'flex',alignItems:'center',justifyContent:'center'}}><div style={{transform:'scale(0.5)'}}><Logo04 size={140}/></div></div></div>
+            </div>
+          </div>
+        </DCArtboard>
+      </DCSection>
+
+      <DCSection id="apparel" title="Apparel test" subtitle="Each direction at scale on a singlet placeholder, to feel the difference at chest height.">
+        {[1,2,3,4].map(n => (
+          <DCArtboard key={n} id={`tee-${n}`} label={`Direction 0${n} · singlet`} width={360} height={480}>
+            <div style={{height:'100%',background:'var(--bone)',display:'flex',alignItems:'center',justifyContent:'center',position:'relative'}}>
+              {/* singlet silhouette */}
+              <svg viewBox="0 0 300 400" width="100%" height="100%" style={{position:'absolute',inset:0}}>
+                <defs>
+                  <pattern id={`stripe-${n}`} width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+                    <line x1="0" y1="0" x2="0" y2="6" stroke="rgba(14,14,12,0.04)" strokeWidth="6"/>
+                  </pattern>
+                </defs>
+                <path d="M 60 60 L 110 40 Q 150 65 190 40 L 240 60 L 220 130 L 230 380 L 70 380 L 80 130 Z" fill={`url(#stripe-${n})`} stroke="rgba(14,14,12,0.18)" strokeWidth="1"/>
+              </svg>
+              <div style={{position:'relative',zIndex:1,marginTop:10,transform:'scale(0.7)'}}>
+                {n===1 && <Logo01 size={70}/>}
+                {n===2 && <Logo02 size={70} color="var(--ink)"/>}
+                {n===3 && <Logo03 size={70}/>}
+                {n===4 && <Logo04 size={50}/>}
+              </div>
+              <div style={{position:'absolute',bottom:16,left:16,right:16,display:'flex',justifyContent:'space-between',fontFamily:'JetBrains Mono',fontSize:9,letterSpacing:'.18em',textTransform:'uppercase',color:'var(--mute)'}}>
+                <span>Singlet · M</span>
+                <span>0{n}</span>
+              </div>
+            </div>
+          </DCArtboard>
+        ))}
+      </DCSection>
+
+      <DCSection id="next" title="Next" subtitle="Pick a direction and we'll move into the storefront.">
+        <DCArtboard id="next-card" label="Storefront preview" width={520} height={300}>
+          <div style={{padding:32,background:'var(--ink)',color:'var(--bone)',height:'100%',boxSizing:'border-box',display:'flex',flexDirection:'column',justifyContent:'space-between'}}>
+            <div className="mono" style={{fontSize:10,letterSpacing:'.18em',textTransform:'uppercase',opacity:0.6}}>Up next</div>
+            <div style={{fontSize:30,fontWeight:600,letterSpacing:'-0.02em',lineHeight:1.1}}>Storefront pages — home, collection, PDP, cart, about, membership.</div>
+            <a href="Pacr.html" style={{color:'var(--bone)',textDecoration:'none',display:'inline-flex',alignItems:'center',gap:10,fontFamily:'JetBrains Mono',fontSize:12,letterSpacing:'.14em',textTransform:'uppercase',borderBottom:'1px solid var(--bone)',paddingBottom:6,alignSelf:'flex-start'}}>Open storefront →</a>
+          </div>
+        </DCArtboard>
+      </DCSection>
+    </DesignCanvas>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>

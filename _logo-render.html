@@ -1,0 +1,46 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@900&family=JetBrains+Mono:wght@500&display=swap" />
+<style>
+  html,body{margin:0;padding:0;background:#F4F1EC}
+  .stage{width:1080px;height:1080px;display:flex;align-items:center;justify-content:center;position:relative;background:#F4F1EC;overflow:hidden}
+  .word{
+    font-family:'Archivo',sans-serif;font-weight:900;font-stretch:125%;
+    font-size:340px;letter-spacing:-0.055em;line-height:.85;color:#0E0E0C;
+    position:relative;display:inline-block;
+  }
+  .word::after{
+    content:"";position:absolute;left:32%;top:-8%;bottom:-2%;width:11px;
+    background:oklch(0.55 0.15 25);
+    transform:rotate(14deg);transform-origin:top;
+  }
+  .caption{
+    position:absolute;bottom:140px;left:0;right:0;text-align:center;
+    font-family:'JetBrains Mono',monospace;font-weight:500;font-size:24px;
+    letter-spacing:.32em;color:rgba(14,14,12,0.55);text-transform:uppercase;
+  }
+  .corner{
+    position:absolute;font-family:'JetBrains Mono',monospace;font-weight:500;font-size:18px;
+    letter-spacing:.22em;color:rgba(14,14,12,0.42);text-transform:uppercase;
+  }
+  .tl{top:60px;left:60px}
+  .tr{top:60px;right:60px}
+  .bl{bottom:60px;left:60px}
+  .br{bottom:60px;right:60px}
+</style>
+</head>
+<body>
+<div class="stage" id="stage">
+  <div class="corner tl">PACR · 2026</div>
+  <div class="corner tr">WORDMARK · 01</div>
+  <div class="word">pacr</div>
+  <div class="caption">Train like a craft</div>
+  <div class="corner bl">STRIDE CUT</div>
+  <div class="corner br">1080 × 1080</div>
+</div>
+</body>
+</html>
