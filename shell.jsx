@@ -88,7 +88,7 @@ function Footer({goto}){
             </ul>
           </div>
           <div>
-            <h4>Privacy</h4>
+            <h4><a href="/privacy">Privacy</a></h4>
             <ul>
               <li><a href="/privacy">Privacy policy</a></li>
               <li><a href="#" onClick={(e)=>e.preventDefault()}>Terms of service</a></li>
