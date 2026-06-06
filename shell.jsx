@@ -72,29 +72,29 @@ function Footer({goto}){
             <ul>
               <li><a href="#" onClick={(e)=>{e.preventDefault();goto('about')}}>Manifesto</a></li>
               <li><a href="#" onClick={(e)=>{e.preventDefault();goto('app')}}>The app</a></li>
-              <li><a href="#">Coaches</a></li>
-              <li><a href="#">Journal</a></li>
-              <li><a href="#">Stockists</a></li>
+              <li><a href="#" onClick={(e)=>e.preventDefault()}>Coaches</a></li>
+              <li><a href="#" onClick={(e)=>e.preventDefault()}>Journal</a></li>
+              <li><a href="#" onClick={(e)=>e.preventDefault()}>Stockists</a></li>
             </ul>
           </div>
           <div>
             <h4>Care</h4>
             <ul>
-              <li><a href="#">Sizing</a></li>
-              <li><a href="#">Returns</a></li>
-              <li><a href="#">Shipping</a></li>
-              <li><a href="#">Contact</a></li>
-              <li><a href="#">Press</a></li>
+              <li><a href="#" onClick={(e)=>e.preventDefault()}>Sizing</a></li>
+              <li><a href="#" onClick={(e)=>e.preventDefault()}>Returns</a></li>
+              <li><a href="#" onClick={(e)=>e.preventDefault()}>Shipping</a></li>
+              <li><a href="#" onClick={(e)=>e.preventDefault()}>Contact</a></li>
+              <li><a href="#" onClick={(e)=>e.preventDefault()}>Press</a></li>
             </ul>
           </div>
           <div>
             <h4>Privacy</h4>
             <ul>
               <li><a href="/privacy">Privacy policy</a></li>
-              <li><a href="#">Terms of service</a></li>
-              <li><a href="#">Cookie preferences</a></li>
-              <li><a href="#">Data requests</a></li>
-              <li><a href="#">Accessibility</a></li>
+              <li><a href="#" onClick={(e)=>e.preventDefault()}>Terms of service</a></li>
+              <li><a href="#" onClick={(e)=>e.preventDefault()}>Cookie preferences</a></li>
+              <li><a href="#" onClick={(e)=>e.preventDefault()}>Data requests</a></li>
+              <li><a href="#" onClick={(e)=>e.preventDefault()}>Accessibility</a></li>
             </ul>
           </div>
         </div>
