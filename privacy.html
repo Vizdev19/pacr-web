@@ -1,0 +1,414 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Privacy Policy — Pacr</title>
+<meta name="description" content="How Pacr collects, uses, and protects your information." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@300;400;500;600&family=Archivo:wght@400;500;600;700;800;900&display=swap" />
+<link rel="stylesheet" href="brand.css" />
+<style>
+  /* Privacy page-specific styles, keeping brand language */
+  .legal-hero{
+    border-bottom:1px solid var(--line);
+    padding:96px 0 64px;
+  }
+  .legal-hero .container{
+    display:grid;
+    grid-template-columns:200px 1fr 200px;
+    gap:32px;
+    align-items:end;
+  }
+  .legal-hero h1{
+    font-family:var(--display);
+    font-weight:600;
+    font-size:72px;
+    letter-spacing:-0.035em;
+    line-height:.98;
+    margin:0;
+    text-wrap:balance;
+  }
+  .legal-hero .meta-r{text-align:right}
+
+  .legal-body{padding:80px 0 120px}
+  .legal-grid{
+    display:grid;
+    grid-template-columns:240px 1fr;
+    gap:64px;
+    max-width:1100px;
+  }
+  .legal-toc{
+    position:sticky;
+    top:96px;
+    align-self:start;
+    font-family:var(--mono);
+    font-size:11px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:var(--mute);
+  }
+  .legal-toc h4{
+    font-family:var(--mono);
+    font-size:10px;
+    letter-spacing:.2em;
+    color:var(--mute-2);
+    margin:0 0 18px;
+    font-weight:400;
+  }
+  .legal-toc ol{
+    list-style:none;
+    counter-reset:item;
+    padding:0;margin:0;
+    display:flex;flex-direction:column;gap:10px;
+  }
+  .legal-toc ol li{counter-increment:item}
+  .legal-toc ol li a{
+    display:flex;gap:14px;color:var(--ink);opacity:.7;transition:opacity .15s;
+  }
+  .legal-toc ol li a:hover{opacity:1}
+  .legal-toc ol li a::before{
+    content:counter(item,decimal-leading-zero);
+    color:var(--mute-2);
+  }
+
+  .legal-content section{padding:0 0 56px}
+  .legal-content section + section{border-top:1px solid var(--line); padding-top:56px}
+  .legal-content h2{
+    font-family:var(--display);
+    font-weight:600;
+    font-size:30px;
+    letter-spacing:-0.02em;
+    line-height:1.1;
+    margin:0 0 8px;
+  }
+  .legal-content .section-num{
+    font-family:var(--mono);font-size:10px;letter-spacing:.2em;text-transform:uppercase;
+    color:var(--mute-2);margin-bottom:24px;
+  }
+  .legal-content p{
+    font-size:16px;
+    line-height:1.65;
+    color:rgba(14,14,12,0.78);
+    margin:0 0 16px;
+    max-width:680px;
+  }
+  .legal-content ul{
+    margin:8px 0 16px;
+    padding-left:20px;
+    max-width:680px;
+  }
+  .legal-content ul li{
+    font-size:16px;
+    line-height:1.65;
+    color:rgba(14,14,12,0.78);
+    margin-bottom:8px;
+  }
+  .legal-content strong{font-weight:600;color:var(--ink)}
+  .legal-content a{
+    color:var(--ink);
+    border-bottom:1px solid var(--line);
+    transition:border-color .15s;
+  }
+  .legal-content a:hover{border-bottom-color:var(--ink)}
+
+  .updated-strip{
+    display:flex;justify-content:space-between;align-items:baseline;
+    padding:20px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);
+    margin-bottom:48px;
+    font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;
+    color:var(--mute);
+  }
+
+  @media (max-width:900px){
+    .legal-hero{padding:56px 0 40px}
+    .legal-hero .container{grid-template-columns:1fr;gap:16px}
+    .legal-hero .meta-l,.legal-hero .meta-r{display:none}
+    .legal-hero h1{font-size:44px}
+    .legal-body{padding:48px 0 80px}
+    .legal-grid{grid-template-columns:1fr;gap:32px}
+    .legal-toc{position:static}
+    .legal-content h2{font-size:24px}
+  }
+</style>
+</head>
+<body>
+
+<!-- ===== Nav (static, mirrors shell.jsx) ===== -->
+<header class="nav">
+  <div class="nav-inner">
+    <div class="nav-left">
+      <a href="/#shop">Shop</a>
+      <a href="/#collection">Collection</a>
+      <a href="/#about">Manifesto</a>
+      <a href="/#app">App</a>
+    </div>
+    <div class="nav-center">
+      <a href="/"><span class="wm md">pacr</span></a>
+    </div>
+    <div class="nav-right">
+      <a href="/#search">Search</a>
+      <a href="/#account">Account</a>
+      <a href="/#cart"><span class="cart-pill"><span class="dot"></span>Cart · 2</span></a>
+    </div>
+  </div>
+</header>
+
+<main>
+  <!-- HERO -->
+  <section class="legal-hero">
+    <div class="container">
+      <div class="meta-l">
+        <div class="eyebrow">Pacr / Legal · 001</div>
+      </div>
+      <h1>Privacy<br/>Policy.</h1>
+      <div class="meta-r">
+        <div class="eyebrow">In effect 2026</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- BODY -->
+  <section class="legal-body">
+    <div class="container">
+      <div class="updated-strip">
+        <div>Last updated · January 2026</div>
+        <div>Version 1.0</div>
+      </div>
+
+      <div class="legal-grid">
+        <!-- TOC -->
+        <aside class="legal-toc">
+          <h4>Contents</h4>
+          <ol>
+            <li><a href="#intro">Introduction</a></li>
+            <li><a href="#collect">What we collect</a></li>
+            <li><a href="#use">How we use it</a></li>
+            <li><a href="#share">Sharing</a></li>
+            <li><a href="#cookies">Cookies</a></li>
+            <li><a href="#rights">Your rights</a></li>
+            <li><a href="#retention">Retention</a></li>
+            <li><a href="#security">Security</a></li>
+            <li><a href="#children">Children</a></li>
+            <li><a href="#changes">Changes</a></li>
+            <li><a href="#contact">Contact</a></li>
+          </ol>
+        </aside>
+
+        <!-- CONTENT -->
+        <div class="legal-content">
+          <section id="intro">
+            <div class="section-num">01 / Introduction</div>
+            <h2>The shortest version we could write.</h2>
+            <p>
+              Pacr is an apparel brand and an invite-only running app. We collect the minimum
+              information needed to ship you garments, run our app, and keep our community
+              honest. We don't sell your data. We don't run ad networks against you. This
+              policy explains what we do collect, why, and what control you have over it.
+            </p>
+            <p>
+              "Pacr", "we", "us" and "our" refer to Pacr Life Ltd. "You" refers to anyone
+              who visits <a href="https://www.pacr.life">pacr.life</a>, buys from us, or
+              uses the Pacr app.
+            </p>
+          </section>
+
+          <section id="collect">
+            <div class="section-num">02 / What we collect</div>
+            <h2>Information you give us, and a little we observe.</h2>
+            <p>We collect three kinds of information:</p>
+            <ul>
+              <li><strong>Information you give us</strong> — name, email, shipping and billing addresses, phone number, sizes, payment details (processed by our payment partner, not stored by us), and any messages you send to support.</li>
+              <li><strong>Information from the Pacr app</strong> — training sessions, paces, distances, heart rate (if you connect a wearable), goals, and any notes you write. This data is encrypted at rest and tied to your account only.</li>
+              <li><strong>Information collected automatically</strong> — IP address, browser type, device type, pages visited, and approximate location (city-level). We use this to keep the site fast and detect abuse.</li>
+            </ul>
+          </section>
+
+          <section id="use">
+            <div class="section-num">03 / How we use it</div>
+            <h2>To ship, to run, to improve. Nothing more.</h2>
+            <ul>
+              <li>Fulfill your orders and process returns.</li>
+              <li>Operate the Pacr app — your training feed, pace insights, and coach connections.</li>
+              <li>Send order updates, restock alerts (if you opt in), and the occasional editorial drop note.</li>
+              <li>Detect fraud, prevent abuse, and meet our legal obligations.</li>
+              <li>Understand which products and features people actually use, in aggregate.</li>
+            </ul>
+            <p>
+              We do <strong>not</strong> use your training data to target ads. We do
+              <strong>not</strong> sell your information to data brokers.
+            </p>
+          </section>
+
+          <section id="share">
+            <div class="section-num">04 / Sharing</div>
+            <h2>A small set of partners, each for a specific job.</h2>
+            <p>We share information only with vendors who help us run the business:</p>
+            <ul>
+              <li><strong>Payments</strong> — Stripe processes cards; we never see your full card number.</li>
+              <li><strong>Shipping</strong> — DHL, USPS, and regional carriers receive the address needed to deliver.</li>
+              <li><strong>Email</strong> — our transactional and marketing email provider sends your receipts and (if opted in) journal notes.</li>
+              <li><strong>Analytics</strong> — privacy-respecting analytics that do not use third-party cookies or personal identifiers.</li>
+              <li><strong>Legal</strong> — when required by law, court order, or to protect our rights.</li>
+            </ul>
+            <p>
+              We don't share your data for anyone else's marketing. Ever.
+            </p>
+          </section>
+
+          <section id="cookies">
+            <div class="section-num">05 / Cookies</div>
+            <h2>Just enough to keep you logged in.</h2>
+            <p>
+              We use a small number of first-party cookies for session state, cart
+              persistence, and aggregate analytics. You can clear them at any time
+              from your browser. Where required by law, we'll ask for your consent
+              before setting any non-essential cookies.
+            </p>
+          </section>
+
+          <section id="rights">
+            <div class="section-num">06 / Your rights</div>
+            <h2>You own your data. You can take it back.</h2>
+            <p>Wherever you live, you can:</p>
+            <ul>
+              <li>Request a copy of the information we hold about you.</li>
+              <li>Correct anything that's wrong.</li>
+              <li>Ask us to delete your account and associated data.</li>
+              <li>Withdraw consent for marketing emails at any time (one click in any email).</li>
+              <li>Object to or restrict certain types of processing.</li>
+            </ul>
+            <p>
+              Residents of the EU, UK, and California have additional rights under GDPR,
+              UK GDPR, and the CCPA respectively, including the right to lodge a complaint
+              with your local data protection authority. Email
+              <a href="mailto:privacy@pacr.life">privacy@pacr.life</a> to exercise any
+              of these. We'll respond within 30 days.
+            </p>
+          </section>
+
+          <section id="retention">
+            <div class="section-num">07 / Retention</div>
+            <h2>We keep what we need, for as long as we need it.</h2>
+            <p>
+              Order records are kept for seven years to meet tax and warranty obligations.
+              Training data lives as long as your Pacr account is active; you can delete
+              your account from in-app settings, after which we erase identifiable data
+              within 30 days (some anonymous, aggregated records may remain).
+            </p>
+          </section>
+
+          <section id="security">
+            <div class="section-num">08 / Security</div>
+            <h2>Encrypted in transit. Encrypted at rest.</h2>
+            <p>
+              All traffic to pacr.life uses TLS. Production databases are encrypted at
+              rest. Access to customer data is logged and limited to staff who need it
+              to do their job. No system is unbreakable — but we hold ourselves to a
+              standard our members would expect.
+            </p>
+          </section>
+
+          <section id="children">
+            <div class="section-num">09 / Children</div>
+            <h2>The Pacr app is for adults.</h2>
+            <p>
+              Pacr is intended for users aged 16 and over. We do not knowingly collect
+              data from anyone younger. If you believe a minor has provided us with
+              information, contact us and we'll remove it.
+            </p>
+          </section>
+
+          <section id="changes">
+            <div class="section-num">10 / Changes</div>
+            <h2>If something material changes, we'll tell you.</h2>
+            <p>
+              We may update this policy as the business grows. The "Last updated" date
+              at the top reflects the most recent version. If we make material changes,
+              we'll notify members by email at least 14 days before they take effect.
+            </p>
+          </section>
+
+          <section id="contact">
+            <div class="section-num">11 / Contact</div>
+            <h2>Talk to a human.</h2>
+            <p>
+              Privacy questions go to <a href="mailto:privacy@pacr.life">privacy@pacr.life</a>.
+              General support is <a href="mailto:hello@pacr.life">hello@pacr.life</a>.
+              Postal mail: Pacr Life Ltd., Privacy Office.
+            </p>
+          </section>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- ===== Footer (static, mirrors shell.jsx) ===== -->
+<footer class="footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <span class="wm lg" style="color:var(--bone)">pacr</span>
+        <div style="margin-top:24px;max-width:360px;font-size:14px;line-height:1.6;color:rgba(244,241,236,0.78)">
+          An apparel brand and an invite-only running app for athletes who train with intent.
+        </div>
+        <div style="margin-top:32px;display:flex;gap:8px;align-items:stretch;max-width:360px">
+          <input placeholder="Email address" style="flex:1;background:transparent;border:1px solid rgba(244,241,236,0.24);color:var(--bone);padding:12px 14px;font-family:var(--display);font-size:14px;outline:none" />
+          <button class="btn on-dark" style="padding:12px 18px">Join →</button>
+        </div>
+      </div>
+      <div>
+        <h4>Shop</h4>
+        <ul>
+          <li><a href="/#shop">All apparel</a></li>
+          <li><a href="/#shop">Tops</a></li>
+          <li><a href="/#shop">Shorts</a></li>
+          <li><a href="/#shop">Tights</a></li>
+          <li><a href="/#shop">Singlets</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Pacr</h4>
+        <ul>
+          <li><a href="/#about">Manifesto</a></li>
+          <li><a href="/#app">The app</a></li>
+          <li><a href="#">Coaches</a></li>
+          <li><a href="#">Journal</a></li>
+          <li><a href="#">Stockists</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Care</h4>
+        <ul>
+          <li><a href="#">Sizing</a></li>
+          <li><a href="#">Returns</a></li>
+          <li><a href="#">Shipping</a></li>
+          <li><a href="#">Contact</a></li>
+          <li><a href="#">Press</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Privacy</h4>
+        <ul>
+          <li><a href="/privacy">Privacy policy</a></li>
+          <li><a href="#">Terms of service</a></li>
+          <li><a href="#">Cookie preferences</a></li>
+          <li><a href="#">Data requests</a></li>
+          <li><a href="#">Accessibility</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <div>© 2026 Pacr · Train like a craft</div>
+      <div style="display:flex;gap:24px;align-items:center">
+        <a href="/#app" class="invite-link">Request an invite</a>
+        <span>EN · USD</span>
+      </div>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>
