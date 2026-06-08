@@ -83,6 +83,14 @@
     line-height:1.1;
     margin:0 0 8px;
   }
+  .legal-content h3{
+    font-family:var(--display);
+    font-weight:600;
+    font-size:18px;
+    letter-spacing:-0.01em;
+    line-height:1.2;
+    margin:28px 0 12px;
+  }
   .legal-content .section-num{
     font-family:var(--mono);font-size:10px;letter-spacing:.2em;text-transform:uppercase;
     color:var(--mute-2);margin-bottom:24px;
@@ -94,12 +102,12 @@
     margin:0 0 16px;
     max-width:680px;
   }
-  .legal-content ul{
+  .legal-content ul,.legal-content ol.body-list{
     margin:8px 0 16px;
     padding-left:20px;
     max-width:680px;
   }
-  .legal-content ul li{
+  .legal-content ul li,.legal-content ol.body-list li{
     font-size:16px;
     line-height:1.65;
     color:rgba(14,14,12,0.78);
@@ -112,6 +120,35 @@
     transition:border-color .15s;
   }
   .legal-content a:hover{border-bottom-color:var(--ink)}
+
+  /* Tables — brand mono/editorial treatment */
+  .legal-table{
+    width:100%;
+    border-collapse:collapse;
+    margin:8px 0 20px;
+    font-size:14px;
+  }
+  .legal-table th{
+    text-align:left;
+    font-family:var(--mono);
+    font-size:10px;
+    letter-spacing:.16em;
+    text-transform:uppercase;
+    color:var(--mute);
+    font-weight:400;
+    padding:12px 16px;
+    border-bottom:1px solid var(--ink);
+    vertical-align:bottom;
+  }
+  .legal-table td{
+    padding:14px 16px;
+    border-bottom:1px solid var(--line);
+    line-height:1.5;
+    color:rgba(14,14,12,0.82);
+    vertical-align:top;
+  }
+  .legal-table td:first-child{font-weight:500;color:var(--ink)}
+  .table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
 
   .updated-strip{
     display:flex;justify-content:space-between;align-items:baseline;
@@ -173,8 +210,8 @@
   <section class="legal-body">
     <div class="container">
       <div class="updated-strip">
-        <div>Last updated · January 2026</div>
-        <div>Version 1.0</div>
+        <div>Effective · 6 June 2026</div>
+        <div>Last updated · 6 June 2026</div>
       </div>
 
       <div class="legal-grid">
@@ -182,15 +219,20 @@
         <aside class="legal-toc">
           <h4>Contents</h4>
           <ol>
-            <li><a href="#intro">Introduction</a></li>
-            <li><a href="#collect">What we collect</a></li>
-            <li><a href="#use">How we use it</a></li>
-            <li><a href="#share">Sharing</a></li>
-            <li><a href="#cookies">Cookies</a></li>
+            <li><a href="#who">Who we are</a></li>
+            <li><a href="#summary">Quick summary</a></li>
+            <li><a href="#collect">What data we collect</a></li>
+            <li><a href="#location">Location data</a></li>
+            <li><a href="#motion">Physical activity data</a></li>
+            <li><a href="#use">How we use your data</a></li>
+            <li><a href="#providers">Service providers</a></li>
+            <li><a href="#squad">Squad data and visibility</a></li>
+            <li><a href="#email">Email authentication</a></li>
+            <li><a href="#retention">Data retention</a></li>
+            <li><a href="#storage">Where data is stored</a></li>
             <li><a href="#rights">Your rights</a></li>
-            <li><a href="#retention">Retention</a></li>
+            <li><a href="#children">Children's privacy</a></li>
             <li><a href="#security">Security</a></li>
-            <li><a href="#children">Children</a></li>
             <li><a href="#changes">Changes</a></li>
             <li><a href="#contact">Contact</a></li>
           </ol>
@@ -198,145 +240,313 @@
 
         <!-- CONTENT -->
         <div class="legal-content">
-          <section id="intro">
-            <div class="section-num">01 / Introduction</div>
-            <h2>The shortest version we could write.</h2>
+          <section id="who">
+            <div class="section-num">01 / Who we are</div>
+            <h2>Who we are.</h2>
             <p>
-              Pacr is an apparel brand and an invite-only running app. We collect the minimum
-              information needed to ship you garments, run our app, and keep our community
-              honest. We don't sell your data. We don't run ad networks against you. This
-              policy explains what we do collect, why, and what control you have over it.
+              Pacr ("we", "us", "our") is an AI-powered running coach app. You can reach us at:
             </p>
             <p>
-              "Pacr", "we", "us" and "our" refer to Pacr Life Ltd. "You" refers to anyone
-              who visits <a href="https://www.pacr.life">pacr.life</a>, buys from us, or
-              uses the Pacr app.
+              <strong>Email:</strong> <a href="mailto:support@pacr.life">support@pacr.life</a><br/>
+              <strong>Website:</strong> <a href="https://pacr.life">https://pacr.life</a>
             </p>
+            <p>
+              This policy explains what data we collect, how we use it, and the choices you have.
+            </p>
+          </section>
+
+          <section id="summary">
+            <div class="section-num">02 / Quick summary</div>
+            <h2>The short version.</h2>
+            <p>We try to collect the <strong>minimum data necessary</strong> to run the app:</p>
+            <ul>
+              <li><strong>Anonymous by default</strong> — you can use Pacr without an email or any identifying information. The app creates a random anonymous account on first launch.</li>
+              <li><strong>Optional email</strong> — only if you want to recover your account on a new device or create a private squad.</li>
+              <li><strong>Your run data is yours</strong> — we sync some of it to our servers so it works across devices, but only you and people you explicitly invite to your squad see it.</li>
+              <li><strong>We never sell your data.</strong></li>
+              <li><strong>No ads.</strong></li>
+            </ul>
           </section>
 
           <section id="collect">
-            <div class="section-num">02 / What we collect</div>
-            <h2>Information you give us, and a little we observe.</h2>
-            <p>We collect three kinds of information:</p>
+            <div class="section-num">03 / What data we collect</div>
+            <h2>What data we collect.</h2>
+
+            <h3>3a. Information you provide during onboarding</h3>
+            <div class="table-scroll">
+              <table class="legal-table">
+                <thead><tr><th>Data</th><th>Why we collect it</th><th>Required?</th></tr></thead>
+                <tbody>
+                  <tr><td>Display name</td><td>Personalisation in the app and on squad leaderboards</td><td>Yes</td></tr>
+                  <tr><td>Running experience (new / regular / experienced)</td><td>Tunes the AI coach's daily workout prescriptions</td><td>Yes</td></tr>
+                  <tr><td>Goal (build habit / get faster / train for a race / general fitness)</td><td>Tunes the AI coach's daily workout prescriptions</td><td>Yes</td></tr>
+                  <tr><td>Race distance + date window (only if "Train for a race")</td><td>Builds an appropriate training plan</td><td>Yes</td></tr>
+                  <tr><td>Weekly availability (2–3 / 3–4 / 5+ days)</td><td>Tunes the AI coach's daily workout prescriptions</td><td>Yes</td></tr>
+                  <tr><td>Email address</td><td>Cross-device account recovery; required to create a squad</td><td>Optional</td></tr>
+                  <tr><td>Age, gender, height, weight</td><td>Improves calorie/effort estimation</td><td>Optional, editable in Profile</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h3>3b. Information generated as you use the app</h3>
+            <div class="table-scroll">
+              <table class="legal-table">
+                <thead><tr><th>Data</th><th>Why we collect it</th><th>Where it's stored</th></tr></thead>
+                <tbody>
+                  <tr><td>Run history (distance, duration, pace, GPS route, cadence)</td><td>Show your progress; power the leaderboard</td><td>Locally on device; <strong>summaries</strong> (distance, duration, pace, week) synced to our servers</td></tr>
+                  <tr><td>GPS route coordinates</td><td>Map your run on the Run Detail screen</td><td><strong>Only on your device</strong> — we don't send routes to our servers</td></tr>
+                  <tr><td>AI workout prescriptions</td><td>Show your daily workout suggestions</td><td>On your device and on our servers</td></tr>
+                  <tr><td>Squad memberships, invite codes, leaderboard standings</td><td>Power the social features</td><td>On our servers</td></tr>
+                  <tr><td>Rest days you mark</td><td>Adjust streak calculation</td><td>On your device and on our servers</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h3>3c. Technical information</h3>
+            <div class="table-scroll">
+              <table class="legal-table">
+                <thead><tr><th>Data</th><th>Why we collect it</th></tr></thead>
+                <tbody>
+                  <tr><td>Random anonymous install ID</td><td>Identify a single install for analytics (not tied to your real identity)</td></tr>
+                  <tr><td>App version, OS version, device model</td><td>Debug crashes and improve compatibility</td></tr>
+                  <tr><td>Crash logs</td><td>Diagnose issues</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <p>
+              We do <strong>not</strong> collect: phone numbers, payment information, contacts,
+              photos, microphone audio, or biometric identifiers.
+            </p>
+          </section>
+
+          <section id="location">
+            <div class="section-num">04 / Location data</div>
+            <h2>Location data.</h2>
+            <p>Pacr requests device location to:</p>
             <ul>
-              <li><strong>Information you give us</strong> — name, email, shipping and billing addresses, phone number, sizes, payment details (processed by our payment partner, not stored by us), and any messages you send to support.</li>
-              <li><strong>Information from the Pacr app</strong> — training sessions, paces, distances, heart rate (if you connect a wearable), goals, and any notes you write. This data is encrypted at rest and tied to your account only.</li>
-              <li><strong>Information collected automatically</strong> — IP address, browser type, device type, pages visited, and approximate location (city-level). We use this to keep the site fast and detect abuse.</li>
+              <li>Track your GPS route during a run</li>
+              <li>Show weather and air quality (AQI) at your location</li>
+              <li>Suggest nearby running spots</li>
             </ul>
+
+            <h3>When we access location</h3>
+            <ul>
+              <li><strong>Foreground only</strong>: while the app is open on the Home or Run screen</li>
+              <li><strong>Background</strong>: only during an active run, so your route is recorded if you lock your screen. Tracking stops automatically when the run ends.</li>
+            </ul>
+
+            <h3>What we send</h3>
+            <ul>
+              <li><strong>GPS routes</strong>: stay on your device only. Never uploaded to our servers.</li>
+              <li><strong>Coarse location</strong> (rounded to ~1 km grid): sent to a weather and air-quality data provider to fetch a forecast for your area. No personal identifier is attached.</li>
+              <li><strong>Distance to running spots</strong>: computed entirely on-device.</li>
+            </ul>
+            <p>
+              You can revoke location permission at any time via your device settings. Pacr
+              remains usable without location, but run tracking, weather, and AQI features
+              will be disabled.
+            </p>
+          </section>
+
+          <section id="motion">
+            <div class="section-num">05 / Physical activity data</div>
+            <h2>Physical activity (motion sensor) data.</h2>
+            <p>
+              Pacr uses your device's accelerometer to measure running cadence (steps per
+              minute) during a run. This data is processed entirely on-device and is
+              <strong>not transmitted externally</strong>.
+            </p>
           </section>
 
           <section id="use">
-            <div class="section-num">03 / How we use it</div>
-            <h2>To ship, to run, to improve. Nothing more.</h2>
-            <ul>
-              <li>Fulfill your orders and process returns.</li>
-              <li>Operate the Pacr app — your training feed, pace insights, and coach connections.</li>
-              <li>Send order updates, restock alerts (if you opt in), and the occasional editorial drop note.</li>
-              <li>Detect fraud, prevent abuse, and meet our legal obligations.</li>
-              <li>Understand which products and features people actually use, in aggregate.</li>
-            </ul>
+            <div class="section-num">06 / How we use your data</div>
+            <h2>How we use your data.</h2>
+            <p>We use the data described above to:</p>
+            <ol class="body-list">
+              <li><strong>Run the core app</strong>: track runs, generate workout prescriptions, calculate streaks, show progress</li>
+              <li><strong>Power the squad feature</strong>: display the weekly leaderboard to people you've invited to your squad</li>
+              <li><strong>Improve the app</strong>: aggregate, anonymised analytics help us see which features are used</li>
+              <li><strong>Communicate with you</strong>: we don't send marketing emails. Email is used only for authentication (one-time codes for sign-in / sign-up)</li>
+              <li><strong>Comply with legal obligations</strong>: respond to lawful requests if required</li>
+            </ol>
+            <p>We do <strong>not</strong> use your data to build advertising profiles.</p>
+          </section>
+
+          <section id="providers">
+            <div class="section-num">07 / Service providers</div>
+            <h2>Service providers we work with.</h2>
             <p>
-              We do <strong>not</strong> use your training data to target ads. We do
-              <strong>not</strong> sell your information to data brokers.
+              To deliver the app, we share strictly necessary data with categories of trusted
+              service providers. They are contractually bound to use your data only for the
+              purposes we direct, and to protect it with appropriate security measures.
+            </p>
+            <div class="table-scroll">
+              <table class="legal-table">
+                <thead><tr><th>Provider category</th><th>What we share</th><th>Why</th></tr></thead>
+                <tbody>
+                  <tr><td>Hosting and database provider</td><td>Your account, display name, optional email, squad memberships, run summaries</td><td>Securely stores your account data and powers cross-device sync and the squad leaderboard</td></tr>
+                  <tr><td>AI service provider</td><td>Your run statistics, goal, experience, and weekly availability — as text in a prompt. <strong>Not</strong> your name, email, or GPS routes.</td><td>Generates your daily workout prescriptions</td></tr>
+                  <tr><td>Weather and air-quality data provider</td><td>Coarse location coordinates (~1 km grid)</td><td>Returns weather and air-quality data for your area. No personal identifier is sent.</td></tr>
+                  <tr><td>Analytics provider</td><td>A random anonymous install ID, screen-navigation events, feature interactions, app version. <strong>Not</strong> your name, email, GPS, or run details.</td><td>Helps us understand which features are used so we can improve the app</td></tr>
+                  <tr><td>Maps provider</td><td>Coordinates of a saved run (only when you view its Run Detail screen)</td><td>Renders the run's route on a map</td></tr>
+                  <tr><td>App update provider</td><td>App version and update-check requests</td><td>Delivers in-app updates</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <p>
+              We do <strong>not</strong> sell, rent, or trade your personal data with anyone.
+              We do not use third-party advertising networks.
             </p>
           </section>
 
-          <section id="share">
-            <div class="section-num">04 / Sharing</div>
-            <h2>A small set of partners, each for a specific job.</h2>
-            <p>We share information only with vendors who help us run the business:</p>
+          <section id="squad">
+            <div class="section-num">08 / Squad data and visibility</div>
+            <h2>Squad data and visibility.</h2>
+            <p>When you create or join a squad:</p>
             <ul>
-              <li><strong>Payments</strong> — Stripe processes cards; we never see your full card number.</li>
-              <li><strong>Shipping</strong> — DHL, USPS, and regional carriers receive the address needed to deliver.</li>
-              <li><strong>Email</strong> — our transactional and marketing email provider sends your receipts and (if opted in) journal notes.</li>
-              <li><strong>Analytics</strong> — privacy-respecting analytics that do not use third-party cookies or personal identifiers.</li>
-              <li><strong>Legal</strong> — when required by law, court order, or to protect our rights.</li>
+              <li>Your <strong>display name</strong> becomes visible to other members of that squad</li>
+              <li>Your <strong>weekly run count, total distance, and current streak</strong> become visible to other members of that squad (this is the leaderboard)</li>
+              <li>Your individual <strong>GPS routes, addresses, and personal records</strong> are <strong>not</strong> shared with squad members</li>
             </ul>
             <p>
-              We don't share your data for anyone else's marketing. Ever.
+              When you leave a squad, your historical leaderboard entries for that squad's
+              past weeks remain visible to other members, but you no longer contribute new data.
             </p>
           </section>
 
-          <section id="cookies">
-            <div class="section-num">05 / Cookies</div>
-            <h2>Just enough to keep you logged in.</h2>
-            <p>
-              We use a small number of first-party cookies for session state, cart
-              persistence, and aggregate analytics. You can clear them at any time
-              from your browser. Where required by law, we'll ask for your consent
-              before setting any non-essential cookies.
-            </p>
-          </section>
-
-          <section id="rights">
-            <div class="section-num">06 / Your rights</div>
-            <h2>You own your data. You can take it back.</h2>
-            <p>Wherever you live, you can:</p>
+          <section id="email">
+            <div class="section-num">09 / Email authentication</div>
+            <h2>Email authentication (optional).</h2>
+            <p>If you choose to link an email to your account:</p>
             <ul>
-              <li>Request a copy of the information we hold about you.</li>
-              <li>Correct anything that's wrong.</li>
-              <li>Ask us to delete your account and associated data.</li>
-              <li>Withdraw consent for marketing emails at any time (one click in any email).</li>
-              <li>Object to or restrict certain types of processing.</li>
+              <li>We send a <strong>one-time code</strong> to that email address</li>
+              <li>We use the email only to identify your account on sign-in attempts — never for marketing</li>
+              <li>You can unlink the email at any time from <strong>Profile → Account</strong></li>
             </ul>
             <p>
-              Residents of the EU, UK, and California have additional rights under GDPR,
-              UK GDPR, and the CCPA respectively, including the right to lodge a complaint
-              with your local data protection authority. Email
-              <a href="mailto:privacy@pacr.life">privacy@pacr.life</a> to exercise any
-              of these. We'll respond within 30 days.
+              Linking an email is required to <strong>create</strong> a new squad (so your
+              squad doesn't become orphaned if you reinstall the app). Email is <strong>not</strong>
+              required to join a squad via invite code, to use the AI coach, or to track runs.
             </p>
           </section>
 
           <section id="retention">
-            <div class="section-num">07 / Retention</div>
-            <h2>We keep what we need, for as long as we need it.</h2>
+            <div class="section-num">10 / Data retention</div>
+            <h2>Data retention.</h2>
+            <div class="table-scroll">
+              <table class="legal-table">
+                <thead><tr><th>Data</th><th>Retention</th></tr></thead>
+                <tbody>
+                  <tr><td>On-device app data (full run history, GPS routes, prescriptions cache)</td><td>Until you delete the app or use <strong>Delete all my data</strong></td></tr>
+                  <tr><td>Account, display name, email, run summaries, squad memberships (server-side)</td><td>Until you request deletion</td></tr>
+                  <tr><td>Analytics events</td><td>12 months from event date, then auto-deleted</td></tr>
+                  <tr><td>Crash logs</td><td>90 days</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h3>Deleting your data</h3>
+            <p>You can delete your data in two ways:</p>
+            <ol class="body-list">
+              <li><strong>In-app</strong> — open <strong>Profile → Delete all my data</strong>. This wipes your on-device data and signs you out. Server-side records for your account are queued for deletion within 30 days.</li>
+              <li><strong>By email</strong> — write to <a href="mailto:support@pacr.life">support@pacr.life</a> from the email linked to your account. We will delete all server-side records associated with you within 30 days and confirm by reply.</li>
+            </ol>
             <p>
-              Order records are kept for seven years to meet tax and warranty obligations.
-              Training data lives as long as your Pacr account is active; you can delete
-              your account from in-app settings, after which we erase identifiable data
-              within 30 days (some anonymous, aggregated records may remain).
+              Uninstalling the app deletes your on-device data but does <strong>not</strong>
+              delete your server-side account. Use the in-app option or email us to remove that.
             </p>
           </section>
 
-          <section id="security">
-            <div class="section-num">08 / Security</div>
-            <h2>Encrypted in transit. Encrypted at rest.</h2>
+          <section id="storage">
+            <div class="section-num">11 / Where data is stored</div>
+            <h2>Where your data is stored.</h2>
             <p>
-              All traffic to pacr.life uses TLS. Production databases are encrypted at
-              rest. Access to customer data is logged and limited to staff who need it
-              to do their job. No system is unbreakable — but we hold ourselves to a
-              standard our members would expect.
+              Pacr operates globally. Data may be stored or processed in multiple regions,
+              including India, the European Union, and the United States. When data crosses
+              borders, we rely on appropriate legal safeguards (such as standard contractual
+              clauses) and on the privacy commitments of our service providers.
+            </p>
+          </section>
+
+          <section id="rights">
+            <div class="section-num">12 / Your rights</div>
+            <h2>Your rights.</h2>
+            <p>Depending on where you live, you may have the right to:</p>
+            <ul>
+              <li><strong>Access</strong> the personal data we hold about you</li>
+              <li><strong>Correct</strong> inaccurate data</li>
+              <li><strong>Delete</strong> your data (see Section 10)</li>
+              <li><strong>Object</strong> to or <strong>restrict</strong> certain processing</li>
+              <li><strong>Port</strong> your data to another service</li>
+              <li><strong>Withdraw consent</strong> for optional features (e.g., linked email)</li>
+            </ul>
+            <p>
+              For most data, you can exercise these rights directly in the app. For anything
+              else, email <a href="mailto:support@pacr.life">support@pacr.life</a> and we will
+              respond within 30 days.
+            </p>
+            <p>
+              If you're in India, the Digital Personal Data Protection Act 2023 applies. You
+              may lodge a complaint with the Data Protection Board of India if we don't respond
+              to your request.
+            </p>
+            <p>
+              If you're in the European Union or United Kingdom, you may lodge a complaint with
+              your local data protection authority.
             </p>
           </section>
 
           <section id="children">
-            <div class="section-num">09 / Children</div>
-            <h2>The Pacr app is for adults.</h2>
+            <div class="section-num">13 / Children's privacy</div>
+            <h2>Children's privacy.</h2>
             <p>
-              Pacr is intended for users aged 16 and over. We do not knowingly collect
-              data from anyone younger. If you believe a minor has provided us with
-              information, contact us and we'll remove it.
+              Pacr is not directed at children under 13 (or the equivalent minimum age in your
+              jurisdiction). We do not knowingly collect data from such children. If you believe
+              a child has provided us with personal data, contact us at
+              <a href="mailto:support@pacr.life">support@pacr.life</a> and we will delete it promptly.
+            </p>
+          </section>
+
+          <section id="security">
+            <div class="section-num">14 / Security</div>
+            <h2>Security.</h2>
+            <p>We protect your data using industry-standard practices:</p>
+            <ul>
+              <li>All network traffic is encrypted in transit</li>
+              <li>Your account data is encrypted at rest</li>
+              <li>Authentication credentials are stored using your device's secure storage</li>
+              <li>Strict access controls so squad members can only see data for circles they belong to</li>
+            </ul>
+            <p>
+              No system is perfectly secure. If we become aware of a breach affecting your data,
+              we will notify you and the relevant authorities as required by law.
             </p>
           </section>
 
           <section id="changes">
-            <div class="section-num">10 / Changes</div>
-            <h2>If something material changes, we'll tell you.</h2>
+            <div class="section-num">15 / Changes</div>
+            <h2>Changes to this policy.</h2>
+            <p>We may update this policy as the app evolves. When we do, we'll:</p>
+            <ul>
+              <li>Update the <strong>"Last updated"</strong> date at the top</li>
+              <li>For material changes, post a notice in the app and (if you have an email linked) send a notification to that email</li>
+            </ul>
             <p>
-              We may update this policy as the business grows. The "Last updated" date
-              at the top reflects the most recent version. If we make material changes,
-              we'll notify members by email at least 14 days before they take effect.
+              Continued use of the app after changes take effect constitutes acceptance of the
+              updated policy.
             </p>
           </section>
 
           <section id="contact">
-            <div class="section-num">11 / Contact</div>
-            <h2>Talk to a human.</h2>
+            <div class="section-num">16 / Contact</div>
+            <h2>Contact.</h2>
+            <p>Questions, concerns, or data requests:</p>
             <p>
-              Privacy questions go to <a href="mailto:privacy@pacr.life">privacy@pacr.life</a>.
-              General support is <a href="mailto:hello@pacr.life">hello@pacr.life</a>.
-              Postal mail: Pacr Life Ltd., Privacy Office.
+              <strong>Email:</strong> <a href="mailto:support@pacr.life">support@pacr.life</a><br/>
+              <strong>Website:</strong> <a href="https://pacr.life">https://pacr.life</a>
+            </p>
+            <p>
+              We aim to respond within 7 days and to fulfil verified data requests within 30 days.
             </p>
           </section>
         </div>
