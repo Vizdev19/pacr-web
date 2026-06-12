@@ -61,6 +61,8 @@ legend { padding: 0; }
   color: var(--dim);
 }
 .mono-label--acid { color: var(--acid); }
+.t-paper { color: var(--paper); }
+.t-acid { color: var(--acid); }
 
 .tape {
   display: inline-block;
@@ -178,6 +180,7 @@ legend { padding: 0; }
   font-size: clamp(52px, 9.5vw, 96px); /* --text-hero cap; one per page */
   line-height: 0.85;
   letter-spacing: -0.03em;
+  color: var(--acid);
 }
 .hero-sub {
   margin: 26px 0 0;
