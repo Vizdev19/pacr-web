@@ -163,6 +163,17 @@ legend { padding: 0; }
   align-items: end;
 }
 .hero-eyebrow { margin: 0 0 22px; display: block; }
+.hero-logo {
+  /* --w = glyph width target, sized to match the headline's rendered width
+     (≈4.74em of the h1 size). The wordmark svg carries internal padding —
+     glyphs span x 226–974 of 1200 — so oversize by 1.606 and pull left/top
+     to align the visible letters with the text edge. */
+  --w: clamp(246px, 45vw, 455px);
+  width: calc(var(--w) * 1.606);
+  max-width: none; /* the oversize + negative margins do the cropping */
+  height: auto;
+  margin: calc(var(--w) * -0.063) 0 8px calc(var(--w) * -0.303);
+}
 .hero-h1 {
   font-size: clamp(52px, 9.5vw, 96px); /* --text-hero cap; one per page */
   line-height: 0.85;
