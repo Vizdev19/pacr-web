@@ -152,7 +152,13 @@ legend { padding: 0; }
   padding-block: 14px;
 }
 .nav-wordmark { display: inline-flex; }
-.nav-wordmark img { height: 24px; width: auto; }
+.nav-wordmark img {
+  /* 42px box → 32px visible glyphs (svg carries ~24% internal padding);
+     the negative margin cancels the left pad so the mark sits flush */
+  height: 42px;
+  width: auto;
+  margin-left: -26px;
+}
 .nav-links { display: flex; align-items: center; gap: 24px; }
 
 /* ── hero ──────────────────────────────────────────────────────────── */
