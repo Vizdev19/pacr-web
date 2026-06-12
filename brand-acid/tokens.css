@@ -1,0 +1,81 @@
+/* ────────────────────────────────────────────────────────────────────────
+   Pacr · Acid theme · web tokens v1.0
+   Source of truth: app repo `src/theme.ts` + `design-files-acid/index.html`.
+   Keep in sync with the app — do not invent new colors.
+   ──────────────────────────────────────────────────────────────────────── */
+
+:root {
+  /* Palette (5 tokens — the entire system) */
+  --pitch:   #0A0B08;                  /* background */
+  --deep:    #11140D;                  /* card / surface */
+  --paper:   #F2EFE6;                  /* text on dark · light section bg */
+  --acid:    #E8FF3A;                  /* accent — CTAs, focus, highlights. Use sparingly. */
+  --flare:   #FF4422;                  /* alerts only (AQI, errors) */
+
+  /* Derived */
+  --acid-pressed: #C8DC2D;             /* CTA hover/active */
+  --hairline: rgba(242, 239, 230, 0.12);  /* 1px dividers, card borders */
+  --dim:      rgba(242, 239, 230, 0.55);  /* secondary text — passes AA on pitch */
+  /* NOTE: the app's 0.35-alpha "textLight" tier fails WCAG AA for small
+     text on web (~3:1). Deliberately not exported. Use --dim. */
+
+  /* Inverse (for cream/light sections — wordmark-inverse.svg pairs with these) */
+  --ink:          #0A0B08;
+  --hairline-ink: rgba(10, 11, 8, 0.14);
+  --dim-ink:      rgba(10, 11, 8, 0.60);
+
+  /* Type families
+     display: hero numbers, big uppercase accents, CTA labels
+     body:    marketing prose (web-only addition — the app is glance-length,
+              the site is paragraphs; per product spec §5 body = Inter)
+     mono:    labels, units, data, captions */
+  --font-display: "Barlow Condensed", "Arial Narrow", sans-serif;  /* 900 italic */
+  --font-body:    "Inter", -apple-system, "Segoe UI", sans-serif;
+  --font-mono:    "JetBrains Mono", "SFMono-Regular", Menlo, monospace;
+
+  /* Type scale (px, from app typeScale — use rem equivalents in practice) */
+  --text-caption: 11px;   /* mono labels · letter-spacing 0.16em · uppercase */
+  --text-body:    16px;   /* web body (app uses 14 — too small for prose) */
+  --text-label:   18px;
+  --text-heading: 28px;
+  --text-title:   40px;
+  --text-display: 64px;
+  --text-hero:    96px;   /* one per page, max */
+
+  /* Display style recipe (apply together):
+     font: 900 italic var(--font-display);
+     letter-spacing: -0.02em; line-height: 0.85;
+     transform: skewX(-6deg) on the wrapper for the signature lean.
+     Uppercase ONLY for ≤2-word labels or one hero verb — the hero
+     headline is sentence case (see DESIGN_HANDOFF.md §4). */
+
+  /* Mono label recipe:
+     font: 600 var(--text-caption) var(--font-mono);
+     letter-spacing: 0.16em; text-transform: uppercase; color: var(--dim);
+     Optional acid "//" prefix. */
+
+  /* Spacing (px) */
+  --space-xs: 4px;  --space-sm: 8px;  --space-md: 12px; --space-lg: 16px;
+  --space-xl: 20px; --space-2xl: 24px; --space-3xl: 32px; --space-4xl: 48px;
+  --space-section: 96px;               /* web-only: between page sections */
+
+  /* Geometry — acid is angular. Almost no rounding. */
+  --radius-none: 0;
+  --radius-sm:   2px;
+  --radius-md:   4px;
+  --radius-pill: 9999px;               /* tape labels / pills only */
+
+  --container: 1240px;                 /* matches design-system reference page */
+}
+
+/* Signature elements (lift markup patterns from brand-acid/design-system/index.html):
+   .stripes — repeating-linear-gradient(-98deg, var(--acid) 0 6px, transparent 6px 12px)
+   .tape    — clip-path chevron tape label (mono, uppercase)
+   .btn     — acid bg, ink text, 900 italic display font, zero radius
+   Discipline: acid is the rarest color. One acid element per viewport;
+   stripes/tape/tactical frames sparingly — they skew aggressive at
+   marketing scale (product spec §16). */
+
+/* Fonts (Google Fonts — all free):
+   Barlow+Condensed:ital,wght@1,900 · Inter:wght@400;500;600 ·
+   JetBrains+Mono:wght@400;600;700 */

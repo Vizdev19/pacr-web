@@ -1,0 +1,317 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Pacr — Acid Design System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,400;0,700;0,800;0,900;1,700;1,800;1,900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #0A0B08;
+    --cream: #F2EFE6;
+    --ink: #0A0B08;
+    --acid: #E8FF3A;
+    --red: #FF4422;
+    --hairline: rgba(242,239,230,0.12);
+    --dim: rgba(242,239,230,0.55);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--cream); font-family: "Barlow Condensed", sans-serif; -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: 1240px; margin: 0 auto; padding: 56px 40px 120px; }
+  .mono { font-family: "JetBrains Mono", monospace; font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; font-weight: 600; color: var(--dim); }
+  .h { font-family: "Barlow Condensed", sans-serif; font-weight: 900; font-style: italic; letter-spacing: -0.02em; line-height: 0.85; margin: 0; text-transform: uppercase; }
+  .skew { display: inline-flex; transform: skewX(-6deg); }
+  .stripes { height: 10px; background-image: repeating-linear-gradient(-98deg, var(--acid) 0 6px, transparent 6px 12px); }
+  .section { border-top: 1px solid var(--hairline); padding-top: 28px; margin-top: 64px; }
+  .grid { display: grid; gap: 18px; }
+
+  /* hero */
+  header { display: flex; align-items: flex-end; justify-content: space-between; gap: 40px; padding-bottom: 28px; border-bottom: 1px solid var(--hairline); }
+  header .left { display: flex; flex-direction: column; gap: 14px; }
+  header .wm { font-size: 90px; line-height: 0.85; }
+  header .acc { color: var(--acid); }
+
+  /* color tiles */
+  .swatches { grid-template-columns: repeat(5, 1fr); }
+  .sw { aspect-ratio: 4 / 3; padding: 14px; display: flex; flex-direction: column; justify-content: space-between; border: 1px solid var(--hairline); position: relative; overflow: hidden; }
+  .sw .name { font-family: "Barlow Condensed", sans-serif; font-weight: 900; font-style: italic; font-size: 26px; letter-spacing: -0.02em; line-height: 0.9; }
+  .sw .hex { font-family: "JetBrains Mono", monospace; font-size: 10px; letter-spacing: 0.12em; font-weight: 600; }
+  .sw.bg { background: var(--bg); color: var(--cream); }
+  .sw.cream { background: var(--cream); color: var(--ink); }
+  .sw.acid { background: var(--acid); color: var(--ink); }
+  .sw.red { background: var(--red); color: var(--cream); }
+  .sw.ink { background: #11140d; color: var(--cream); border: 1px dashed var(--hairline); }
+
+  /* type */
+  .type-grid { grid-template-columns: 1fr 1fr; gap: 28px; }
+  .type-card { border: 1px solid var(--hairline); padding: 24px; }
+  .type-card .label { display: flex; justify-content: space-between; margin-bottom: 18px; }
+  .type-card .display { font-family: "Barlow Condensed", sans-serif; font-weight: 900; font-style: italic; font-size: 96px; letter-spacing: -0.04em; line-height: 0.85; }
+  .type-card .body { font-family: "JetBrains Mono", monospace; font-size: 12px; letter-spacing: 0.06em; line-height: 1.7; color: var(--dim); }
+
+  /* sample number */
+  .num { font-family: "Barlow Condensed", sans-serif; font-weight: 900; font-style: italic; letter-spacing: -0.04em; font-variant-numeric: tabular-nums; }
+
+  /* component preview */
+  .components { grid-template-columns: repeat(2, 1fr); gap: 18px; }
+  .comp { border: 1px solid var(--hairline); padding: 22px; min-height: 180px; display: flex; flex-direction: column; justify-content: space-between; }
+  .comp .ttl { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+
+  /* tape */
+  .tape { display: inline-block; padding: 4px 10px 3px; background: var(--ink); color: var(--acid); font-family: "JetBrains Mono", monospace; font-weight: 700; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; clip-path: polygon(2% 0, 98% 0, 100% 50%, 98% 100%, 2% 100%, 0 50%); }
+  .tape.acid { background: var(--acid); color: var(--ink); }
+  .tape.red { background: var(--red); color: var(--cream); }
+
+  /* bib */
+  .bib { width: 64px; height: 50px; background: var(--cream); border: 2px solid var(--ink); display: flex; align-items: center; justify-content: center; position: relative; }
+  .bib::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 8px; background: var(--acid); border-bottom: 2px solid var(--ink); }
+  .bib span { font-family: "Barlow Condensed", sans-serif; font-weight: 900; font-style: italic; font-size: 30px; line-height: 1; letter-spacing: -0.04em; color: var(--ink); margin-top: 6px; }
+
+  /* button */
+  .btn { display: inline-flex; align-items: center; justify-content: space-between; gap: 14px; padding: 14px 18px; background: var(--acid); color: var(--ink); border: none; font-family: "Barlow Condensed", sans-serif; font-weight: 900; font-style: italic; font-size: 22px; letter-spacing: -0.02em; }
+
+  /* token table */
+  .tokens { width: 100%; border-collapse: collapse; margin-top: 12px; }
+  .tokens th, .tokens td { text-align: left; padding: 10px 14px; border-top: 1px solid var(--hairline); font-family: "JetBrains Mono", monospace; font-size: 11px; letter-spacing: 0.04em; }
+  .tokens th { color: var(--dim); font-weight: 700; text-transform: uppercase; letter-spacing: 0.16em; }
+  .tokens td:first-child { color: var(--acid); }
+
+  /* screen index */
+  .screens { grid-template-columns: repeat(4, 1fr); gap: 18px; }
+  .screen { background: #11140d; border: 1px solid var(--hairline); padding: 8px; display: flex; flex-direction: column; gap: 8px; }
+  .screen img { width: 100%; height: auto; display: block; background: var(--bg); aspect-ratio: 9 / 19.5; object-fit: cover; object-position: top; }
+  .screen .meta { display: flex; justify-content: space-between; align-items: center; padding: 4px 6px 6px; }
+  .screen .meta .n { font-family: "Barlow Condensed", sans-serif; font-weight: 900; font-style: italic; font-size: 22px; color: var(--acid); letter-spacing: -0.02em; }
+  .screen .meta .t { font-family: "JetBrains Mono", monospace; font-size: 9.5px; letter-spacing: 0.14em; font-weight: 700; color: var(--cream); text-transform: uppercase; text-align: right; }
+
+  /* lane stripes block */
+  .lane { display: flex; flex-direction: column; gap: 8px; }
+
+  /* numbers grid */
+  .nums { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; border-top: 1px solid var(--hairline); border-bottom: 1px solid var(--hairline); }
+  .nums .cell { padding: 18px 16px; border-right: 1px solid var(--hairline); }
+  .nums .cell:last-child { border-right: none; }
+  .nums .cell .l { font-family: "JetBrains Mono", monospace; font-size: 10px; letter-spacing: 0.16em; font-weight: 600; color: var(--dim); text-transform: uppercase; }
+  .nums .cell .v { font-family: "Barlow Condensed", sans-serif; font-weight: 900; font-style: italic; font-size: 56px; letter-spacing: -0.04em; line-height: 0.85; margin-top: 6px; font-variant-numeric: tabular-nums; }
+  .nums .cell .v sub { font-family: "JetBrains Mono", monospace; font-weight: 600; font-size: 11px; color: var(--dim); margin-left: 6px; vertical-align: baseline; text-transform: uppercase; letter-spacing: 0.1em; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="left">
+      <span class="mono" style="color: var(--acid);">// PACR · ACID THEME · v1.0 · 06 MAY 2026</span>
+      <span class="h skew" style="font-size:90px; line-height:0.85;">PACR<span class="acc">.</span></span>
+      <span class="mono">SPORTY · BRUTALIST · TRACK-AND-FIELD HUD</span>
+    </div>
+    <div style="text-align:right;">
+      <div class="mono">DESIGN FILES</div>
+      <div class="num" style="font-size:64px; line-height:0.85; color: var(--acid); margin-top: 6px;">13</div>
+      <div class="mono">SCREENS · 1 PALETTE · 4 TYPE STYLES</div>
+    </div>
+  </header>
+  <div class="stripes" style="margin-top: 28px;"></div>
+
+  <!-- COLORS -->
+  <section class="section">
+    <div style="display:flex; align-items:flex-end; justify-content:space-between;">
+      <h2 class="h" style="font-size:56px;">// PALETTE · ACID</h2>
+      <span class="mono">5 TOKENS</span>
+    </div>
+    <div class="grid swatches" style="margin-top: 22px;">
+      <div class="sw bg"><span class="name">PITCH</span><span class="hex">#0A0B08 · BG</span></div>
+      <div class="sw ink"><span class="name">DEEP</span><span class="hex">#11140D · SURFACE</span></div>
+      <div class="sw acid"><span class="name">ACID</span><span class="hex">#E8FF3A · ACCENT</span></div>
+      <div class="sw red"><span class="name">FLARE</span><span class="hex">#FF4422 · ALERT / PR</span></div>
+      <div class="sw cream"><span class="name">PAPER</span><span class="hex">#F2EFE6 · TEXT / LIGHT BG</span></div>
+    </div>
+    <table class="tokens">
+      <thead><tr><th>token</th><th>hex</th><th>usage</th></tr></thead>
+      <tbody>
+        <tr><td>--bg</td><td>#0A0B08</td><td>App background, dark surfaces, pause overlay base</td></tr>
+        <tr><td>--surface</td><td>#11140D</td><td>Cards on dark, route map background</td></tr>
+        <tr><td>--accent</td><td>#E8FF3A</td><td>Primary CTA, live data, highlights, lane stripes</td></tr>
+        <tr><td>--alert</td><td>#FF4422</td><td>Recording state, PR badges, finish/stop button</td></tr>
+        <tr><td>--paper</td><td>#F2EFE6</td><td>Body copy on dark, light surface (summary screen)</td></tr>
+        <tr><td>--hairline</td><td>rgba(242,239,230,0.12)</td><td>1px dividers between rows and stat blocks</td></tr>
+        <tr><td>--dim</td><td>rgba(242,239,230,0.55)</td><td>Mono labels, secondary text, units</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- TYPE -->
+  <section class="section">
+    <div style="display:flex; align-items:flex-end; justify-content:space-between;">
+      <h2 class="h" style="font-size:56px;">// TYPOGRAPHY</h2>
+      <span class="mono">2 FAMILIES · 4 ROLES</span>
+    </div>
+    <div class="grid type-grid" style="margin-top: 22px;">
+      <div class="type-card">
+        <div class="label">
+          <span class="mono" style="color: var(--acid);">DISPLAY</span>
+          <span class="mono">BARLOW CONDENSED · 900 ITALIC</span>
+        </div>
+        <div class="display">MOVE.<br/><span style="color: var(--acid);">NOW.</span></div>
+        <div class="body" style="margin-top: 16px;">Drill-sergeant headlines. Skewed -6° on the wordmark for forward momentum. Always uppercase, italic, condensed for impact.</div>
+      </div>
+      <div class="type-card">
+        <div class="label">
+          <span class="mono" style="color: var(--acid);">DATA</span>
+          <span class="mono">BARLOW CONDENSED · TABULAR-NUMS</span>
+        </div>
+        <div class="display num">4:42</div>
+        <div class="body" style="margin-top: 16px;">Live pace, splits, distance. Tabular figures lock columns. Italic 900 at 56–220px depending on hierarchy.</div>
+      </div>
+      <div class="type-card">
+        <div class="label">
+          <span class="mono" style="color: var(--acid);">LABEL · MONO</span>
+          <span class="mono">JETBRAINS MONO · 600 / 700</span>
+        </div>
+        <div style="font-family:'JetBrains Mono',monospace; font-size: 22px; letter-spacing: 0.16em; font-weight: 700; text-transform: uppercase; line-height: 1.5;">// DIST &middot; PACE<br/>HR · CADENCE</div>
+        <div class="body" style="margin-top: 16px;">Section headers ("// LIVE PACE"), stat unit labels, navigation tabs. Always uppercase, 0.16em tracking.</div>
+      </div>
+      <div class="type-card">
+        <div class="label">
+          <span class="mono" style="color: var(--acid);">BODY · MONO</span>
+          <span class="mono">JETBRAINS MONO · 400</span>
+        </div>
+        <div style="font-family:'JetBrains Mono',monospace; font-size: 14px; letter-spacing: 0.04em; line-height: 1.6; color: var(--cream);">12 day streak. Don't break it, soldier.<br/>// 06:42 · TUE · 14°C · CLEAR<br/>1K WARM · 4K @ 4:45 · 1K COOL</div>
+        <div class="body" style="margin-top: 16px;">Captions, run descriptions, terminal-style metadata. Sentence case allowed when human.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- DATA NUMBERS -->
+  <section class="section">
+    <div style="display:flex; align-items:flex-end; justify-content:space-between;">
+      <h2 class="h" style="font-size:56px;">// LIVE DATA HUD</h2>
+      <span class="mono">REFERENCE · TEMPO 6K</span>
+    </div>
+    <div class="nums" style="margin-top: 22px;">
+      <div class="cell"><div class="l">PACE</div><div class="v" style="color: var(--acid);">4:42</div></div>
+      <div class="cell"><div class="l">DIST</div><div class="v">4.36<sub>KM</sub></div></div>
+      <div class="cell"><div class="l">TIME</div><div class="v">20:47</div></div>
+      <div class="cell"><div class="l">HR</div><div class="v">162<sub>BPM</sub></div></div>
+    </div>
+  </section>
+
+  <!-- COMPONENTS -->
+  <section class="section">
+    <div style="display:flex; align-items:flex-end; justify-content:space-between;">
+      <h2 class="h" style="font-size:56px;">// COMPONENTS</h2>
+      <span class="mono">8 PRIMITIVES</span>
+    </div>
+    <div class="grid components" style="margin-top: 22px;">
+      <div class="comp">
+        <div class="ttl"><span class="mono" style="color: var(--acid);">TAPE LABEL</span><span class="mono">3 VARIANTS</span></div>
+        <div style="display:flex; flex-wrap:wrap; gap: 10px; align-items:center;">
+          <span class="tape">● REC</span>
+          <span class="tape acid">★ NEW PR</span>
+          <span class="tape red">‖ PAUSED</span>
+        </div>
+      </div>
+      <div class="comp">
+        <div class="ttl"><span class="mono" style="color: var(--acid);">RACE BIB</span><span class="mono">SPLIT / WORKOUT</span></div>
+        <div style="display:flex; gap: 12px; align-items:center;">
+          <div class="bib"><span>04</span></div>
+          <div class="bib"><span>10K</span></div>
+          <div class="bib"><span>21</span></div>
+        </div>
+      </div>
+      <div class="comp">
+        <div class="ttl"><span class="mono" style="color: var(--acid);">PRIMARY CTA</span><span class="mono">DRILL BUTTON</span></div>
+        <button class="btn">START WORKOUT → <span style="display:inline-flex; flex-direction:column; gap:3px;"><span style="width:18px; height:3px; background:var(--ink);"></span><span style="width:18px; height:3px; background:var(--ink); opacity:.7;"></span><span style="width:18px; height:3px; background:var(--ink); opacity:.4;"></span></span></button>
+        <div class="stripes" style="margin-top: 10px;"></div>
+      </div>
+      <div class="comp">
+        <div class="ttl"><span class="mono" style="color: var(--acid);">LANE STRIPES</span><span class="mono">MOTIF</span></div>
+        <div class="lane">
+          <div class="stripes"></div>
+          <div class="stripes" style="background-image: repeating-linear-gradient(-98deg, var(--cream) 0 6px, transparent 6px 12px);"></div>
+          <div class="stripes" style="background-image: repeating-linear-gradient(-98deg, var(--red) 0 6px, transparent 6px 12px);"></div>
+        </div>
+      </div>
+      <div class="comp">
+        <div class="ttl"><span class="mono" style="color: var(--acid);">STAT BLOCK</span><span class="mono">2PX LEFT RULE</span></div>
+        <div style="display:grid; grid-template-columns: repeat(3,1fr); gap: 0; border-top: 1px solid var(--hairline); padding-top: 12px;">
+          <div style="border-left: 2px solid var(--acid); padding: 0 12px;"><div class="mono">DIST</div><div class="num" style="font-size:36px;">6.0<sub style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--dim); margin-left:5px; font-weight:600;">KM</sub></div></div>
+          <div style="border-left: 2px solid var(--acid); padding: 0 12px;"><div class="mono">PACE</div><div class="num" style="font-size:36px;">4:45</div></div>
+          <div style="border-left: 2px solid var(--acid); padding: 0 12px;"><div class="mono">EST</div><div class="num" style="font-size:36px;">29<sub style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--dim); margin-left:5px; font-weight:600;">MIN</sub></div></div>
+        </div>
+      </div>
+      <div class="comp">
+        <div class="ttl"><span class="mono" style="color: var(--acid);">TACTICAL FRAME</span><span class="mono">HUD CORNERS</span></div>
+        <div style="position:relative; padding: 18px; height: 80px; display: flex; align-items: center; justify-content: center;">
+          <div style="position:absolute; top:0; left:0; width:14px; height:14px; border-top:2px solid var(--acid); border-left:2px solid var(--acid);"></div>
+          <div style="position:absolute; top:0; right:0; width:14px; height:14px; border-top:2px solid var(--acid); border-right:2px solid var(--acid);"></div>
+          <div style="position:absolute; bottom:0; left:0; width:14px; height:14px; border-bottom:2px solid var(--acid); border-left:2px solid var(--acid);"></div>
+          <div style="position:absolute; bottom:0; right:0; width:14px; height:14px; border-bottom:2px solid var(--acid); border-right:2px solid var(--acid);"></div>
+          <span class="mono" style="color: var(--acid);">● LIVE GPS · 12 SAT</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SCREENS -->
+  <section class="section">
+    <div style="display:flex; align-items:flex-end; justify-content:space-between;">
+      <h2 class="h" style="font-size:56px;">// SCREEN INDEX</h2>
+      <span class="mono">13 FRAMES · iOS · 402×874</span>
+    </div>
+    <div class="grid screens" style="margin-top: 22px;">
+      <div class="screen"><img src="01-home.png" alt="Home"/><div class="meta"><span class="n">01</span><span class="t">HUB · HOME</span></div></div>
+      <div class="screen"><img src="02-workout-picker.png" alt=""/><div class="meta"><span class="n">02</span><span class="t">WORKOUT PICKER</span></div></div>
+      <div class="screen"><img src="03-active-run-hero.png" alt=""/><div class="meta"><span class="n">03</span><span class="t">ACTIVE · HERO</span></div></div>
+      <div class="screen"><img src="04-active-run-split.png" alt=""/><div class="meta"><span class="n">04</span><span class="t">ACTIVE · SPLIT</span></div></div>
+      <div class="screen"><img src="05-active-run-circuit.png" alt=""/><div class="meta"><span class="n">05</span><span class="t">ACTIVE · CIRCUIT</span></div></div>
+      <div class="screen"><img src="06-paused.png" alt=""/><div class="meta"><span class="n">06</span><span class="t">PAUSED SHEET</span></div></div>
+      <div class="screen"><img src="07-summary.png" alt=""/><div class="meta"><span class="n">07</span><span class="t">RUN SUMMARY</span></div></div>
+      <div class="screen"><img src="08-map.png" alt=""/><div class="meta"><span class="n">08</span><span class="t">RECON · ROUTES</span></div></div>
+      <div class="screen"><img src="09-plan.png" alt=""/><div class="meta"><span class="n">09</span><span class="t">PLAN · WEEK</span></div></div>
+      <div class="screen"><img src="10-goals.png" alt=""/><div class="meta"><span class="n">10</span><span class="t">OBJECTIVES</span></div></div>
+      <div class="screen"><img src="11-feed.png" alt=""/><div class="meta"><span class="n">11</span><span class="t">SQUAD FEED</span></div></div>
+      <div class="screen"><img src="12-share-card.png" alt=""/><div class="meta"><span class="n">12</span><span class="t">SHARE CARD</span></div></div>
+      <div class="screen"><img src="13-profile.png" alt=""/><div class="meta"><span class="n">13</span><span class="t">PROFILE · FILE</span></div></div>
+    </div>
+  </section>
+
+  <!-- SPACING / MOTIFS -->
+  <section class="section">
+    <div style="display:flex; align-items:flex-end; justify-content:space-between;">
+      <h2 class="h" style="font-size:56px;">// PRINCIPLES</h2>
+      <span class="mono">FOUR RULES</span>
+    </div>
+    <div class="grid" style="grid-template-columns: repeat(4, 1fr); margin-top: 22px;">
+      <div style="border-left: 3px solid var(--acid); padding: 8px 16px;">
+        <div class="num" style="font-size:48px; color: var(--acid);">01</div>
+        <div class="h" style="font-size:22px; margin-top:8px;">SHOUT THE HERO.</div>
+        <div style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--dim); line-height: 1.6; margin-top: 8px; letter-spacing: 0.04em;">One number on screen at a time. Pace gets 220px. Everything else falls in line behind it.</div>
+      </div>
+      <div style="border-left: 3px solid var(--acid); padding: 8px 16px;">
+        <div class="num" style="font-size:48px; color: var(--acid);">02</div>
+        <div class="h" style="font-size:22px; margin-top:8px;">LANES &amp; STRIPES.</div>
+        <div style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--dim); line-height: 1.6; margin-top: 8px; letter-spacing: 0.04em;">-8° diagonal stripes mark transitions. Vertical lane lines at the screen edges.</div>
+      </div>
+      <div style="border-left: 3px solid var(--acid); padding: 8px 16px;">
+        <div class="num" style="font-size:48px; color: var(--acid);">03</div>
+        <div class="h" style="font-size:22px; margin-top:8px;">DRILL VOICE.</div>
+        <div style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--dim); line-height: 1.6; margin-top: 8px; letter-spacing: 0.04em;">"MOVE. NOW." "DON'T STOP." "BACK AT IT THURSDAY." Short. Imperative. No coddling.</div>
+      </div>
+      <div style="border-left: 3px solid var(--acid); padding: 8px 16px;">
+        <div class="num" style="font-size:48px; color: var(--acid);">04</div>
+        <div class="h" style="font-size:22px; margin-top:8px;">RACE-DAY KIT.</div>
+        <div style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--dim); line-height: 1.6; margin-top: 8px; letter-spacing: 0.04em;">Bib numbers, taped labels, lane stripes, tactical brackets. Real-world running iconography, not invented icons.</div>
+      </div>
+    </div>
+  </section>
+
+  <div class="stripes" style="margin-top: 80px;"></div>
+  <div style="display:flex; justify-content:space-between; margin-top: 18px;">
+    <span class="mono">PACR · ACID · v1.0</span>
+    <span class="mono">END OF FILE.</span>
+  </div>
+</div>
+</body>
+</html>
