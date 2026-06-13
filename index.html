@@ -359,13 +359,23 @@
 (function () {
   "use strict";
 
-  // ── Swappable form backend ───────────────────────────────────────────
-  // Replace this stub with the real submit (plan §9.1 — lean Supabase).
+  // ── Form backend ─────────────────────────────────────────────────────
+  // Posts to the Vercel serverless function at /api/signup, which holds the
+  // Supabase credentials in env vars (see api/signup.js). No keys in the client.
   // Contract: PACR_SUBMIT(kind, data) -> Promise. kind: "club" | "early".
-  // Reject to show the form's error state.
-  window.PACR_SUBMIT = window.PACR_SUBMIT || function (kind, data) {
-    console.info("[pacr] stub submit:", kind, data);
-    return new Promise(function (resolve) { setTimeout(resolve, 500); });
+  // Rejects on failure so the form shows its error state.
+  window.PACR_SUBMIT = function (kind, data) {
+    return fetch("/api/signup", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(Object.assign({ kind: kind }, data))
+    }).then(function (res) {
+      if (!res.ok) {
+        return res.text().then(function (body) {
+          throw new Error("signup " + res.status + ": " + body);
+        });
+      }
+    });
   };
 
   var dialog = document.getElementById("club-dialog");
@@ -374,12 +384,13 @@
   var otherField = clubForm.querySelector("[data-other-city]");
   var otherInput = clubForm.querySelector("[name=city_other]");
 
-  // UTM passthrough so the funnel stays attributable (plan §0.5)
+  // UTM passthrough so the funnel stays attributable (plan §0.5).
+  // Whitelist the 5 standard keys so the insert payload matches the table
+  // columns — an unknown utm_* would otherwise 400 the PostgREST insert.
+  var UTM_KEYS = ["utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content"];
   function utmParams() {
-    var out = {};
-    new URLSearchParams(location.search).forEach(function (v, k) {
-      if (k.indexOf("utm_") === 0) out[k] = v;
-    });
+    var out = {}, q = new URLSearchParams(location.search);
+    UTM_KEYS.forEach(function (k) { if (q.get(k)) out[k] = q.get(k); });
     return out;
   }
 
