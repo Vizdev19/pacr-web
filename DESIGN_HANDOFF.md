@@ -86,7 +86,7 @@ hand-edit them here; request regeneration instead.
 
 Calm coach, not drill sergeant. Sentence case body. No exclamation
 points. No "soldier / earn / grind / crush" language. Present tense
-("Pacr runs happen Saturday mornings" — never "launching" or "waitlist",
+("Pacr runs happen on weekend mornings" — never "launching" or "waitlist",
 except "Joining soon" for inactive cities). India-specific: name cities,
 reference AQI, morning-run culture. Full rules: `WEBSITE_PLAN.md` §6 +
 product spec §2 in the app repo.

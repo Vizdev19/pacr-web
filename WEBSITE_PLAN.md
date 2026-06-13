@@ -17,7 +17,7 @@ gets measured.
 Pacr does not grow app-first. It grows **club-first, city-by-city**. The
 website is the front door to that loop — not an app landing page with a
 download button. An app install is a low-trust, low-retention event; a
-person who shows up to a Saturday run and then installs the app is a
+person who shows up to a weekend run and then installs the app is a
 high-retention user with a social anchor. The site's job is to start
 that relationship, which is why club signup is the primary CTA and early
 access is deliberately secondary.
@@ -29,7 +29,7 @@ Channel post / forward / share card
         → pacr.life visit
         → club signup (name, city, frequency, WhatsApp)
         → WhatsApp group join
-        → first Saturday run attended
+        → first weekend run attended
         → app early access offered in person / in group
         → coached runs → share cards posted (app feature, §spec)
         → friends see it → channel post / forward …
@@ -52,13 +52,13 @@ there (the 5-days/week signal from the club form).
 ### 0.4 Channels, ranked by expected yield
 
 1. **WhatsApp forwards** — the signup confirmation and group are built to
-   be forwarded ("Bringing a friend Saturday? Send them this."). Lowest
+   be forwarded ("Bringing a friend this weekend? Send them this."). Lowest
    cost, highest trust, India-native.
 2. **Instagram** — run reels, share-card reposts, route photos. Needs 3–4
    posts seeded before site launch (open decision §9.3 → resolve as yes).
 3. **Existing running communities** — Bangalore run clubs, corporate run
    groups, apartment running WhatsApp groups. Partner framing, not
-   poaching: "a coached Saturday run" is additive to their calendar.
+   poaching: "a coached weekend run" is additive to their calendar.
 4. **Share cards in the wild** — app users posting runs; the card carries
    the wordmark. Passive; grows with app usage.
 5. **SEO** — city pages (Phase 3) target "running group in {city}" /
@@ -78,7 +78,7 @@ known — paid traffic into an unmeasured funnel just buys noise.
 | Early access → first coached run | app activation | ≥ 60% in week 1 | existing app PostHog events |
 
 Review weekly, per city, in one place. The single number that matters
-early: **runners at the last Saturday run**. Everything else is upstream
+early: **runners at the last weekend run**. Everything else is upstream
 or downstream of it.
 
 Follow-up rules: signup → WhatsApp/email confirmation within minutes
@@ -92,7 +92,7 @@ until iOS distribution exists).
 Do not put the site live until: (a) the first Bangalore run has a date,
 (b) the WhatsApp group exists, (c) Instagram has 3–4 posts, (d) the
 signup → confirmation flow is tested end-to-end. The site's present-tense
-copy ("Pacr runs happen Saturday mornings") is a promise; launching
+copy ("Pacr runs happen on weekend mornings") is a promise; launching
 before a scheduled run makes it false on day one.
 
 ### 0.7 What this strategy deliberately ignores
@@ -192,9 +192,10 @@ Three points, no bullets — short prose or 3-column layout:
 
 **Goal:** Make the club feel real and joinable.
 
-- Short description of what a Pacr run looks like: "Saturday mornings.
-  6:30 AM. A curated route, a coached workout, and a group of runners in
-  your city doing the same thing."
+- Short description of what a Pacr run looks like: "Weekend mornings —
+  Saturday or Sunday, depending on the city. 6:30 AM. A curated route, a
+  coached workout, and a group of runners in your city doing the same
+  thing."
 - City list — all major Indian metros shown. Active cities show runner
   count ("47 runners in Bangalore"). Upcoming cities show "Joining soon —
   be the first."
@@ -278,7 +279,7 @@ Notes:
 
 ## 6. Copy principles
 
-- Present tense everywhere. "Pacr runs happen on Saturday mornings" not
+- Present tense everywhere. "Pacr runs happen on weekend mornings" not
   "we're planning to organize runs."
 - Never use: launching, building, planning, waitlist, coming soon (except
   for non-active cities).

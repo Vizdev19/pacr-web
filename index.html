@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Pacr — AI-coached runs in your city</title>
-<meta name="description" content="Pacr is an AI running coach with Saturday run clubs across Indian cities. AI-coached runs, real routes, runners like you — join your city's group." />
+<meta name="description" content="Pacr is an AI running coach with weekend run clubs across Indian cities. AI-coached runs, real routes, runners like you — join your city's group." />
 <link rel="canonical" href="https://pacr.life/" />
 
 <meta property="og:title" content="Your city runs with Pacr." />
@@ -28,7 +28,14 @@
 <link rel="stylesheet" href="/brand-acid/tokens.css" />
 <link rel="stylesheet" href="/styles.css" />
 
-<!-- Analytics: add the PostHog web snippet (reuse app project) before launch — plan §0.5 -->
+<!-- PostHog (plan §0.5). Snippet form — the site has no bundler for posthog-js imports. -->
+<script>
+  !function(t,e){var o,n,p,r;e.__SV||(window.posthog=e,e._i=[],e.init=function(i,s,a){function g(t,e){var o=e.split(".");2==o.length&&(t=t[o[0]],e=o[1]),t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}}(p=t.createElement("script")).type="text/javascript",p.crossOrigin="anonymous",p.async=!0,p.src=s.api_host.replace(".i.posthog.com","-assets.i.posthog.com")+"/static/array.js",(r=t.getElementsByTagName("script")[0]).parentNode.insertBefore(p,r);var u=e;for(void 0!==a?u=e[a]=[]:a="posthog",u.people=u.people||[],u.toString=function(t){var e="posthog";return"posthog"!==a&&(e+="."+a),t||(e+=" (stub)"),e},u.people.toString=function(){return u.toString(1)+".people (stub)"},o="init capture register register_once register_for_session unregister unregister_for_session getFeatureFlag getFeatureFlagPayload isFeatureEnabled reloadFeatureFlags updateEarlyAccessFeatureEnrollment getEarlyAccessFeatures on onFeatureFlags onSessionId getSurveys getActiveMatchingSurveys identify setPersonProperties group resetGroups setPersonPropertiesForFlags resetPersonPropertiesForFlags setGroupPropertiesForFlags resetGroupPropertiesForFlags reset get_distinct_id getGroups get_session_id get_session_replay_url alias set_config startSessionRecording stopSessionRecording sessionRecordingStarted captureException loadToolbar get_property getSessionProperty createPersonProfile opt_in_capturing opt_out_capturing has_opted_in_capturing has_opted_out_capturing clear_opt_in_out_capturing debug".split(" "),n=0;n<o.length;n++)g(u,o[n]);e._i.push([i,s,a])},e.__SV=1)}(document,window.posthog||[]);
+  posthog.init('phc_vE4EK369fZXYVFcYrNJafAYpVncxtftr2XrEWxdQVNtx', {
+    api_host: 'https://us.i.posthog.com',
+    defaults: '2026-05-30'
+  });
+</script>
 </head>
 <body>
 
@@ -60,7 +67,7 @@
           <button class="btn" type="button" data-open-club>JOIN YOUR CITY <span aria-hidden="true">→</span></button>
           <a class="link-quiet" href="#early-access">GET EARLY ACCESS →</a>
         </div>
-        <span class="mono-label hero-meta">SATURDAYS · 06:30 · ACROSS INDIA</span>
+        <span class="mono-label hero-meta">WEEKENDS · 06:30 · ACROSS INDIA</span>
       </div>
       <figure class="hero-photo">
         <!-- Swap placeholder for the shoot photo (plan §7: real runners, Indian
@@ -68,7 +75,7 @@
              solid pitch behind text, per the share-card treatment (handoff §4.3). -->
         <div class="photo-ph">
           <img class="ph-mark" src="/brand-acid/mark-splittick.svg" alt="" width="72" height="72" />
-          <span class="mono-label ph-scrim-caption">SATURDAY · 06:30</span>
+          <span class="mono-label ph-scrim-caption">WEEKENDS · 06:30</span>
         </div>
         <figcaption class="photo-caption">
           <span class="mono-label">// THE CLUB</span>
@@ -110,8 +117,8 @@
     <div class="container">
       <header class="section-head">
         <span class="mono-label">// THE RUNS</span>
-        <h2 class="display section-h"><span class="skew">Saturday mornings. 6:30 AM.</span></h2>
-        <p class="section-lead">A curated route, a coached workout, and a group of runners in your city doing the same thing. Sign up and the next run's details land on your WhatsApp.</p>
+        <h2 class="display section-h"><span class="skew">Weekend mornings. 6:30 AM.</span></h2>
+        <p class="section-lead">A curated route, a coached workout, and a group of runners in your city doing the same thing — Saturday or Sunday, depending on your city. Sign up and the next run's details land on your WhatsApp.</p>
       </header>
 
       <!-- Phase 2: hydrate counts from the signup DB via [data-count] (plan §8) -->
@@ -342,7 +349,7 @@
 
     <div class="form-success" hidden>
       <span class="mono-label mono-label--acid">// CONFIRMED</span>
-      <h3><span class="skew">See you Saturday.</span></h3>
+      <h3><span class="skew">See you this weekend.</span></h3>
       <p>The next run's details land on your WhatsApp or inbox shortly. Bringing a friend? Send them pacr.life.</p>
     </div>
   </div>
@@ -425,6 +432,13 @@
       window.PACR_SUBMIT(kind, data).then(function () {
         form.hidden = true;
         success.hidden = false;
+        // Funnel event (plan §0.5) — no PII: city + frequency only
+        if (window.posthog && posthog.capture) {
+          posthog.capture(kind === "club" ? "club_signup" : "early_access_signup", {
+            city: data.city || null,
+            frequency: data.frequency || null
+          });
+        }
       }).catch(function () {
         error.hidden = false;
       }).finally(function () {
