@@ -250,18 +250,23 @@ Three points, no bullets — short prose or 3-column layout:
 ## 5. CTAs — detail
 
 ### Club signup form
-Triggered by the hero primary CTA and the city section.
+Triggered by the hero primary CTA and the city section. Two steps: collect
+details, then verify the email with a 6-digit OTP (Supabase Auth) before the
+signup is saved.
 
 Fields:
 - Name
-- City (free text or dropdown of Indian metros)
+- City (dropdown of Indian metros, with "Another city" free text)
 - How often do you run? (2–3 / 3–4 / 5+ days a week)
-- WhatsApp number or email (one field, their choice)
+- Email (required — verified via OTP)
+- WhatsApp number (optional)
 
 Notes:
 - "How often do you run?" is the captain-identification signal. Don't flag
   this intent — it looks like personalization, not a screening question.
-- WhatsApp is the right channel for India. Give the option but don't force it.
+- Email is verified (OTP) to keep the list clean — only verified signups are
+  saved. WhatsApp stays optional: it's still how run details go out, so most
+  runners give it, but it isn't forced.
 
 ### Early access form
 Triggered by secondary CTA in hero and the bottom-of-page section.

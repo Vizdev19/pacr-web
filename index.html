@@ -338,13 +338,33 @@
         </div>
       </fieldset>
       <label class="field">
-        <span class="field-label">WhatsApp number or email — your pick</span>
-        <input class="input" name="contact" autocomplete="on" required placeholder="+91 … or name@…" />
+        <span class="field-label">Email</span>
+        <input class="input" type="email" name="email" autocomplete="email" required placeholder="name@email.com" />
+      </label>
+      <label class="field">
+        <span class="field-label">WhatsApp number <span class="field-opt">optional</span></span>
+        <input class="input" type="tel" name="mobile" autocomplete="tel" inputmode="tel" placeholder="+91 …" />
       </label>
       <input class="hp" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true" />
       <p class="form-error" role="alert" hidden>Something went wrong. Try again.</p>
+      <button class="btn btn--full" type="submit">CONTINUE <span aria-hidden="true">→</span></button>
+      <p class="form-fine">We email a 6-digit code to confirm. WhatsApp is optional — it's how we send the next run's details.</p>
+    </form>
+
+    <form id="club-otp-form" hidden>
+      <p class="otp-lead">Enter the 6-digit code we emailed to <span class="otp-email" data-otp-email></span>.</p>
+      <label class="field">
+        <span class="field-label">Verification code</span>
+        <input class="input otp-input" name="token" inputmode="numeric" autocomplete="one-time-code"
+               pattern="[0-9]*" maxlength="6" required placeholder="••••••" aria-label="6-digit verification code" />
+      </label>
+      <p class="form-error" role="alert" hidden>That code is invalid or expired.</p>
+      <p class="form-note" data-otp-note hidden>New code sent.</p>
       <button class="btn btn--full" type="submit">JOIN THE CLUB <span aria-hidden="true">→</span></button>
-      <p class="form-fine">We message you the next run's details. No spam, leave anytime.</p>
+      <div class="otp-actions">
+        <button type="button" class="link-quiet" data-otp-resend>RESEND CODE</button>
+        <button type="button" class="link-quiet" data-otp-back>CHANGE EMAIL</button>
+      </div>
     </form>
 
     <div class="form-success" hidden>
@@ -403,6 +423,7 @@
 
   document.querySelectorAll("[data-open-club]").forEach(function (el) {
     el.addEventListener("click", function () {
+      resetClub();
       var city = el.getAttribute("data-city");
       if (city) {
         citySelect.value = city;
@@ -459,8 +480,117 @@
     });
   }
 
-  wireForm(clubForm, "club");
   wireForm(document.getElementById("early-form"), "early");
+
+  // ── Club: email-OTP two-step (details → code → join) ─────────────────
+  var otpForm = document.getElementById("club-otp-form");
+  var clubSuccess = clubForm.parentElement.querySelector(".form-success");
+  var clubErr = clubForm.querySelector(".form-error");
+  var otpErr = otpForm.querySelector(".form-error");
+  var otpNote = otpForm.querySelector("[data-otp-note]");
+  var otpEmailEcho = otpForm.querySelector("[data-otp-email]");
+  var tokenInput = otpForm.querySelector("[name=token]");
+  var pending = null; // collected club details, re-sent at verify
+
+  function showClubStep(step) { // "details" | "otp" | "success"
+    clubForm.hidden = step !== "details";
+    otpForm.hidden = step !== "otp";
+    clubSuccess.hidden = step !== "success";
+  }
+  function resetClub() {
+    pending = null;
+    clubForm.reset();
+    tokenInput.value = "";
+    clubErr.hidden = true;
+    otpErr.hidden = true;
+    otpNote.hidden = true;
+    showClubStep("details");
+  }
+  function clubApi(payload) {
+    return fetch("/api/signup", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    }).then(function (res) {
+      if (res.ok) return;
+      return res.json().catch(function () { return {}; }).then(function (b) {
+        var err = new Error("signup " + res.status);
+        err.userMessage = b && b.error;
+        throw err;
+      });
+    });
+  }
+  function busy(button, on, busyText) {
+    if (on) { button.dataset.label = button.innerHTML; button.disabled = true; button.textContent = busyText; }
+    else { button.disabled = false; button.innerHTML = button.dataset.label || button.innerHTML; }
+  }
+
+  // Step 1 — collect details, request a code.
+  clubForm.addEventListener("submit", function (e) {
+    e.preventDefault();
+    if (clubForm.website.value) return; // honeypot
+    var data = Object.fromEntries(new FormData(clubForm));
+    delete data.website;
+    if (data.city === "other" && data.city_other) data.city = data.city_other;
+    delete data.city_other;
+    Object.assign(data, utmParams());
+    data.kind = "club";
+    pending = data;
+
+    clubErr.hidden = true;
+    var btn = clubForm.querySelector("button[type=submit]");
+    busy(btn, true, "SENDING…");
+    clubApi({ kind: "club", action: "send", email: data.email }).then(function () {
+      otpEmailEcho.textContent = data.email;
+      showClubStep("otp");
+      tokenInput.focus();
+    }).catch(function (err) {
+      clubErr.textContent = err.userMessage || "Could not send the code. Try again.";
+      clubErr.hidden = false;
+    }).finally(function () { busy(btn, false); });
+  });
+
+  // Step 2 — verify the code, completing the signup.
+  otpForm.addEventListener("submit", function (e) {
+    e.preventDefault();
+    if (!pending) { showClubStep("details"); return; }
+    otpErr.hidden = true;
+    otpNote.hidden = true;
+    var btn = otpForm.querySelector("button[type=submit]");
+    busy(btn, true, "VERIFYING…");
+    clubApi(Object.assign({}, pending, { action: "verify", token: tokenInput.value.trim() })).then(function () {
+      showClubStep("success");
+      if (window.posthog && posthog.capture) {
+        posthog.capture("club_signup", { city: pending.city || null, frequency: pending.frequency || null });
+      }
+    }).catch(function (err) {
+      otpErr.textContent = err.userMessage || "That code is invalid or expired.";
+      otpErr.hidden = false;
+    }).finally(function () { busy(btn, false); });
+  });
+
+  // Resend code.
+  otpForm.querySelector("[data-otp-resend]").addEventListener("click", function () {
+    if (!pending) return;
+    var b = this;
+    otpErr.hidden = true;
+    otpNote.hidden = true;
+    b.disabled = true;
+    clubApi({ kind: "club", action: "send", email: pending.email }).then(function () {
+      otpNote.hidden = false;
+    }).catch(function (err) {
+      otpErr.textContent = err.userMessage || "Could not resend. Try again.";
+      otpErr.hidden = false;
+    }).finally(function () { setTimeout(function () { b.disabled = false; }, 2000); });
+  });
+
+  // Change email — back to step 1.
+  otpForm.querySelector("[data-otp-back]").addEventListener("click", function () {
+    otpErr.hidden = true;
+    otpNote.hidden = true;
+    showClubStep("details");
+    clubForm.querySelector("[name=email]").focus();
+  });
 })();
 </script>
 

@@ -494,6 +494,30 @@ select.input {
 }
 .form-success p { margin: 0; color: var(--dim); font-size: 15px; line-height: 1.6; }
 
+/* ── email-OTP club step ───────────────────────────────────────────── */
+.field-opt {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--dim);
+  margin-left: 6px;
+}
+.otp-lead { margin: 0 0 18px; font-size: 15px; line-height: 1.55; color: var(--dim); }
+.otp-email { color: var(--paper); }
+.otp-input {
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 26px;
+  letter-spacing: 0.6em;
+  text-indent: 0.6em; /* offset trailing letter-spacing so digits stay centered */
+  padding-block: 14px;
+}
+.otp-input::placeholder { letter-spacing: 0.3em; }
+.otp-actions { display: flex; justify-content: space-between; gap: 16px; margin-top: 16px; }
+.form-note { margin: 0 0 12px; font-size: 13.5px; color: var(--acid); }
+button.link-quiet { background: none; border: 0; border-bottom: 1px solid var(--hairline); padding: 0 0 3px; cursor: pointer; }
+
 /* ── club dialog ───────────────────────────────────────────────────── */
 
 dialog.dialog {
