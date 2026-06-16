@@ -166,9 +166,9 @@ legend { padding: 0; }
 .hero { padding: clamp(56px, 10vh, 112px) 0 clamp(56px, 8vw, 88px); }
 .hero-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: clamp(32px, 5vw, 72px);
-  align-items: center;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+  gap: clamp(28px, 3.5vw, 56px);
+  align-items: stretch;
 }
 .hero-eyebrow { margin: 0 0 22px; display: block; }
 .hero-logo {
@@ -176,14 +176,14 @@ legend { padding: 0; }
      (≈4.74em of the h1 size). The wordmark svg carries internal padding —
      glyphs span x 226–974 of 1200 — so oversize by 1.606 and pull left/top
      to align the visible letters with the text edge. */
-  --w: clamp(246px, 45vw, 455px);
+  --w: clamp(240px, 38vw, 455px);
   width: calc(var(--w) * 1.606);
   max-width: none; /* the oversize + negative margins do the cropping */
   height: auto;
   margin: calc(var(--w) * -0.063) 0 8px calc(var(--w) * -0.303);
 }
 .hero-h1 {
-  font-size: clamp(52px, 9.5vw, 96px); /* --text-hero cap; one per page */
+  font-size: clamp(46px, 7.5vw, 84px); /* sized to stay 2 lines beside the photo */
   line-height: 0.85;
   letter-spacing: -0.03em;
   color: var(--acid);
@@ -203,10 +203,11 @@ legend { padding: 0; }
 }
 .hero-meta { display: block; margin-top: 40px; }
 
-.hero-photo { margin: 0; }
+.hero-photo { margin: 0; display: flex; flex-direction: column; }
 .photo {
   position: relative;
-  aspect-ratio: 3 / 2; /* matches the ~3:2 crop, so the whole group shows */
+  flex: 1 1 auto;       /* fill the hero height (matches the copy column) */
+  min-height: 380px;
   border: 1px solid var(--hairline);
   overflow: hidden;
 }
@@ -215,7 +216,7 @@ legend { padding: 0; }
   width: 100%;
   height: 100%;
   object-fit: cover;
-  object-position: 50% 40%; /* bias up: keep faces + Vidhana Soudha, trim road */
+  object-position: 55% 50%; /* bias to the group so no runner is cropped */
   display: block;
 }
 /* tactical corners — cream HUD frame over the photo (handoff: use sparingly) */
@@ -592,7 +593,8 @@ dialog.dialog::backdrop { background: rgba(10, 11, 8, 0.72); }
 
 @media (max-width: 860px) {
   .hero-grid { grid-template-columns: 1fr; align-items: start; }
-  .hero-photo { max-width: 520px; }
+  .hero-photo { max-width: 520px; display: block; }
+  .photo { aspect-ratio: 3 / 2; flex: none; min-height: 0; }
   .early-grid { grid-template-columns: 1fr; }
 }
 
