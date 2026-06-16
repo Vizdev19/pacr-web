@@ -70,16 +70,21 @@
         <span class="mono-label hero-meta">WEEKENDS · 06:30 · ACROSS INDIA</span>
       </div>
       <figure class="hero-photo">
-        <!-- Swap placeholder for the shoot photo (plan §7: real runners, Indian
-             urban, early light). Keep the bottom scrim caption on the photo:
-             solid pitch behind text, per the share-card treatment (handoff §4.3). -->
-        <div class="photo-ph">
-          <img class="ph-mark" src="/brand-acid/mark-splittick.svg" alt="" width="72" height="72" />
+        <!-- Ink-scrim photo treatment (handoff §4.3): full-bleed photo, solid
+             pitch behind the caption, mono label. Cropped to ~3:2 to keep the
+             whole group + Vidhana Soudha; object-fit cover trims the slot. -->
+        <div class="photo">
+          <picture>
+            <source srcset="/images/hero-runners.webp" type="image/webp" />
+            <img src="/images/hero-runners.jpg" width="1150" height="768"
+                 alt="Runners on a Pacr weekend run in Bengaluru, Vidhana Soudha behind them"
+                 fetchpriority="high" decoding="async" />
+          </picture>
           <span class="mono-label ph-scrim-caption">WEEKENDS · 06:30</span>
         </div>
         <figcaption class="photo-caption">
           <span class="mono-label">// THE CLUB</span>
-          <span class="mono-label">PHOTO 01</span>
+          <span class="mono-label">BENGALURU</span>
         </figcaption>
       </figure>
     </div>
