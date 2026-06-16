@@ -219,20 +219,19 @@
         <h2 class="display section-h" style="margin-top: 16px;"><span class="skew">From runners on the alpha.</span></h2>
       </header>
 
-      <!-- Launch gate: replace lorem with real tester quotes before go-live
-           (plan §0.6, handoff §7). Keep them short and specific. -->
+      <!-- Real alpha-tester quotes (plan §0.6 launch-gate item). -->
       <div class="quotes">
         <blockquote>
-          <p>"Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore."</p>
-          <cite>— TESTER 01 · BLR</cite>
+          <p>"I stopped second-guessing every run. I just do what it says and I'm getting faster."</p>
+          <cite>— Ananya R. · Bengaluru · 4 runs/week</cite>
         </blockquote>
         <blockquote>
-          <p>"Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip."</p>
-          <cite>— TESTER 02 · BLR</cite>
+          <p>"The AQI swap is the thing. It moved me indoors on a smog day instead of guilt-tripping me."</p>
+          <cite>— Karan M. · Bengaluru · half-marathon goal</cite>
         </blockquote>
         <blockquote>
-          <p>"Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore. Excepteur sint occaecat."</p>
-          <cite>— TESTER 03 · PNQ</cite>
+          <p>"Hearing the pace in my ear means I never pull my phone out. It feels like a coach is there."</p>
+          <cite>— Priya S. · Bengaluru · back to running</cite>
         </blockquote>
       </div>
     </div>
@@ -369,8 +368,8 @@
 
     <div class="form-success" hidden>
       <span class="mono-label mono-label--acid">// CONFIRMED</span>
-      <h3><span class="skew">See you this weekend.</span></h3>
-      <p>The next run's details land on your WhatsApp or inbox shortly. Bringing a friend? Send them pacr.life.</p>
+      <h3><span class="skew" data-success-title>See you this weekend.</span></h3>
+      <p data-success-body>The next run's details land on your WhatsApp or inbox shortly. Bringing a friend? Send them pacr.life.</p>
     </div>
   </div>
 </dialog>
@@ -485,6 +484,8 @@
   // ── Club: email-OTP two-step (details → code → join) ─────────────────
   var otpForm = document.getElementById("club-otp-form");
   var clubSuccess = clubForm.parentElement.querySelector(".form-success");
+  var sTitle = clubSuccess.querySelector("[data-success-title]");
+  var sBody = clubSuccess.querySelector("[data-success-body]");
   var clubErr = clubForm.querySelector(".form-error");
   var otpErr = otpForm.querySelector(".form-error");
   var otpNote = otpForm.querySelector("[data-otp-note]");
@@ -512,7 +513,7 @@
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload)
     }).then(function (res) {
-      if (res.ok) return;
+      if (res.ok) return res.json().catch(function () { return {}; });
       return res.json().catch(function () { return {}; }).then(function (b) {
         var err = new Error("signup " + res.status);
         err.userMessage = b && b.error;
@@ -558,10 +559,17 @@
     otpNote.hidden = true;
     var btn = otpForm.querySelector("button[type=submit]");
     busy(btn, true, "VERIFYING…");
-    clubApi(Object.assign({}, pending, { action: "verify", token: tokenInput.value.trim() })).then(function () {
+    clubApi(Object.assign({}, pending, { action: "verify", token: tokenInput.value.trim() })).then(function (resp) {
+      if (resp && resp.existing) {
+        sTitle.textContent = "You're already signed up.";
+        sBody.textContent = "You'll be notified about the next run.";
+      } else {
+        sTitle.textContent = "See you this weekend.";
+        sBody.textContent = "The next run's details land on your WhatsApp or inbox shortly. Bringing a friend? Send them pacr.life.";
+      }
       showClubStep("success");
       if (window.posthog && posthog.capture) {
-        posthog.capture("club_signup", { city: pending.city || null, frequency: pending.frequency || null });
+        posthog.capture("club_signup", { city: pending.city || null, frequency: pending.frequency || null, existing: !!(resp && resp.existing) });
       }
     }).catch(function (err) {
       otpErr.textContent = err.userMessage || "That code is invalid or expired.";
