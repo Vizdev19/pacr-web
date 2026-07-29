@@ -58,9 +58,11 @@
       <img src="/brand-acid/wordmark.svg" alt="Pacr" width="140" height="42" />
     </a>
     <nav class="nav-links" aria-label="Primary">
-      <a class="link-quiet" href="#early-access">EARLY ACCESS</a>
-      <a class="link-quiet" data-play-link data-play-place="nav" rel="noopener"
-         href="https://play.google.com/store/apps/details?id=life.pacr.app">GET THE APP</a>
+      <a class="link-quiet nav-store" data-play-link data-play-place="nav" rel="noopener"
+         href="https://play.google.com/store/apps/details?id=life.pacr.app">
+        <svg class="play-mark" aria-hidden="true" focusable="false"><use href="#play-mark" /></svg>
+        <span class="nav-store-text">GET THE APP</span>
+      </a>
       <button class="btn btn--sm" type="button" data-open-club>JOIN YOUR CITY</button>
     </nav>
   </div>
@@ -83,7 +85,6 @@
             <svg class="play-mark" aria-hidden="true" focusable="false"><use href="#play-mark" /></svg>
             GET IT ON GOOGLE PLAY
           </a>
-          <a class="link-quiet" href="#early-access">GET EARLY ACCESS →</a>
         </div>
         <span class="mono-label hero-meta">WEEKENDS · 06:30 · ACROSS INDIA</span>
       </div>
@@ -269,43 +270,6 @@
     </div>
   </section>
 
-  <!-- 06 · EARLY ACCESS -->
-  <section class="section section--deep" id="early-access">
-    <div class="container early-grid">
-      <header>
-        <span class="mono-label">// EARLY ACCESS</span>
-        <h2 class="display section-h" style="margin-top: 16px;"><span class="skew">Be among the first coached runners on Pacr.</span></h2>
-        <p class="section-lead">Early access is limited. Join the list.</p>
-      </header>
-
-      <div>
-        <form id="early-form">
-          <label class="field">
-            <span class="field-label">Name</span>
-            <input class="input" name="name" autocomplete="name" required />
-          </label>
-          <label class="field">
-            <span class="field-label">Email</span>
-            <input class="input" type="email" name="email" autocomplete="email" required />
-          </label>
-          <label class="field">
-            <span class="field-label">City</span>
-            <input class="input" name="city" autocomplete="address-level2" required />
-          </label>
-          <input class="hp" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true" />
-          <p class="form-error" role="alert" hidden>Something went wrong. Try again.</p>
-          <button class="btn btn--full" type="submit">GET EARLY ACCESS <span aria-hidden="true">→</span></button>
-          <p class="form-fine">Invites go out in batches. Android first.</p>
-        </form>
-        <div class="form-success" hidden>
-          <span class="mono-label mono-label--acid">// CONFIRMED</span>
-          <h3><span class="skew">You're on the list.</span></h3>
-          <p>The invite lands in your inbox. Android first — keep an eye out.</p>
-        </div>
-      </div>
-    </div>
-  </section>
-
 </main>
 
 <footer class="footer">
@@ -412,25 +376,6 @@
 (function () {
   "use strict";
 
-  // ── Form backend ─────────────────────────────────────────────────────
-  // Posts to the Vercel serverless function at /api/signup, which holds the
-  // Supabase credentials in env vars (see api/signup.js). No keys in the client.
-  // Contract: PACR_SUBMIT(kind, data) -> Promise. kind: "club" | "early".
-  // Rejects on failure so the form shows its error state.
-  window.PACR_SUBMIT = function (kind, data) {
-    return fetch("/api/signup", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(Object.assign({ kind: kind }, data))
-    }).then(function (res) {
-      if (!res.ok) {
-        return res.text().then(function (body) {
-          throw new Error("signup " + res.status + ": " + body);
-        });
-      }
-    });
-  };
-
   // Play Store outbound clicks — same funnel instrumentation as the forms (plan §0.5).
   document.querySelectorAll("[data-play-link]").forEach(function (el) {
     el.addEventListener("click", function () {
@@ -482,47 +427,6 @@
   dialog.addEventListener("click", function (e) {
     if (e.target === dialog) dialog.close(); // backdrop click
   });
-
-  function wireForm(form, kind) {
-    var success = form.parentElement.querySelector(".form-success");
-    var error = form.querySelector(".form-error");
-    var button = form.querySelector("button[type=submit]");
-    var label = button.innerHTML;
-
-    form.addEventListener("submit", function (e) {
-      e.preventDefault();
-      if (form.website.value) return; // honeypot
-
-      var data = Object.fromEntries(new FormData(form));
-      delete data.website;
-      if (data.city === "other" && data.city_other) data.city = data.city_other;
-      delete data.city_other;
-      Object.assign(data, utmParams());
-
-      error.hidden = true;
-      button.disabled = true;
-      button.textContent = "SENDING…";
-
-      window.PACR_SUBMIT(kind, data).then(function () {
-        form.hidden = true;
-        success.hidden = false;
-        // Funnel event (plan §0.5) — no PII: city + frequency only
-        if (window.posthog && posthog.capture) {
-          posthog.capture(kind === "club" ? "club_signup" : "early_access_signup", {
-            city: data.city || null,
-            frequency: data.frequency || null
-          });
-        }
-      }).catch(function () {
-        error.hidden = false;
-      }).finally(function () {
-        button.disabled = false;
-        button.innerHTML = label;
-      });
-    });
-  }
-
-  wireForm(document.getElementById("early-form"), "early");
 
   // ── Club: email-OTP two-step (details → code → join) ─────────────────
   var otpForm = document.getElementById("club-otp-form");

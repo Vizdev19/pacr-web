@@ -175,6 +175,8 @@ legend { padding: 0; }
   margin-left: -26px;
 }
 .nav-links { display: flex; align-items: center; gap: 24px; }
+.nav-store { display: inline-flex; align-items: center; gap: 8px; }
+.nav-store .play-mark { width: 14px; height: 15px; }
 
 /* ── hero ──────────────────────────────────────────────────────────── */
 
@@ -437,16 +439,6 @@ legend { padding: 0; }
   color: var(--dim-ink);
 }
 
-/* ── early access ──────────────────────────────────────────────────── */
-
-.section--deep { background: var(--deep); }
-.early-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 420px);
-  gap: clamp(40px, 6vw, 96px);
-  align-items: start;
-}
-
 /* ── forms ─────────────────────────────────────────────────────────── */
 
 .field { display: block; margin-bottom: 18px; }
@@ -619,7 +611,6 @@ dialog.dialog::backdrop { background: rgba(10, 11, 8, 0.72); }
   .hero-grid { grid-template-columns: 1fr; align-items: start; }
   .hero-photo { max-width: 520px; display: block; }
   .photo { aspect-ratio: 3 / 2; flex: none; min-height: 0; }
-  .early-grid { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 760px) {
@@ -629,7 +620,23 @@ dialog.dialog::backdrop { background: rgba(10, 11, 8, 0.72); }
 }
 
 @media (max-width: 560px) {
-  .nav-links .link-quiet { display: none; }
+  /* The sticky nav has no room for the label, but the store link is the one
+     thing a phone visitor wants — keep the glyph, keep the accessible name. */
+  /* padding + matching negative margin: a 44px tap target that costs no layout */
+  .nav-store {
+    border-bottom: 0;
+    padding: 11px 12px;
+    margin: -11px -12px;
+  }
+  .nav-store .play-mark { width: 20px; height: 22px; }
+  .nav-store-text {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
   .hero-ctas { gap: 20px; }
   .city { padding-block: 14px; }
   .seg { flex-direction: column; }
