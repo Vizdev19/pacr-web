@@ -41,6 +41,17 @@
 
 <a class="skip" href="#main">Skip to content</a>
 
+<!-- Google Play glyph — defined once, referenced by every store link below.
+     Official four colors, unmodified (Play brand guidelines). -->
+<svg class="sprite" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">
+  <symbol id="play-mark" viewBox="0 0 512 512">
+    <path fill="#00C3FF" d="M47 0C34 6.8 25.3 19.2 25.3 35.3v441.4c0 16.1 8.7 28.5 21.7 35.3l256.6-256L47 0z" />
+    <path fill="#00F076" d="M325.3 234.3L104.6 13l280.8 161.2-60.1 60.1z" />
+    <path fill="#FFCE00" d="M472.2 225.6l-58.9-34.1-65.7 64.5 65.7 64.5 60-34.1c18-14.3 18-46.5-1.1-60.8z" />
+    <path fill="#FF3A44" d="M104.6 499l280.8-161.2-60.1-60.1L104.6 499z" />
+  </symbol>
+</svg>
+
 <header class="nav">
   <div class="container nav-inner">
     <a class="nav-wordmark" href="/" aria-label="Pacr home">
@@ -48,6 +59,8 @@
     </a>
     <nav class="nav-links" aria-label="Primary">
       <a class="link-quiet" href="#early-access">EARLY ACCESS</a>
+      <a class="link-quiet" data-play-link data-play-place="nav" rel="noopener"
+         href="https://play.google.com/store/apps/details?id=life.pacr.app">GET THE APP</a>
       <button class="btn btn--sm" type="button" data-open-club>JOIN YOUR CITY</button>
     </nav>
   </div>
@@ -65,6 +78,11 @@
         <p class="hero-sub">AI-coached runs, real routes, runners like you — find your city's group and join the next run.</p>
         <div class="hero-ctas">
           <button class="btn" type="button" data-open-club>JOIN YOUR CITY <span aria-hidden="true">→</span></button>
+          <a class="btn btn--ghost btn--play" data-play-link data-play-place="hero" rel="noopener"
+             href="https://play.google.com/store/apps/details?id=life.pacr.app">
+            <svg class="play-mark" aria-hidden="true" focusable="false"><use href="#play-mark" /></svg>
+            GET IT ON GOOGLE PLAY
+          </a>
           <a class="link-quiet" href="#early-access">GET EARLY ACCESS →</a>
         </div>
         <span class="mono-label hero-meta">WEEKENDS · 06:30 · ACROSS INDIA</span>
@@ -213,6 +231,15 @@
           <figcaption>Delhi, AQI 212. Pacr adapts the workout before you're out the door.</figcaption>
         </figure>
       </div>
+
+      <div class="app-download">
+        <a class="btn btn--ghost btn--play" data-play-link data-play-place="app" rel="noopener"
+           href="https://play.google.com/store/apps/details?id=life.pacr.app">
+          <svg class="play-mark" aria-hidden="true" focusable="false"><use href="#play-mark" /></svg>
+          GET IT ON GOOGLE PLAY
+        </a>
+        <span class="mono-label">AVAILABLE NOW ON ANDROID</span>
+      </div>
     </div>
   </section>
 
@@ -290,6 +317,8 @@
       </div>
       <nav class="footer-links" aria-label="Footer">
         <!-- Launch gate: seed 3–4 Instagram posts before go-live (plan §0.6) -->
+        <a class="link-quiet" data-play-link data-play-place="footer" rel="noopener"
+           href="https://play.google.com/store/apps/details?id=life.pacr.app">GOOGLE PLAY</a>
         <a class="link-quiet" href="https://www.instagram.com/pacr.life" rel="noopener">INSTAGRAM</a>
         <a class="link-quiet" href="/privacy">PRIVACY POLICY</a>
         <a class="link-quiet" href="mailto:support@pacr.life">SUPPORT</a>
@@ -401,6 +430,15 @@
       }
     });
   };
+
+  // Play Store outbound clicks — same funnel instrumentation as the forms (plan §0.5).
+  document.querySelectorAll("[data-play-link]").forEach(function (el) {
+    el.addEventListener("click", function () {
+      if (window.posthog && posthog.capture) {
+        posthog.capture("play_store_click", { placement: el.getAttribute("data-play-place") });
+      }
+    });
+  });
 
   var dialog = document.getElementById("club-dialog");
   var clubForm = document.getElementById("club-form");

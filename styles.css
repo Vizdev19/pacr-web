@@ -109,6 +109,21 @@ legend { padding: 0; }
 .btn--sm { font-size: 18px; padding: 10px 14px; }
 .btn--full { width: 100%; justify-content: space-between; }
 
+/* Outline variant — keeps acid to one element per viewport (product spec §16)
+   when a secondary CTA sits beside the primary. */
+.btn--ghost {
+  background: transparent;
+  color: var(--paper);
+  border: 1px solid var(--hairline);
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+.btn--ghost:hover { background: transparent; border-color: var(--paper); }
+
+/* Google Play CTA. The glyph keeps Google's colors; the label is ours. */
+.sprite { position: absolute; width: 0; height: 0; overflow: hidden; }
+.btn--play { gap: 12px; padding-block: 12px; }
+.play-mark { width: 21px; height: 23px; flex: none; }
+
 .link-quiet {
   font-family: var(--font-mono);
   font-size: var(--text-caption);
@@ -377,6 +392,15 @@ legend { padding: 0; }
   line-height: 1.55;
   color: var(--dim);
   max-width: 34ch;
+}
+.app-download {
+  display: flex;
+  align-items: center;
+  gap: clamp(16px, 2.5vw, 28px);
+  flex-wrap: wrap;
+  margin-top: clamp(36px, 5vw, 56px);
+  border-top: 1px solid var(--hairline);
+  padding-top: clamp(28px, 4vw, 40px);
 }
 
 /* ── social proof (the one cream section) ──────────────────────────── */
