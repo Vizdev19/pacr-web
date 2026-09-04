@@ -44,6 +44,8 @@
   .join:hover { border-color:#5A6B00; color:#5A6B00; }
   .soc:hover { border-color:#8A9E00; background:#E8FF3A; }
   .foot-a:hover { color:#5A6B00; }
+  .badge { display:block; border-radius:8px; transition:transform .18s ease, opacity .18s ease; }
+  .badge:hover { transform:translateY(-2px); opacity:0.85; }
 
   /* Responsive collapse of the artboard grids */
   .g-hero > *, .g-voice > *, .g-clubs > *, .g-routes > *, .g-inputs > *, .g-posts > *, .g-footer > * { min-width:0; }
@@ -471,9 +473,13 @@
       <img src="assets/pacr-mark.png" alt="" width="52" height="52" style="width:52px; height:52px; border-radius:12px; margin:0 auto 28px; display:block;">
       <h2 style="font-family:Outfit, sans-serif; font-weight:700; font-size:clamp(40px,6vw,88px); line-height:0.9; letter-spacing:-0.03em; text-transform:uppercase; margin:0 0 24px;">Tomorrow's run is<br>already written.</h2>
       <p style="font-size:18px; line-height:1.6; color:#5C5C54; max-width:520px; margin:0 auto 36px;">Free while you build the habit. Bring your watch, your headphones, and whatever the weather's doing.</p>
-      <div style="display:flex; gap:14px; justify-content:center; flex-wrap:wrap;">
-        <a class="btn-acid2" href="https://play.google.com/store/apps/details?id=life.pacr.app" style="font-family:Manrope, sans-serif; font-weight:600; font-size:13px; letter-spacing:0.14em; text-transform:uppercase; background:#E8FF3A; color:#0A0A09; padding:18px 34px; border-radius:2px; box-shadow:0 8px 22px -12px rgba(120,140,0,0.75); transition:all .18s ease;">Download for Android</a>
-        <a class="btn-ghost" href="#get" style="font-family:Manrope, sans-serif; font-weight:600; font-size:13px; letter-spacing:0.14em; text-transform:uppercase; border:1px solid #C8C8BD; color:#0F0F0D; padding:18px 34px; border-radius:2px; transition:all .18s ease;">Download for iOS</a>
+      <div style="display:flex; gap:14px; justify-content:center; align-items:center; flex-wrap:wrap;">
+        <a class="badge" href="#get" aria-label="Download PACR on the App Store">
+          <img src="assets/appstore.svg" alt="Download on the App Store" width="156" height="52" style="height:52px; width:auto; max-width:100%; display:block;">
+        </a>
+        <a class="badge" href="https://play.google.com/store/apps/details?id=life.pacr.app" aria-label="Get PACR on Google Play">
+          <img src="assets/playsore.png" alt="Get it on Google Play" width="175" height="52" style="height:52px; width:auto; max-width:100%; display:block;">
+        </a>
       </div>
     </div>
   </section>
