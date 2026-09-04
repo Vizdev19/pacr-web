@@ -121,7 +121,7 @@
       </div>
 
       <div class="hero-phone" style="position:relative; justify-self:center; width:320px; height:640px; border:1px solid #D8D8CE; border-radius:40px; padding:12px; background:linear-gradient(160deg,#FCFCF8,#EDEDE5); box-shadow:0 44px 80px -40px rgba(15,15,13,0.45), 0 2px 0 #FFFFFF inset;">
-        <div style="width:100%; height:100%; border-radius:30px; background:#FFFFFF; border:1px solid #E9E9E0; padding:24px 20px; display:flex; flex-direction:column; gap:16px; overflow:hidden;">
+        <div style="width:100%; height:100%; border-radius:30px; background:#FFFFFF; border:1px solid #E9E9E0; padding:20px 20px; display:flex; flex-direction:column; gap:13px; overflow:hidden;">
           <div style="display:flex; justify-content:space-between; font-family:Manrope, sans-serif; font-weight:600; font-size:11px; color:#6A6A61; letter-spacing:0.1em;">
             <span>TUE 06:12</span><span>28°C · 74% RH</span>
           </div>
@@ -392,7 +392,34 @@
       </div>
       <div class="g-routes" style="display:grid; grid-template-columns:1.35fr 1fr; gap:20px;">
         <div style="position:relative; border:1px solid #E3E3DA; min-height:430px; background:#F5F5EF; overflow:hidden;">
-          <iframe src="routes-map.html" title="Nearby run routes" loading="lazy" style="position:absolute; inset:0; width:100%; height:100%; border:0; display:block;"></iframe>
+          <svg viewBox="0 0 760 430" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Stylised map of nearby run routes" style="position:absolute; inset:0; width:100%; height:100%; display:block;">
+            <rect width="760" height="430" fill="#F5F5EF"></rect>
+            <path d="M0 300 C120 286 220 320 320 340 C430 362 560 356 760 330 L760 430 L0 430 Z" fill="#E7EFE4"></path>
+            <path d="M470 60 C520 92 540 140 520 190 C498 244 430 258 392 224 C352 188 372 108 428 74 Z" fill="#E4EDF2"></path>
+            <g stroke="#E4E4DA" stroke-width="7" fill="none">
+              <path d="M-20 120 H780"></path><path d="M-20 210 H780"></path><path d="M-20 372 H780"></path>
+              <path d="M110 -20 V450"></path><path d="M300 -20 V450"></path><path d="M600 -20 V450"></path>
+              <path d="M-20 40 L780 260"></path>
+            </g>
+            <g stroke="#EDEDE4" stroke-width="3" fill="none">
+              <path d="M-20 70 H780"></path><path d="M-20 165 H780"></path><path d="M-20 265 H780"></path><path d="M-20 320 H780"></path>
+              <path d="M200 -20 V450"></path><path d="M400 -20 V450"></path><path d="M500 -20 V450"></path><path d="M690 -20 V450"></path>
+            </g>
+            <path d="M150 340 C210 300 250 250 320 246 C400 242 430 300 500 300 C570 300 600 240 640 200" fill="none" stroke="#C8C8BD" stroke-width="5" stroke-linecap="round" stroke-dasharray="14 12"></path>
+            <path d="M112 250 C150 180 200 150 268 158 C340 166 372 220 448 214 C520 208 548 152 590 118" fill="none" stroke="#0F0F0D" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" opacity="0.1"></path>
+            <path d="M112 250 C150 180 200 150 268 158 C340 166 372 220 448 214 C520 208 548 152 590 118" fill="none" stroke="#E8FF3A" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"></path>
+            <path d="M112 250 C150 180 200 150 268 158 C340 166 372 220 448 214 C520 208 548 152 590 118" fill="none" stroke="#0F0F0D" stroke-width="6" stroke-linecap="round" stroke-dasharray="26 214" style="animation:pacr-dash 5s linear infinite;"></path>
+            <circle cx="112" cy="250" r="9" fill="#0F0F0D"></circle>
+            <circle cx="112" cy="250" r="3.4" fill="#E8FF3A"></circle>
+            <circle cx="590" cy="118" r="7" fill="#FFFFFF" stroke="#0F0F0D" stroke-width="3.5"></circle>
+            <g fill="#8A9E00" opacity="0.85">
+              <circle cx="248" cy="342" r="5"></circle><circle cx="620" cy="300" r="5"></circle><circle cx="466" cy="86" r="5"></circle>
+            </g>
+            <g font-family="Manrope, sans-serif" font-size="11" font-weight="600" letter-spacing="1.4" fill="#8B8B80">
+              <text x="26" y="404">RESERVOIR PARK</text>
+              <text x="606" y="52">OLD TOWN</text>
+            </g>
+          </svg>
           <div style="position:absolute; top:24px; right:24px; z-index:5; pointer-events:none; background:rgba(255,255,255,0.92); border:1px solid #E3E3DA; padding:14px 16px; backdrop-filter:blur(6px);">
             <div style="font-family:Manrope, sans-serif; font-weight:600; font-size:10px; letter-spacing:0.16em; text-transform:uppercase; color:#6A6A61;">Within 5 km</div>
             <div style="font-family:Outfit, sans-serif; font-weight:700; font-size:26px; line-height:1.1; margin-top:4px;">12 routes</div>
