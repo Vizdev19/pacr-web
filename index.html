@@ -265,7 +265,7 @@
           <div class="eyebrow" style="font-family:Manrope, sans-serif; font-weight:600; font-size:11px; letter-spacing:0.2em; text-transform:uppercase; color:#5A6B00; margin-bottom:18px; display:flex; align-items:center; gap:10px;">03 / Feed</div>
           <h2 style="font-family:Outfit, sans-serif; font-weight:700; font-size:clamp(34px,4.4vw,64px); line-height:0.94; letter-spacing:-0.02em; text-transform:uppercase; margin:0;">Post the run. Get the noise.</h2>
         </div>
-        <a href="#get" style="font-family:Manrope, sans-serif; font-weight:600; font-size:12px; letter-spacing:0.14em; text-transform:uppercase; border-bottom:1px solid #C8C8BD; padding-bottom:6px;">Join the feed →</a>
+        <a href="/feed" style="font-family:Manrope, sans-serif; font-weight:600; font-size:12px; letter-spacing:0.14em; text-transform:uppercase; border-bottom:1px solid #C8C8BD; padding-bottom:6px;">Sign in to see your feed →</a>
       </div>
       <div class="g-posts" style="display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:20px;">
         <div class="card-post" style="border:1px solid #E3E3DA; background:#FFFFFF; display:flex; flex-direction:column; transition:transform .22s ease, box-shadow .22s ease;">
@@ -346,7 +346,13 @@
         <p style="font-size:17px; line-height:1.6; color:#5C5C54; margin:0 0 28px;">Clubs share a weekly board, a long-run slot, and a leaderboard that counts consistency instead of raw speed.</p>
         <a class="btn-acid2" href="#get" style="font-family:Manrope, sans-serif; font-weight:600; font-size:12px; letter-spacing:0.14em; text-transform:uppercase; background:#E8FF3A; color:#0A0A09; padding:15px 26px; display:inline-block; border-radius:2px; transition:all .18s ease;">Find a club</a>
       </div>
-      <div style="display:flex; flex-direction:column; gap:1px; background:#E3E3DA; border:1px solid #E3E3DA;">
+      <div>
+        <!-- Location filter. Hidden until js/clubs.js finds more than one city
+             with public clubs in it; there is nothing to filter before that. -->
+        <div id="clubsChips" hidden style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:20px;"></div>
+        <!-- The four rows below are the static baseline. js/clubs.js replaces
+             them with the live directory, and only on a successful fetch. -->
+        <div id="clubsList" style="display:flex; flex-direction:column; gap:1px; background:#E3E3DA; border:1px solid #E3E3DA;">
         <div class="row-hover" style="background:#FFFFFF; padding:26px 28px; display:grid; grid-template-columns:auto 1fr auto; gap:24px; align-items:center; transition:background .2s ease, box-shadow .2s ease;">
           <div style="width:52px; height:52px; background:#F7F7F3; border:1px solid #DCDCD1; display:flex; align-items:center; justify-content:center; font-family:Outfit, sans-serif; font-weight:700; font-size:16px; color:#5A6B00;">DR</div>
           <div>
@@ -378,6 +384,7 @@
             <div style="font-family:Manrope, sans-serif; font-weight:600; font-size:11px; letter-spacing:0.1em; color:#6A6A61; margin-top:6px;">400M REPS · 480 MEMBERS · CITY STADIUM</div>
           </div>
           <div class="join" style="font-family:Manrope, sans-serif; font-weight:600; font-size:11px; letter-spacing:0.14em; text-transform:uppercase; border:1px solid #C8C8BD; padding:10px 16px; color:#0F0F0D; cursor:pointer; transition:all .16s ease;">Join</div>
+        </div>
         </div>
       </div>
     </div>
@@ -423,8 +430,8 @@
             </g>
           </svg>
           <div style="position:absolute; top:24px; right:24px; z-index:5; pointer-events:none; background:rgba(255,255,255,0.92); border:1px solid #E3E3DA; padding:14px 16px; backdrop-filter:blur(6px);">
-            <div style="font-family:Manrope, sans-serif; font-weight:600; font-size:10px; letter-spacing:0.16em; text-transform:uppercase; color:#6A6A61;">Within 5 km</div>
-            <div style="font-family:Outfit, sans-serif; font-weight:700; font-size:26px; line-height:1.1; margin-top:4px;">12 routes</div>
+            <div id="routesCountLabel" style="font-family:Manrope, sans-serif; font-weight:600; font-size:10px; letter-spacing:0.16em; text-transform:uppercase; color:#6A6A61;">Within 5 km</div>
+            <div id="routesCount" style="font-family:Outfit, sans-serif; font-weight:700; font-size:26px; line-height:1.1; margin-top:4px;">12 routes</div>
             <div style="font-family:Manrope, sans-serif; font-weight:600; font-size:10px; letter-spacing:0.14em; text-transform:uppercase; color:#5A6B00; margin-top:6px;">4 fit today's session</div>
           </div>
           <div style="position:absolute; left:32px; bottom:28px; z-index:5; pointer-events:none; display:flex; gap:8px;">
@@ -433,7 +440,12 @@
             <span style="font-family:Manrope, sans-serif; font-weight:600; font-size:10px; letter-spacing:0.12em; border:1px solid #C8C8BD; color:#5C5C54; padding:7px 12px;">FLAT</span>
           </div>
         </div>
-        <div style="display:flex; flex-direction:column; gap:1px; background:#E3E3DA; border:1px solid #E3E3DA;">
+        <div>
+          <!-- City filter. Hidden until js/routes.js finds spots in more than
+               one city; today the table is Bangalore-only. -->
+          <div id="routesChips" hidden style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:20px;"></div>
+          <!-- Static baseline, replaced by js/routes.js on a successful fetch. -->
+          <div id="routesList" style="display:flex; flex-direction:column; gap:1px; background:#E3E3DA; border:1px solid #E3E3DA;">
           <div class="row-hover" style="background:#FFFFFF; padding:22px 24px; flex:1; display:flex; flex-direction:column; justify-content:center; transition:background .2s ease, box-shadow .2s ease;">
             <div style="display:flex; justify-content:space-between; align-items:baseline; gap:16px;">
               <div style="font-family:Outfit, sans-serif; font-weight:700; font-size:18px; text-transform:uppercase;">Marine Loop</div>
@@ -461,6 +473,7 @@
               <div style="font-family:Manrope, sans-serif; font-weight:600; font-size:12px; color:#5A6B00;">1.6 km</div>
             </div>
             <div style="font-family:Manrope, sans-serif; font-weight:600; font-size:11px; letter-spacing:0.1em; color:#6A6A61; margin-top:8px;">TRACK · LIT UNTIL 22:00 · MATCHES TODAY'S LADDER</div>
+          </div>
           </div>
         </div>
       </div>
@@ -561,6 +574,17 @@
   }
   pacrWave(document.getElementById('heroWave'), 22, 26, '3px', 0);
   pacrWave(document.getElementById('bigWave'), 64, 90, '4px', 3);
+</script>
+
+<!-- Live data for the Clubs and Routes sections. type="module" is deferred by
+     definition, so this never blocks paint, and an older browser that skips it
+     simply keeps the static markup above. Both initialisers no-op unless their
+     fetch actually returns rows. -->
+<script type="module">
+  import { initClubs } from '/js/clubs.js';
+  import { initRoutes } from '/js/routes.js';
+  initClubs().catch(e => console.warn('[pacr] clubs', e));
+  initRoutes().catch(e => console.warn('[pacr] routes', e));
 </script>
 </body>
 </html>
