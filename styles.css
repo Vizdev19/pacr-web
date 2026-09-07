@@ -136,6 +136,9 @@ legend { padding: 0; }
   transition: color 0.15s ease, border-color 0.15s ease;
 }
 .link-quiet:hover { color: var(--acid); border-color: var(--acid); }
+/* The header's Sign out control is a <button>, not a link — reset the UA
+   chrome so it sits on the same baseline as the anchors beside it. */
+button.link-quiet { background: none; border: 0; border-bottom: 1px solid var(--hairline); padding: 0 0 3px; cursor: pointer; }
 
 .skip {
   position: absolute;

@@ -91,52 +91,19 @@
     <img src="assets/pacr-mark.png" alt="PACR" width="34" height="34" style="width:34px; height:34px; border-radius:8px; display:block;">
     <span style="font-family:Outfit, sans-serif; font-weight:700; font-size:20px; letter-spacing:0.14em;">PACR</span>
   </a>
-  <button id="signOut" class="btn-quiet" hidden type="button">Sign out</button>
+  <div id="authSlot"></div>
 </header>
 
 <main class="pad-x" style="max-width:760px; margin:0 auto; padding-top:64px; padding-bottom:96px;">
 
-  <!-- Loading: what a visitor sees for the moment it takes to resolve the session. -->
+  <!-- Resolving the session. A signed-out visitor is redirected to /signin
+       from here, so the feed itself never renders without one. -->
   <section id="paneBoot">
     <div class="eyebrow">Feed</div>
     <div class="skel"><div style="width:40%"></div></div>
   </section>
 
-  <!-- 1 · signed out -->
-  <section id="paneAuth" hidden>
-    <div class="eyebrow">Feed</div>
-    <h1 class="disp">Your squad's runs.</h1>
-    <p class="lede">Sign in with the email on your PACR account. We'll send a six-digit code — the same
-      one the app uses. No password.</p>
-
-    <form id="formEmail" novalidate>
-      <label class="field-label" for="email">Email</label>
-      <input class="input" id="email" name="email" type="email" autocomplete="email"
-             inputmode="email" placeholder="you@example.com" required>
-      <div style="margin-top:20px;">
-        <button class="btn" id="sendBtn" type="submit">Send code</button>
-      </div>
-    </form>
-
-    <form id="formCode" novalidate hidden>
-      <label class="field-label" for="code">Six-digit code sent to <span id="codeEmail"></span></label>
-      <input class="input code" id="code" name="code" type="text" inputmode="numeric"
-             autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" placeholder="······" required>
-      <div style="margin-top:20px; display:flex; align-items:center; gap:22px; flex-wrap:wrap;">
-        <button class="btn" id="verifyBtn" type="submit">Sign in</button>
-        <button class="btn-quiet" id="backBtn" type="button">Use another email</button>
-      </div>
-    </form>
-
-    <p class="msg" id="authMsg" hidden></p>
-
-    <p style="font-size:13.5px; color:#8B8B80; margin-top:40px; max-width:44ch;">
-      No account yet? PACR accounts are made in the app.
-      <a href="/#get">Get PACR</a>, then come back here.
-    </p>
-  </section>
-
-  <!-- 2 + 3 · signed in -->
+  <!-- Signed in. Signed-out visitors are sent to /signin before this renders. -->
   <section id="paneFeed" hidden>
     <div class="eyebrow">Feed</div>
     <h1 class="disp" id="feedTitle">Your feed</h1>

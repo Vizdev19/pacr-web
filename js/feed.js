@@ -16,12 +16,14 @@
 // stay in the app: those are the flows App Review was shown, and a second
 // half-built moderation surface is worse than none.
 //
-// Auth mirrors pacr/src/services/supabase.ts: a 6-digit email OTP, verified
-// with type 'email'. shouldCreateUser is false — the website must never mint an
-// identity, only recognise one the app already made.
+// This page is GATED, not a sign-in host: a visitor without a session is sent
+// to /signin?next=/feed and comes back here. The flow itself lives in auth.js,
+// which also mounts the header's session-aware Sign in / Sign out control and
+// listens for a session going away in another tab.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { getSupabase, esc, initials, signedUrlsFor } from './supabase.js';
+import { mountHeaderAuth, signinHref } from './auth.js';
 
 const PAGE_SIZE = 20;
 const PINNED_LIMIT = 5;
@@ -73,97 +75,6 @@ function msg(el, text, kind) {
   el.hidden = false;
   el.textContent = text;
   el.className = `msg ${kind ?? ''}`.trim();
-}
-
-// ─── Auth ───────────────────────────────────────────────────────────────────
-// Error classification ported from pacr/src/services/supabase.ts so the copy
-// reads like a sentence instead of a Supabase error string.
-
-function sendErrorText(m) {
-  const s = (m ?? '').toLowerCase();
-  if (s.includes('rate') || s.includes('too many')) {
-    return 'Too many codes requested. Wait a minute, then try again.';
-  }
-  if (s.includes('signups not allowed') || s.includes('not found')) {
-    return "No PACR account uses that email. Accounts are made in the app.";
-  }
-  if (s.includes('invalid') && s.includes('email')) return 'That email address looks wrong.';
-  return "Couldn't send the code. Try again in a moment.";
-}
-
-function verifyErrorText(m) {
-  const s = (m ?? '').toLowerCase();
-  if (s.includes('rate') || s.includes('too many')) {
-    return 'Too many attempts. Wait a minute, then try again.';
-  }
-  if (s.includes('expired') || s.includes('invalid') || s.includes('token')) {
-    return 'That code is wrong or has expired.';
-  }
-  return "Couldn't sign you in. Try again in a moment.";
-}
-
-function wireAuth() {
-  const formEmail = $('formEmail');
-  const formCode = $('formCode');
-  const authMsg = $('authMsg');
-  let pendingEmail = '';
-
-  formEmail.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const email = $('email').value.trim().toLowerCase();
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      return msg(authMsg, 'Enter a valid email address.', 'err');
-    }
-    const btn = $('sendBtn');
-    btn.disabled = true;
-    msg(authMsg, 'Sending…');
-    // shouldCreateUser:false — a stranger must not be able to create an
-    // account from the marketing site.
-    const { error } = await sb.auth.signInWithOtp({
-      email, options: { shouldCreateUser: false },
-    });
-    btn.disabled = false;
-    if (error) return msg(authMsg, sendErrorText(error.message), 'err');
-
-    pendingEmail = email;
-    $('codeEmail').textContent = email;
-    formEmail.hidden = true;
-    formCode.hidden = false;
-    msg(authMsg, 'Code sent. It expires in an hour.', 'ok');
-    $('code').focus();
-  });
-
-  formCode.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const token = $('code').value.trim();
-    if (!/^\d{6}$/.test(token)) return msg(authMsg, 'Enter the six digits from the email.', 'err');
-
-    const btn = $('verifyBtn');
-    btn.disabled = true;
-    msg(authMsg, 'Checking…');
-    const { data, error } = await sb.auth.verifyOtp({
-      email: pendingEmail, token, type: 'email',
-    });
-    btn.disabled = false;
-    if (error || !data?.user) return msg(authMsg, verifyErrorText(error?.message), 'err');
-
-    msg(authMsg, '');
-    me = data.user;
-    await showFeed();
-  });
-
-  $('backBtn').addEventListener('click', () => {
-    formCode.hidden = true;
-    formEmail.hidden = false;
-    $('code').value = '';
-    msg(authMsg, '');
-    $('email').focus();
-  });
-
-  $('signOut').addEventListener('click', async () => {
-    await sb.auth.signOut();
-    location.reload();
-  });
 }
 
 // ─── Squads ─────────────────────────────────────────────────────────────────
@@ -302,9 +213,7 @@ async function loadPage({ reset }) {
 
 async function showFeed() {
   $('paneBoot').hidden = true;
-  $('paneAuth').hidden = true;
   $('paneFeed').hidden = false;
-  $('signOut').hidden = false;
 
   squads = await loadSquads();
   if (squads.length === 0) {
@@ -332,13 +241,6 @@ async function showFeed() {
   await loadPage({ reset: true });
 }
 
-function showAuth() {
-  $('paneBoot').hidden = true;
-  $('paneFeed').hidden = true;
-  $('signOut').hidden = true;
-  $('paneAuth').hidden = false;
-}
-
 export async function initFeed() {
   sb = await getSupabase();
   if (!sb) {
@@ -346,13 +248,18 @@ export async function initFeed() {
       '<p class="msg err">The feed is unavailable right now. Please try again later.</p>';
     return;
   }
-  wireAuth();
 
   const { data } = await sb.auth.getSession();
-  if (data?.session?.user) {
-    me = data.session.user;
-    await showFeed();
-  } else {
-    showAuth();
+  if (!data?.session?.user) {
+    // replace(), not assign(): a signed-out visitor should not be able to press
+    // Back into a feed they cannot see.
+    location.replace(signinHref('/feed'));
+    return;
   }
+
+  me = data.session.user;
+  // signOutTo sends this tab home the moment the session ends — including when
+  // it ends in another tab — so the feed is never left on screen without one.
+  mountHeaderAuth($('authSlot'), { className: 'btn-quiet', signOutTo: '/' });
+  await showFeed();
 }

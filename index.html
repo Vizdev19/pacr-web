@@ -33,6 +33,9 @@
 
   /* Hover + pseudo-element states from the design */
   .nav-a:hover { color:#0F0F0D; }
+  /* Sign out renders as a <button>; strip the UA chrome so it matches the
+     anchors it sits with. */
+  button.nav-a { background:none; border:0; padding:0; cursor:pointer; font:inherit; color:inherit; letter-spacing:inherit; text-transform:inherit; }
   .btn-acid:hover { background:#0F0F0D; color:#FFFFFF; }
   .btn-acid2:hover { background:#0A0A09; color:#E8FF3A; }
   .btn-ghost:hover { border-color:#5A6B00; color:#5A6B00; }
@@ -84,7 +87,12 @@
       <a class="nav-a" href="#clubs" style="color:inherit;">Clubs</a>
       <a class="nav-a" href="#routes" style="color:inherit;">Routes</a>
     </nav>
-    <a class="btn-acid" href="#get" style="font-family:Manrope, sans-serif; font-weight:600; font-size:12px; letter-spacing:0.14em; text-transform:uppercase; background:#E8FF3A; color:#0A0A09; padding:12px 20px; border-radius:2px; transition:all .18s ease; white-space:nowrap;">Get PACR</a>
+    <div style="display:flex; align-items:center; gap:22px;">
+      <!-- Session-aware Sign in / Sign out, filled by js/auth.js. Left empty
+           until the session resolves so the header never flashes the wrong one. -->
+      <div id="authSlot" class="site-nav" style="font-family:Manrope, sans-serif; font-weight:600; font-size:12px; letter-spacing:0.14em; text-transform:uppercase; color:#5C5C54;"></div>
+      <a class="btn-acid" href="#get" style="font-family:Manrope, sans-serif; font-weight:600; font-size:12px; letter-spacing:0.14em; text-transform:uppercase; background:#E8FF3A; color:#0A0A09; padding:12px 20px; border-radius:2px; transition:all .18s ease; white-space:nowrap;">Get PACR</a>
+    </div>
   </header>
 
   <section class="pad-x" style="position:relative; padding:96px 40px 72px; border-bottom:1px solid #E3E3DA;">
@@ -583,8 +591,11 @@
 <script type="module">
   import { initClubs } from '/js/clubs.js';
   import { initRoutes } from '/js/routes.js';
+  import { mountHeaderAuth } from '/js/auth.js';
   initClubs().catch(e => console.warn('[pacr] clubs', e));
   initRoutes().catch(e => console.warn('[pacr] routes', e));
+  mountHeaderAuth(document.getElementById('authSlot'), { className: 'nav-a' })
+    .catch(e => console.warn('[pacr] auth', e));
 </script>
 </body>
 </html>

@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Sign in — PACR</title>
+<meta name="description" content="Sign in to PACR with the email on your account." />
+<meta name="robots" content="noindex" />
+<link rel="canonical" href="https://pacr.life/signin" />
+<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+<link rel="icon" type="image/png" sizes="32x32" href="/brand-acid/favicon.png" />
+<link rel="apple-touch-icon" href="/brand-acid/icon-512.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  html, body { margin:0; padding:0; background:#FFFFFF; color:#0F0F0D; font-family:Manrope, sans-serif; }
+  * { box-sizing: border-box; }
+  a { color:#5A6B00; text-decoration:none; }
+  a:hover { color:#0F0F0D; }
+  ::selection { background:#E8FF3A; color:#0A0A09; }
+  img { -webkit-user-drag:none; max-width:100%; }
+  [hidden] { display:none !important; }
+
+  .pad-x { padding-left:40px; padding-right:40px; }
+  @media (max-width:760px) { .pad-x { padding-left:22px; padding-right:22px; } }
+
+  .eyebrow { font-weight:600; font-size:11px; letter-spacing:0.2em; text-transform:uppercase;
+             color:#5A6B00; margin-bottom:18px; display:flex; align-items:center; gap:10px; }
+  .eyebrow::before { content:''; display:block; width:24px; height:2px; background:#A8BC00; }
+
+  h1.disp { font-family:Outfit, sans-serif; font-weight:700; font-size:clamp(34px,4.4vw,52px);
+            line-height:0.96; letter-spacing:-0.02em; text-transform:uppercase; margin:0 0 18px; }
+  .lede { font-size:17px; line-height:1.6; color:#5C5C54; margin:0 0 32px; max-width:46ch; }
+
+  .field-label { display:block; font-weight:600; font-size:11px; letter-spacing:0.14em;
+                 text-transform:uppercase; color:#6A6A61; margin-bottom:8px; }
+  .input { width:100%; max-width:380px; font-family:Manrope, sans-serif; font-size:16px; color:#0F0F0D;
+           background:#FFFFFF; border:1px solid #C8C8BD; border-radius:2px; padding:14px 16px; }
+  .input:focus-visible { outline:none; border-color:#0F0F0D; box-shadow:inset 0 -3px 0 #E8FF3A; }
+  .input.code { font-family:Outfit, sans-serif; font-weight:700; font-size:28px; letter-spacing:0.5em;
+                text-indent:0.5em; max-width:300px; text-align:center; }
+
+  .btn { font-weight:600; font-size:12px; letter-spacing:0.14em; text-transform:uppercase;
+         background:#E8FF3A; color:#0A0A09; border:1px solid #E8FF3A; padding:15px 26px;
+         border-radius:2px; cursor:pointer; transition:all .18s ease; font-family:Manrope, sans-serif; }
+  .btn:hover:not([disabled]) { background:#0A0A09; border-color:#0A0A09; color:#E8FF3A; }
+  .btn[disabled] { opacity:0.45; cursor:default; }
+  .btn-quiet { background:none; border:0; border-bottom:1px solid #C8C8BD; padding:0 0 4px;
+               font-weight:600; font-size:12px; letter-spacing:0.14em; text-transform:uppercase;
+               color:#5C5C54; cursor:pointer; font-family:Manrope, sans-serif; }
+  .btn-quiet:hover:not([disabled]) { color:#0F0F0D; border-color:#5A6B00; }
+  .btn-quiet[disabled] { opacity:0.5; cursor:default; }
+
+  .msg { font-size:14px; line-height:1.5; margin:18px 0 0; max-width:46ch; }
+  .msg.err { color:#A03A1E; }
+  .msg.ok  { color:#5A6B00; }
+</style>
+</head>
+<body>
+
+<header class="pad-x" style="display:flex; align-items:center; justify-content:space-between; gap:24px; padding:16px 40px; border-bottom:1px solid #E3E3DA;">
+  <a href="/" style="display:flex; align-items:center; gap:12px; color:inherit;">
+    <img src="/assets/pacr-mark.png" alt="PACR" width="34" height="34" style="width:34px; height:34px; border-radius:8px; display:block;">
+    <span style="font-family:Outfit, sans-serif; font-weight:700; font-size:20px; letter-spacing:0.14em;">PACR</span>
+  </a>
+</header>
+
+<main class="pad-x" style="max-width:620px; margin:0 auto; padding-top:80px; padding-bottom:120px;">
+
+  <!-- Resolving the session. Never shows a sign-in form to someone who is
+       already signed in, even for a beat. -->
+  <section id="paneBoot">
+    <div class="eyebrow">Account</div>
+    <p class="lede">One moment…</p>
+  </section>
+
+  <section id="paneForm" hidden>
+    <div class="eyebrow">Account</div>
+    <h1 class="disp">Sign in.</h1>
+    <p class="lede" id="lede">Use the email on your PACR account. We'll send a six-digit code —
+      the same one the app uses. No password.</p>
+
+    <form id="formEmail" novalidate>
+      <label class="field-label" for="email">Email</label>
+      <input class="input" id="email" name="email" type="email" autocomplete="email"
+             inputmode="email" placeholder="you@example.com" required autofocus>
+      <div style="margin-top:22px;">
+        <button class="btn" id="sendBtn" type="submit">Send code</button>
+      </div>
+    </form>
+
+    <form id="formCode" novalidate hidden>
+      <label class="field-label" for="code">Code sent to <span id="codeEmail"></span></label>
+      <input class="input code" id="code" name="code" type="text" inputmode="numeric"
+             autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" placeholder="······" required>
+      <div style="margin-top:22px; display:flex; align-items:center; gap:24px; flex-wrap:wrap;">
+        <button class="btn" id="verifyBtn" type="submit">Sign in</button>
+        <button class="btn-quiet" id="resendBtn" type="button">Resend code</button>
+        <button class="btn-quiet" id="backBtn" type="button">Use another email</button>
+      </div>
+    </form>
+
+    <p class="msg" id="msg" hidden></p>
+
+    <p style="font-size:13.5px; color:#8B8B80; margin-top:48px; max-width:46ch;">
+      No account yet? PACR accounts are made in the app.
+      <a href="/#get">Get PACR</a>, then come back here.
+    </p>
+  </section>
+
+  <!-- Already signed in and no `next` to follow. -->
+  <section id="paneDone" hidden>
+    <div class="eyebrow">Account</div>
+    <h1 class="disp">You're signed in.</h1>
+    <p class="lede">Head to your feed, or back to the site.</p>
+    <div style="display:flex; align-items:center; gap:24px; flex-wrap:wrap;">
+      <a class="btn" href="/feed">Go to your feed</a>
+      <button class="btn-quiet" id="doneSignOut" type="button">Sign out</button>
+    </div>
+  </section>
+</main>
+
+<footer class="pad-x" style="border-top:1px solid #E3E3DA; padding:32px 40px; display:flex; justify-content:space-between; gap:20px; flex-wrap:wrap; font-weight:600; font-size:11px; letter-spacing:0.14em; text-transform:uppercase; color:#8B8B80;">
+  <span>© PACR</span>
+  <span style="display:flex; gap:22px; flex-wrap:wrap;">
+    <a href="/">Home</a>
+    <a href="/privacy">Privacy</a>
+    <a href="/support">Support</a>
+  </span>
+</footer>
+
+<script type="module">
+  import { initSignin } from '/js/signin.js';
+  initSignin();
+</script>
+</body>
+</html>
