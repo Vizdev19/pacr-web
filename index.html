@@ -88,9 +88,13 @@
       <a class="nav-a" href="#routes" style="color:inherit;">Routes</a>
     </nav>
     <div style="display:flex; align-items:center; gap:22px;">
-      <!-- Session-aware Sign in / Sign out, filled by js/auth.js. Left empty
-           until the session resolves so the header never flashes the wrong one. -->
-      <div id="authSlot" class="site-nav" style="font-family:Manrope, sans-serif; font-weight:600; font-size:12px; letter-spacing:0.14em; text-transform:uppercase; color:#5C5C54;"></div>
+      <!-- Baseline Sign in link. js/auth.js swaps it for Sign out once it knows
+           there is a session; if Supabase is unreachable the link stays, because
+           reaching /signin never needed a client.
+           Deliberately NOT .site-nav — that class is display:none under 760px,
+           which would hide sign-in on every phone. The section links collapse
+           on mobile; the way into your account must not. -->
+      <div id="authSlot" style="font-family:Manrope, sans-serif; font-weight:600; font-size:12px; letter-spacing:0.14em; text-transform:uppercase; color:#5C5C54;"><a class="nav-a" data-auth="in" href="/signin" style="color:inherit;">Sign in</a></div>
       <a class="btn-acid" href="#get" style="font-family:Manrope, sans-serif; font-weight:600; font-size:12px; letter-spacing:0.14em; text-transform:uppercase; background:#E8FF3A; color:#0A0A09; padding:12px 20px; border-radius:2px; transition:all .18s ease; white-space:nowrap;">Get PACR</a>
     </div>
   </header>

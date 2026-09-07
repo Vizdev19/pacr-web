@@ -6,6 +6,7 @@
 // safe same-origin path, otherwise on the "you're signed in" panel.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { getSupabase } from './supabase.js';
 import {
   EMAIL_RE, RESEND_COOLDOWN_SEC, currentUser, isSigninPath, nextFromQuery,
   sendCode, verifyCode, signOut,
@@ -97,6 +98,18 @@ async function submitCode() {
 // ── Wiring ──────────────────────────────────────────────────────────────────
 
 export async function initSignin() {
+  // The header's Sign in link is static, so someone can arrive here even when
+  // the backend is unreachable or unconfigured. Say so plainly instead of
+  // showing a form that cannot work.
+  if (!(await getSupabase())) {
+    $('paneBoot').innerHTML =
+      '<div class="eyebrow">Account</div>' +
+      '<h1 class="disp">Sign-in is down.</h1>' +
+      '<p class="lede">We can\'t reach the server right now, so signing in isn\'t ' +
+      'possible. Please try again in a little while — the app still works.</p>';
+    return;
+  }
+
   // Already signed in? Honour ?next= immediately rather than making someone
   // re-authenticate to reach a page they can already see.
   const user = await currentUser();

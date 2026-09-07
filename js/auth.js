@@ -132,48 +132,51 @@ export async function verifyCode(email, token) {
 // ── Header control ──────────────────────────────────────────────────────────
 
 /**
- * Mount the session-aware Sign in / Sign out control.
+ * Upgrade the header's Sign in link into a session-aware control.
  *
- * `host` is an empty element already in the page, so the header's layout is
- * settled before this runs and nothing shifts when the session resolves. The
- * control stays empty (not "Sign in") until we actually know — showing "Sign
- * in" to someone who is signed in, for a beat, is worse than showing nothing.
+ * `host` already contains a plain "Sign in" link in the HTML — that is the
+ * baseline, and it is what a visitor sees with JS off, with the CDN blocked, or
+ * before the anon key is configured. Signing in needs no Supabase client to
+ * REACH (it is a link to /signin); only telling signed-in from signed-out does.
+ * So this function never empties the slot: it swaps in "Sign out" once a
+ * session is known, and otherwise leaves the baseline exactly where it is.
  *
  * Subscribing to onAuthStateChange is what makes a token-refresh failure or a
- * sign-out in another tab reach this tab, instead of leaving stale UI until
- * the next reload.
+ * sign-out in another tab reach this tab, instead of leaving stale UI until the
+ * next reload.
  */
 export async function mountHeaderAuth(host, opts = {}) {
   if (!host) return;
-  const sb = await getSupabase();
-  if (!sb) return;
 
   const cls = opts.className ?? '';
-  const paint = (user) => {
-    if (user) {
-      host.innerHTML = `<button type="button" class="${cls}" data-auth="out">Sign out</button>`;
-    } else {
-      host.innerHTML = `<a class="${cls}" data-auth="in" href="${signinHref()}">Sign in</a>`;
-    }
-  };
+  const signedInHtml = `<button type="button" class="${cls}" data-auth="out">Sign out</button>`;
+  // Re-render the baseline rather than trusting whatever is in the DOM now,
+  // so signing out restores a correct `next` for the current page.
+  const signedOutHtml = () =>
+    `<a class="${cls}" data-auth="in" href="${signinHref()}">Sign in</a>`;
 
-  paint(await currentUser());
-
+  // Delegated, so it survives the innerHTML swaps below.
   host.addEventListener('click', async (e) => {
     const btn = e.target.closest('[data-auth="out"]');
     if (!btn) return;
     btn.disabled = true;
     await signOut();
-    // Land somewhere that makes sense signed out. A page that requires a
-    // session sends you home; everywhere else just re-renders in place.
     if (opts.signOutTo) location.href = opts.signOutTo;
     else location.reload();
   });
 
+  const sb = await getSupabase();
+  // Unconfigured or unreachable: keep the static Sign in link. /signin explains
+  // itself if it genuinely cannot sign anyone in.
+  if (!sb) return;
+
+  const paint = (user) => { host.innerHTML = user ? signedInHtml : signedOutHtml(); };
+
+  const { data } = await sb.auth.getSession();
+  paint(data?.session?.user ?? null);
+
   sb.auth.onAuthStateChange((event, session) => {
     paint(session?.user ?? null);
-    // A session that goes away while a gated page is open must not leave that
-    // page's contents on screen.
     if (event === 'SIGNED_OUT' && opts.signOutTo) location.href = opts.signOutTo;
   });
 }
