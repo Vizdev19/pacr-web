@@ -101,6 +101,12 @@
   <section id="paneBoot">
     <div class="eyebrow">Feed</div>
     <div class="skel"><div style="width:40%"></div></div>
+    <!-- The feed is entirely script-driven, so without JS this page can never
+         resolve past the skeleton. Say so, and still offer the way out. -->
+    <noscript>
+      <p class="msg err" style="margin-top:22px;">Your feed needs JavaScript to load.</p>
+      <p class="msg"><a href="/signin">Go to sign in</a> · <a href="/">Back to pacr.life</a></p>
+    </noscript>
   </section>
 
   <!-- Signed in. Signed-out visitors are sent to /signin before this renders. -->

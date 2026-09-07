@@ -243,21 +243,22 @@ async function showFeed() {
 
 export async function initFeed() {
   sb = await getSupabase();
-  if (!sb) {
-    $('paneBoot').innerHTML =
-      '<p class="msg err">The feed is unavailable right now. Please try again later.</p>';
-    return;
-  }
 
-  const { data } = await sb.auth.getSession();
-  if (!data?.session?.user) {
-    // replace(), not assign(): a signed-out visitor should not be able to press
-    // Back into a feed they cannot see.
+  // The gate is uniform: this page renders only with a confirmed session, and
+  // every other outcome goes to /signin. A missing client is one of those
+  // outcomes — we cannot tell a signed-in visitor from a signed-out one, we
+  // cannot load posts either way, and stopping here with a red line and no
+  // link was a dead end with no way forward. /signin says plainly whether the
+  // problem is you or us.
+  // replace(), not assign(): nobody should be able to press Back into a feed
+  // they cannot see.
+  const user = sb ? (await sb.auth.getSession()).data?.session?.user : null;
+  if (!user) {
     location.replace(signinHref('/feed'));
     return;
   }
 
-  me = data.session.user;
+  me = user;
   // signOutTo sends this tab home the moment the session ends — including when
   // it ends in another tab — so the feed is never left on screen without one.
   mountHeaderAuth($('authSlot'), { className: 'btn-quiet', signOutTo: '/' });
