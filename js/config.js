@@ -15,11 +15,14 @@
 
 export const SUPABASE_URL = 'https://zrnoioagjnmetnzwneks.supabase.co';
 
-// TODO: paste the app project's anon/public key here.
-//   Supabase dashboard → Project Settings → API Keys → anon public
-// Until this is filled in, every enhancement on the site quietly no-ops and
-// visitors see the static fallback content. Nothing breaks.
-export const SUPABASE_ANON_KEY = 'REPLACE_WITH_ANON_KEY';
+// The app project's anon/public key, verified as role "anon" (never
+// service_role). It lives in the repo rather than an environment variable on
+// purpose: this site has no build step, so nothing would ever substitute a
+// placeholder in a file Vercel copies and serves byte-for-byte. A Vercel env
+// var reaches a framework's build or a serverless function, and this site is
+// neither.
+export const SUPABASE_ANON_KEY =
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpybm9pb2Fnam5tZXRuenduZWtzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMjIwNDgsImV4cCI6MjA5NTg5ODA0OH0.D-2Lvvs2lxVG7fGWGcFBBGpBOSrHSw-DT6m_D0o9g3U';
 
 export const isConfigured = () =>
   typeof SUPABASE_ANON_KEY === 'string'
