@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Community rules — Pacr</title>
+<meta name="description" content="The five rules that keep Pacr's feed a place runners cheer each other on, and how to report anything that breaks them." />
+<link rel="canonical" href="https://pacr.life/community-rules" />
+
+<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+<link rel="icon" type="image/png" sizes="32x32" href="/brand-acid/favicon.png" />
+<link rel="icon" type="image/png" sizes="16x16" href="/brand-acid/favicon-16.png" />
+<link rel="apple-touch-icon" href="/brand-acid/icon-512.png" />
+<meta name="theme-color" content="#0A0B08" />
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@1,900&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600;700&display=swap" media="print" onload="this.media='all'" />
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@1,900&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600;700&display=swap" /></noscript>
+
+<link rel="stylesheet" href="/brand-acid/tokens.css" />
+<link rel="stylesheet" href="/styles.css" />
+
+<style>
+  /* Community rules — dark hero band, paper body. Same shape as /privacy;
+     page-scoped because the shell classes in styles.css are all this page
+     shares with the rest of the site. */
+  .rules-hero {
+    padding: clamp(48px, 8vw, 88px) 0;
+    border-bottom: 1px solid var(--hairline);
+  }
+  .rules-hero .mono-label { display: block; margin-bottom: 18px; }
+  .rules-hero h1 { font-size: clamp(48px, 8vw, 80px); }
+  .rules-hero .lede {
+    margin: 26px 0 0;
+    max-width: 56ch;
+    font-size: 17px;
+    line-height: 1.6;
+    color: var(--paper);
+  }
+
+  .rules-main { background: var(--paper); color: var(--ink); }
+  /* padding-block only: the shorthand would reset .container's own horizontal
+     padding to 0 on this same element and flush the body to the viewport edge. */
+  .rules-body {
+    padding-top: clamp(48px, 7vw, 80px);
+    padding-bottom: clamp(72px, 9vw, 120px);
+  }
+  .rules-wrap { max-width: 760px; }
+
+  /* Numbered because the app numbers them: a rule is citable as "rule 3" on
+     either surface only if both lists agree. */
+  .rule { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 20px; padding: 28px 0; }
+  .rule + .rule { border-top: 1px solid var(--hairline-ink); }
+  .rule-num {
+    font-family: var(--font-display);
+    font-weight: 900;
+    font-style: italic;
+    font-size: 34px;
+    line-height: 0.9;
+    color: var(--ink);
+    opacity: 0.28;
+  }
+  .rule h2 {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--ink);
+    margin: 4px 0 10px;
+  }
+  .rule p {
+    font-size: 16px;
+    line-height: 1.65;
+    color: rgba(10, 11, 8, 0.8);
+    margin: 0;
+  }
+
+  .rules-section {
+    margin-top: 44px;
+    padding-top: 32px;
+    border-top: 2px solid var(--ink);
+  }
+  .rules-section h2 {
+    font-family: var(--font-display);
+    font-weight: 900;
+    font-style: italic;
+    letter-spacing: -0.02em;
+    line-height: 0.9;
+    font-size: 32px;
+    margin: 0 0 16px;
+  }
+  .rules-section p {
+    font-size: 16px;
+    line-height: 1.65;
+    color: rgba(10, 11, 8, 0.8);
+    margin: 0 0 16px;
+    max-width: 680px;
+  }
+  .rules-section strong { font-weight: 600; color: var(--ink); }
+
+  .rules-mail {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    margin: 4px 0 8px;
+    font-family: var(--font-mono);
+    font-size: clamp(18px, 3.4vw, 26px);
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    color: var(--ink);
+    text-decoration: none;
+    border-bottom: 2px solid var(--ink);
+    padding-bottom: 4px;
+    word-break: break-all;
+  }
+  .rules-mail:hover { opacity: 0.7; }
+
+  .rules-meta {
+    margin-top: 44px;
+    padding-top: 24px;
+    border-top: 1px solid var(--hairline-ink);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--dim-ink);
+  }
+  .rules-meta a { color: inherit; border-bottom: 1px solid var(--hairline-ink); }
+
+  @media (max-width: 620px) {
+    .rule { grid-template-columns: 34px minmax(0, 1fr); gap: 14px; }
+    .rule-num { font-size: 26px; }
+    .rules-section h2 { font-size: 26px; }
+  }
+</style>
+</head>
+<body>
+
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="nav">
+  <div class="container nav-inner">
+    <a class="nav-wordmark" href="/" aria-label="Pacr home">
+      <img src="/brand-acid/wordmark.svg" alt="Pacr" width="140" height="42" />
+    </a>
+    <nav class="nav-links" aria-label="Primary">
+      <a class="link-quiet" href="/">HOME</a>
+      <!-- Baseline; js/auth.js swaps it for Sign out when a session exists. -->
+      <span id="authSlot"><a class="link-quiet" data-auth="in" href="/signin">SIGN IN</a></span>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+  <section class="rules-hero">
+    <div class="container">
+      <span class="mono-label">// COMMUNITY RULES</span>
+      <h1 class="display"><span class="skew">Cheer, don't sneer.</span></h1>
+      <p class="lede">
+        Pacr's feed is for runners cheering each other on. Five rules keep it that
+        way. Breaking them gets the post removed and can get the account closed —
+        we don't run a warning system for abuse.
+      </p>
+    </div>
+  </section>
+
+  <section class="rules-main">
+    <div class="container rules-body">
+      <div class="rules-wrap">
+
+        <article class="rule">
+          <span class="rule-num" aria-hidden="true">01</span>
+          <div>
+            <h2>No abuse, ever</h2>
+            <p>No harassment, threats, hate speech, or slurs — about anyone, in a
+              post, a comment, a photo or a squad name. There is no warning system
+              for this. Posts go, and accounts go with them.</p>
+          </div>
+        </article>
+
+        <article class="rule">
+          <span class="rule-num" aria-hidden="true">02</span>
+          <div>
+            <h2>Nothing sexual</h2>
+            <p>No sexual or explicit content, and nothing involving minors. Photos
+              included.</p>
+          </div>
+        </article>
+
+        <article class="rule">
+          <span class="rule-num" aria-hidden="true">03</span>
+          <div>
+            <h2>No spam or scams</h2>
+            <p>Don't sell things, farm follows, or post links you wouldn't send a
+              friend.</p>
+          </div>
+        </article>
+
+        <article class="rule">
+          <span class="rule-num" aria-hidden="true">04</span>
+          <div>
+            <h2>Post your own runs</h2>
+            <p>Share runs you actually did, and photos you actually took. Don't
+              post someone else's picture or a route that isn't yours.</p>
+          </div>
+        </article>
+
+        <article class="rule">
+          <span class="rule-num" aria-hidden="true">05</span>
+          <div>
+            <h2>Respect the squad</h2>
+            <p>A squad is somebody's room. Owners can remove posts and members,
+              and set the feed to owners-only. Public clubs are open to anyone, so
+              hold them to the same standard.</p>
+          </div>
+        </article>
+
+        <section class="rules-section">
+          <h2>If you see something</h2>
+          <p>
+            <strong>In the app</strong>, long-press any post or comment.
+            <strong>On the web</strong>, open the <span aria-label="more">···</span>
+            menu on the post. Either way you can report it or block whoever wrote it.
+          </p>
+          <p>
+            Reporting hides it from you straight away and sends it to the squad owner
+            to review. Blocking is immediate and mutual: neither of you sees the
+            other's posts or comments, and they can't comment on or like yours. Undo
+            a block any time from Profile → Blocked accounts in the app.
+          </p>
+          <p>
+            We review every report. Anything abusive comes down, and the account
+            behind it can be removed.
+          </p>
+        </section>
+
+        <section class="rules-section">
+          <h2>Contact us</h2>
+          <p>Something urgent, or a report you think we've missed? Email us and
+            we'll come back to you.</p>
+          <a class="rules-mail" href="mailto:support@pacr.life?subject=Pacr%20%E2%80%94%20report">support@pacr.life</a>
+          <p>We aim to respond within 7 days.</p>
+        </section>
+
+        <div class="rules-meta">
+          Pacr · Bengaluru, India · <a href="/privacy">Privacy policy</a> ·
+          <a href="/support">Support</a>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="footer">
+  <div class="stripes" aria-hidden="true"></div>
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <img src="/brand-acid/wordmark.svg" alt="Pacr" width="80" height="24" />
+      </div>
+      <nav class="footer-links" aria-label="Footer">
+        <a class="link-quiet" rel="noopener"
+           href="https://play.google.com/store/apps/details?id=life.pacr.app">GOOGLE PLAY</a>
+        <a class="link-quiet" href="https://www.instagram.com/pacr.life" rel="noopener">INSTAGRAM</a>
+        <a class="link-quiet" href="/community-rules">COMMUNITY RULES</a>
+        <a class="link-quiet" href="/privacy">PRIVACY POLICY</a>
+        <a class="link-quiet" href="mailto:support@pacr.life">SUPPORT</a>
+      </nav>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 PACR</span>
+      <span>MADE IN INDIA</span>
+    </div>
+  </div>
+</footer>
+
+<script type="module">
+  import { mountHeaderAuth } from '/js/auth.js';
+  mountHeaderAuth(document.getElementById('authSlot'), { className: 'link-quiet' })
+    .catch(e => console.warn('[pacr] auth', e));
+</script>
+</body>
+</html>
