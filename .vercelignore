@@ -3,3 +3,8 @@ WEBSITE_PLAN.md
 DESIGN_HANDOFF.md
 brand-acid/design-system
 brand-acid/feature-graphic.png
+
+# Smoke harness — a development tool, not part of the site. It swaps stubs in
+# via an import map and runs the real feed startup, so it lives beside the code
+# it exercises, but must never be served from pacr.life.
+_test/

@@ -903,6 +903,19 @@ async function onPin(postId) {
 
 // ─── Composer ───────────────────────────────────────────────────────────────
 
+/** Squads this post goes to. Public overrides it with every squad you are in. */
+let targetIds = [];
+
+/**
+ * The selection, resolved against the live list — so a squad that disappears
+ * (left, or flipped to owners-only) silently drops out of the targets instead
+ * of being posted to.
+ */
+function currentTargets() {
+  const ids = new Set(postableSquads().map(s => s.id));
+  return targetIds.filter(id => ids.has(id));
+}
+
 /**
  * The share control: which squads, plus followers, plus public.
  *
