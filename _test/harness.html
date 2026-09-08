@@ -167,19 +167,25 @@
   .post-stats .v { font-family:Outfit, sans-serif; font-weight:700; font-size:19px; margin-top:6px;
     font-variant-numeric:tabular-nums; }
   @media (max-width:620px) { .post-stats { grid-template-columns:repeat(2, minmax(0,1fr)); } }
-  /* Media box, per the design: aspect-ratio 4/5, capped at 560px, overflow
-     hidden — a fixed slot the photo is cropped into, not a free-height image.
-     Two departures, both so a whole post fits one screen: the slot is full
-     width, because the design's second media column (shot-at / split / air) has
-     no data source here and was dropped; and the 560px cap is also bounded by
-     52vh, since 560 was sized for a half-width cell and a laptop viewport is
-     shorter than the desktop the design was drawn at. Without any cap a
-     portrait photo at column width is ~940px on its own. */
-  .post-media { position:relative; width:100%; height:min(560px, 52vh); overflow:hidden;
-    background:#EAEAE2; border-top:1px solid #E3E3DA; }
-  .post-media img { display:block; width:100%; height:100%; object-fit:cover; }
+  /* Media slot, per the design.
+     The design has no <img> at all — it is a dashed drop-target labelled
+     "4:5 PORTRAIT · DROP PHOTO HERE" on an #EAEAE2 ground, centred with
+     align-items/justify-content. Its overflow:hidden is for the diagonal stripe
+     overlay and the absolutely-positioned badge, not for a photo. So the slot
+     is a fixed, bounded area and the picture is fitted INSIDE it: the whole
+     image, centred, never cropped. A portrait scales until its height meets the
+     cap and shows ground either side; a landscape fills the width at its own
+     height.
+     The cap is bounded by the viewport as well as by the design's 560px,
+     because 560 was drawn for a half-width cell on a desktop canvas and still
+     overflows a 13-inch laptop. */
+  .post-media { position:relative; width:100%; height:min(560px, 52vh);
+    display:flex; align-items:center; justify-content:center;
+    background:#EAEAE2; border-top:1px solid #E3E3DA; overflow:hidden; }
+  .post-media img { display:block; max-width:100%; max-height:100%;
+    width:auto; height:auto; object-fit:contain; }
   /* Narrower column means the header, body and 2x2 stat grid all grow taller,
-     so the media has to give back more of the screen for a post to still fit. */
+     so the slot gives back more of the screen for a post to still fit. */
   @media (max-width:620px) { .post-media { height:min(420px, 44vh); } }
   .post-foot { display:flex; align-items:center; justify-content:space-between; gap:16px;
     flex-wrap:wrap; border-top:1px solid #E3E3DA; padding:14px 22px; }

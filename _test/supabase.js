@@ -8,17 +8,22 @@ export function initials(name) {
   return p.length === 1 ? p[0].slice(0,2).toUpperCase() : (p[0][0]+p[p.length-1][0]).toUpperCase();
 }
 export async function signedUrlsFor(sb, bucket, paths) {
-  // A 4:5 portrait, the worst case for card height.
-  const png = 'data:image/svg+xml;utf8,' + encodeURIComponent(
-    '<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1350"><rect width="1080" height="1350" fill="%23DCDCD1"/></svg>');
-  return new Map((paths ?? []).filter(Boolean).map(p => [p, png]));
+  // Three shapes so cropping is measurable: 4:5 portrait, an extreme 9:16, and
+  // a 3:2 landscape. `charset=utf-8` matters — some browsers reject the
+  // non-standard `;utf8,` form outright and the image never loads.
+  const svg = (w, h) => 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}">` +
+    `<rect width="${w}" height="${h}" fill="#B9C36A"/></svg>`);
+  const shapes = { 'me/a.jpg': svg(1080, 1350), 'me/b.jpg': svg(1080, 1920), 'me/c.jpg': svg(1500, 1000) };
+  return new Map((paths ?? []).filter(Boolean).map(p => [p, shapes[p] ?? svg(1080, 1350)]));
 }
+
 
 const ME = '11111111-1111-4111-8111-111111111111';
 const SQ = '66666666-6666-4666-8666-666666666666';
 const post = (i) => ({
   id: `0b00000${i}-0000-4000-8000-00000000000a`, circle_id: SQ, author_id: '22222222-2222-4222-8222-222222222222',
-  kind: i === 1 ? 'photo' : 'run', body: `Tempo ${i}. Held the pace.`, image_path: i === 1 ? 'me/pic.jpg' : null, pinned: false, hidden_at: null,
+  kind: 'photo', body: `Tempo ${i}. Held the pace.`, image_path: ['me/a.jpg','me/b.jpg','me/c.jpg'][i-1], pinned: false, hidden_at: null,
   created_at: new Date(Date.now() - i*3600e3).toISOString(), run_id: null, visibility: 'followers',
   post_targets: [{ circle_id: SQ }],
   author: { display_name: 'Ananya R' },
