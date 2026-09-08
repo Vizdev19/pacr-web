@@ -1426,6 +1426,17 @@ async function switchTab(next) {
   }
 }
 
+/**
+ * Run one startup step in isolation.
+ *
+ * Logs with a label so a browser console names the step that failed rather than
+ * just the stack, and never rethrows: the caller keeps going.
+ */
+async function step(label, fn) {
+  try { await fn(); } catch (e) { console.error(`[pacr] feed step "${label}" failed`, e); }
+  return null;
+}
+
 async function showFeed() {
   $('paneBoot').hidden = true;
   $('paneFeed').hidden = false;
@@ -1459,24 +1470,32 @@ async function showFeed() {
     const btn = e.target.closest('button[data-tab]');
     if (btn) switchTab(btn.dataset.tab);
   });
-  wireComposer();
-  wirePostActions($('posts'));
-  wireFollowingPane();
+  // Each of these is independently guarded. They were one unbroken sequence,
+  // which meant a single throw anywhere in it silently killed everything after
+  // — composer chips, posts and the whole sidebar — leaving a half-drawn page
+  // with no error on it. The posts are the page; nothing optional gets to take
+  // them down.
+  await step('wire', async () => {
+    wireComposer();
+    wirePostActions($('posts'));
+    wireFollowingPane();
+  });
+  await step('follows', async () => {
+    followingIds = new Set(await listFollowingIds(sb, me.id));
+  });
+  await step('composer', async () => {
+    targetIds = [activeSquad.id];
+    paintTargets();
+    setComposerEnabled();
+  });
+  await step('members', async () => { members = await listMembers(sb, activeSquad.id); });
 
-  // Cheap and needed by both tabs — the graph decides every card's menu.
-  followingIds = new Set(await listFollowingIds(sb, me.id));
-
-  targetIds = [activeSquad.id];
-  paintTargets();
-  setComposerEnabled();
-  members = await listMembers(sb, activeSquad.id);
-
+  await step('posts', () => loadPage({ reset: true }));
   await Promise.all([
-    loadPage({ reset: true }),
-    paintHeadStats(),
-    paintBoard(),
-    paintSuggestions(),
-    paintRoutes(),
+    step('headStats', paintHeadStats),
+    step('board', paintBoard),
+    step('suggestions', paintSuggestions),
+    step('routes', paintRoutes),
   ]);
 }
 
@@ -1501,5 +1520,12 @@ export async function initFeed() {
   // signOutTo sends this tab home the moment the session ends — including when
   // it ends in another tab — so the feed is never left on screen without one.
   mountHeaderAuth($('authSlot'), { className: 'btn-quiet', signOutTo: '/' });
-  await showFeed();
+  try {
+    await showFeed();
+  } catch (e) {
+    console.error('[pacr] feed failed to start', e);
+    $('paneBoot').hidden = true;
+    $('paneFeed').hidden = false;
+    msg($('feedMsg'), "Something went wrong loading your feed. Refresh to try again.", 'err');
+  }
 }
