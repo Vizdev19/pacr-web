@@ -61,7 +61,31 @@
           padding:9px 15px; cursor:pointer; transition:all .16s ease; }
   .chip:hover { border-color:#5A6B00; color:#5A6B00; }
   .chip[aria-pressed="true"] { border-color:#0F0F0D; background:#E8FF3A; color:#0A0A09; }
+  .chip-all { font-style:italic; }
 
+  /* ── Composer ───────────────────────────────────────────────────────────── */
+  .composer { border:1px solid #C8C8BD; background:#FDFDFB; padding:20px 22px; margin-bottom:32px; }
+  .composer textarea { width:100%; min-height:84px; resize:vertical; font-family:Manrope, sans-serif;
+            font-size:16px; line-height:1.55; color:#0F0F0D; background:#FFFFFF; border:1px solid #C8C8BD;
+            border-radius:2px; padding:13px 15px; }
+  .composer textarea:focus-visible { outline:none; border-color:#0F0F0D; box-shadow:inset 0 -3px 0 #E8FF3A; }
+  .composer-wrap { position:relative; }
+  .composer-row { display:flex; align-items:center; justify-content:space-between; gap:16px;
+            flex-wrap:wrap; margin-top:14px; }
+  .composer-targets { display:flex; flex-wrap:wrap; gap:8px; margin-top:14px; }
+  .composer-preview { margin-top:14px; display:flex; align-items:flex-start; gap:14px; }
+  .composer-preview img { width:110px; height:110px; object-fit:cover; border:1px solid #DCDCD1; display:block; }
+
+  /* @-autocomplete, anchored under the caret's field */
+  .mention-picker { position:absolute; z-index:20; left:0; right:0; top:100%; background:#FFFFFF;
+            border:1px solid #0F0F0D; max-height:196px; overflow-y:auto; }
+  .mention-picker button { display:block; width:100%; text-align:left; background:none; border:0;
+            border-bottom:1px solid #E3E3DA; padding:11px 15px; font-family:Manrope, sans-serif;
+            font-size:14px; font-weight:500; color:#0F0F0D; cursor:pointer; }
+  .mention-picker button:hover { background:#E8FF3A; }
+  .mention-picker button:last-child { border-bottom:0; }
+
+  /* ── Posts ──────────────────────────────────────────────────────────────── */
   .post { border:1px solid #E3E3DA; background:#FFFFFF; padding:24px 26px; margin-bottom:-1px; }
   .post-top { display:flex; align-items:center; gap:14px; margin-bottom:14px; }
   .avatar { width:38px; height:38px; flex:0 0 38px; background:#F7F7F3; border:1px solid #DCDCD1;
@@ -73,10 +97,70 @@
   .body { font-size:16px; line-height:1.6; color:#2C2C27; margin:0 0 14px; white-space:pre-wrap; overflow-wrap:anywhere; }
   .mention { color:#5A6B00; font-weight:600; }
   .post-img { display:block; width:100%; border:1px solid #E3E3DA; margin-bottom:14px; background:#F2F2EC; }
-  .counts { display:flex; gap:20px; font-family:Manrope, sans-serif; font-weight:600; font-size:11px;
-            letter-spacing:0.12em; text-transform:uppercase; color:#6A6A61; }
   .pill { font-family:Manrope, sans-serif; font-weight:600; font-size:10px; letter-spacing:0.14em;
           text-transform:uppercase; background:#E8FF3A; color:#0A0A09; padding:5px 10px; }
+
+  /* Run stats, from the run_summaries embed — the app's run posts carry a
+     run_id that no client used to read. */
+  .run-stats { display:flex; align-items:baseline; gap:18px; flex-wrap:wrap;
+          border-top:1px solid #E3E3DA; padding-top:14px; margin-bottom:14px; }
+  .run-hero { font-family:Outfit, sans-serif; font-weight:700; font-size:34px; line-height:1;
+          letter-spacing:-0.02em; font-variant-numeric:tabular-nums; }
+  .run-hero small { font-size:14px; color:#5A6B00; margin-left:3px; }
+  .run-meta { display:flex; gap:18px; flex-wrap:wrap; font-family:Manrope, sans-serif; font-weight:600;
+          font-size:11px; letter-spacing:0.12em; text-transform:uppercase; color:#8B8B80; }
+  .run-meta b { color:#0F0F0D; font-variant-numeric:tabular-nums; }
+
+  /* ── Card actions ───────────────────────────────────────────────────────── */
+  .acts { display:flex; gap:8px; align-items:center; }
+  .act { font-family:Manrope, sans-serif; font-weight:600; font-size:11px; letter-spacing:0.12em;
+         text-transform:uppercase; color:#6A6A61; background:none; border:1px solid transparent;
+         padding:8px 12px; cursor:pointer; transition:all .16s ease; }
+  .act:hover { border-color:#C8C8BD; color:#0F0F0D; }
+  .act.on { color:#5A6B00; }
+  .act .act-mark { color:#C8C8BD; }
+  .act.on .act-mark { color:#5A6B00; }
+
+  .menu { position:relative; }
+  .menu summary { list-style:none; cursor:pointer; padding:4px 10px; color:#8B8B80;
+         font-size:18px; line-height:1; user-select:none; }
+  .menu summary::-webkit-details-marker { display:none; }
+  .menu summary:hover { color:#0F0F0D; }
+  .menu-list { position:absolute; right:0; top:100%; z-index:20; min-width:194px; background:#FFFFFF;
+         border:1px solid #0F0F0D; }
+  .menu-list button { display:block; width:100%; text-align:left; background:none; border:0;
+         border-bottom:1px solid #E3E3DA; padding:12px 15px; font-family:Manrope, sans-serif;
+         font-size:13px; font-weight:500; color:#0F0F0D; cursor:pointer; }
+  .menu-list button:last-child { border-bottom:0; }
+  .menu-list button:hover { background:#E8FF3A; }
+
+  /* ── Comments ───────────────────────────────────────────────────────────── */
+  .comments { border-top:1px solid #E3E3DA; margin-top:14px; padding-top:16px; }
+  .cmt { margin-bottom:14px; }
+  .cmt-top { display:flex; align-items:baseline; gap:12px; }
+  .cmt-who { font-family:Outfit, sans-serif; font-weight:700; font-size:13px; text-transform:uppercase; }
+  .cmt-when { font-family:Manrope, sans-serif; font-weight:600; font-size:10px; letter-spacing:0.1em;
+         text-transform:uppercase; color:#8B8B80; }
+  .cmt-del { margin-left:auto; background:none; border:0; padding:0; cursor:pointer;
+         font-family:Manrope, sans-serif; font-weight:600; font-size:10px; letter-spacing:0.1em;
+         text-transform:uppercase; color:#8B8B80; }
+  .cmt-del:hover { color:#A03A1E; }
+  .cmt-body { font-size:15px; line-height:1.55; color:#2C2C27; margin:4px 0 0;
+         white-space:pre-wrap; overflow-wrap:anywhere; }
+  .cmt-empty, .cmt-loading { font-size:14px; color:#8B8B80; margin:0 0 14px; }
+  .cmt-form { display:flex; gap:12px; align-items:center; margin-top:6px; }
+  .cmt-input { flex:1; max-width:none; padding:11px 14px; font-size:15px; }
+
+  /* ── Modal ──────────────────────────────────────────────────────────────── */
+  #modal { position:fixed; inset:0; z-index:60; display:flex; align-items:center; justify-content:center; padding:22px; }
+  .modal-scrim { position:absolute; inset:0; background:rgba(10,10,9,0.55); }
+  .modal-card { position:relative; background:#FFFFFF; border:1px solid #0F0F0D; max-width:440px;
+         width:100%; padding:28px 30px; max-height:86vh; overflow-y:auto; }
+  .modal-title { font-family:Outfit, sans-serif; font-weight:700; font-size:22px; text-transform:uppercase;
+         letter-spacing:-0.01em; margin:0 0 14px; }
+  .modal-body { font-size:15px; line-height:1.6; color:#5C5C54; }
+  .modal-body p { margin:0 0 12px; }
+  .modal-acts { display:flex; flex-direction:column; align-items:flex-start; gap:14px; margin-top:22px; }
 
   .skel { border:1px solid #E3E3DA; background:#FFFFFF; padding:24px 26px; margin-bottom:-1px; }
   .skel div { background:#F2F2EC; height:12px; border-radius:2px; animation:pacr-pulse 1.3s ease-in-out infinite; }
@@ -115,22 +199,47 @@
     <h1 class="disp" id="feedTitle">Your feed</h1>
     <div id="squadChips" role="group" aria-label="Choose a squad"
          style="display:flex; flex-wrap:wrap; gap:8px; margin:0 0 32px;"></div>
+
+    <!-- Composer. Every gate below it is the server's — can_post_in_circle()
+         decides posting and enforce_content_filter() rejects blocked terms;
+         the client checks only so a refusal can be explained. -->
+    <div class="composer" id="composer">
+      <label class="field-label" for="cBody">Post to your squad</label>
+      <div class="composer-wrap">
+        <textarea id="cBody" maxlength="2000"
+                  placeholder="How was the run? Use @ to tag a squadmate."></textarea>
+        <div class="mention-picker" id="cMentions" hidden></div>
+      </div>
+      <div class="composer-preview" id="cPreview" hidden></div>
+      <div class="composer-targets" id="cTargets" role="group" aria-label="Squads to post to"></div>
+      <div class="composer-row">
+        <button type="button" class="btn-quiet" id="cPhotoBtn">Add photo</button>
+        <button type="button" class="btn" id="cPost">Post</button>
+      </div>
+      <input type="file" id="cPhoto" accept="image/jpeg,image/png" hidden>
+      <p class="msg" id="cMsg" hidden></p>
+    </div>
+    <p class="msg" id="cGate" hidden></p>
+
     <div id="posts"></div>
     <p class="msg" id="feedMsg" hidden></p>
     <div style="margin-top:28px;">
       <button class="btn" id="moreBtn" type="button" hidden>Load more</button>
     </div>
     <p style="font-size:13.5px; color:#8B8B80; margin-top:48px; max-width:52ch;">
-      This is a read-only view. Posting, liking, commenting and reporting all live in the app —
-      <a href="/#get">open PACR</a> to join in.
+      Posting a run card, joining a squad and managing blocked accounts live in the app —
+      <a href="/#get">open PACR</a>.
     </p>
   </section>
 </main>
+
+<div id="modal" hidden></div>
 
 <footer class="pad-x" style="border-top:1px solid #E3E3DA; padding:32px 40px; display:flex; justify-content:space-between; gap:20px; flex-wrap:wrap; font-family:Manrope, sans-serif; font-weight:600; font-size:11px; letter-spacing:0.14em; text-transform:uppercase; color:#8B8B80;">
   <span>© PACR</span>
   <span style="display:flex; gap:22px; flex-wrap:wrap;">
     <a href="/">Home</a>
+    <a href="/community-rules">Rules</a>
     <a href="/privacy">Privacy</a>
     <a href="/support">Support</a>
   </span>
