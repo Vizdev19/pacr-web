@@ -102,38 +102,10 @@ export async function listFollowingFeed(sb, cursor) {
   }
 }
 
-// ─── Profile visibility ─────────────────────────────────────────────────────
-
-/** null = private profile. Any timestamp = public from that instant onward. */
-export async function getPublicSince(sb, meId) {
-  if (!sb) return null;
-  try {
-    const { data, error } = await sb.from('users')
-      .select('public_since').eq('id', meId).maybeSingle();
-    if (error) return null;
-    return data?.public_since ?? null;
-  } catch {
-    return null;
-  }
-}
-
-/**
- * Turn follower-visibility on or off.
- *
- * Going public stamps NOW, never a backdate: everything already written stays
- * squad-only. Going private clears it, which retracts every post at once.
- */
-export async function setPublic(sb, meId, isPublic) {
-  if (!sb) return false;
-  try {
-    const { error } = await sb.from('users')
-      .update({ public_since: isPublic ? new Date().toISOString() : null })
-      .eq('id', meId);
-    return !error;
-  } catch {
-    return false;
-  }
-}
+// The profile-visibility helpers that lived here are gone: 20260909120000 moved
+// visibility onto the post, so there is no profile-level switch to read or
+// write. users.public_since survives only as the server-side default for app
+// builds released before the audience control. Retraction is retractMyPosts().
 
 // ─── Suggestions ────────────────────────────────────────────────────────────
 
@@ -165,5 +137,77 @@ export async function suggestedToFollow(sb, meId, circleIds, alreadyFollowing) {
     return out;
   } catch {
     return [];
+  }
+}
+
+// ─── Discover ───────────────────────────────────────────────────────────────
+
+/**
+ * One page of the public feed. Strictly chronological — no ranking, no
+ * engagement weighting — and the same keyset shape as the Following feed.
+ */
+export async function listPublicFeed(sb, cursor) {
+  if (!sb) return { rows: [], cursor: null };
+  try {
+    const { data, error } = await sb.rpc('list_public_feed', {
+      p_limit: PAGE_SIZE,
+      p_cursor_created_at: cursor?.createdAt ?? null,
+      p_cursor_id: cursor?.id ?? null,
+    });
+    if (error) {
+      console.warn('[pacr] public feed failed', error.message);
+      return { rows: [], cursor: null, failed: true };
+    }
+    const rows = data ?? [];
+    const last = rows[rows.length - 1];
+    return {
+      rows,
+      cursor: rows.length === PAGE_SIZE && last
+        ? { createdAt: last.created_at, id: last.id }
+        : null,
+    };
+  } catch (e) {
+    console.warn('[pacr] public feed failed', e);
+    return { rows: [], cursor: null, failed: true };
+  }
+}
+
+// ─── Mute ───────────────────────────────────────────────────────────────────
+
+/**
+ * One-way and silent, unlike a block: their posts leave your feeds, they keep
+ * seeing yours, and they are never told. Discover puts strangers in front of
+ * people — this is the low-stakes way out, block is the high-stakes one.
+ */
+export async function muteUser(sb, meId, userId) {
+  if (!sb) return false;
+  try {
+    const { error } = await sb.from('user_mutes')
+      .upsert({ muter_id: meId, muted_id: userId },
+              { onConflict: 'muter_id,muted_id', ignoreDuplicates: true });
+    return !error;
+  } catch {
+    return false;
+  }
+}
+
+// ─── Retraction ─────────────────────────────────────────────────────────────
+
+/**
+ * Rewrite every one of my posts back to squad-only. One-way on purpose: an
+ * un-retract would silently republish things people had pulled back.
+ * Returns how many changed, or null on failure.
+ */
+export async function retractMyPosts(sb) {
+  if (!sb) return null;
+  try {
+    const { data, error } = await sb.rpc('retract_my_posts');
+    if (error) {
+      console.warn('[pacr] retract failed', error.message);
+      return null;
+    }
+    return Number(data) || 0;
+  } catch {
+    return null;
   }
 }

@@ -36,7 +36,7 @@ import {
 import { findBlockedTerm, BLOCKED_CONTENT_MESSAGE } from './content-filter.js';
 import {
   POST_SELECT, MAX_BODY, MAX_COMMENT,
-  createTextPost, createImagePost, downscaleImage,
+  createPost, downscaleImage,
   toggleLike, setPinned, deletePost,
   listComments, addComment, deleteComment, listMembers,
 } from './feed-write.js';
@@ -45,7 +45,7 @@ import {
 } from './moderation.js';
 import {
   listFollowingIds, followUser, unfollowUser, listFollowingFeed,
-  getPublicSince, setPublic, suggestedToFollow,
+  suggestedToFollow, listPublicFeed, muteUser, retractMyPosts,
 } from './follow.js';
 
 const PAGE_SIZE = 20;
@@ -70,15 +70,17 @@ let rulesOk = null;
 let pendingPhoto = null;
 
 // ─── Following state ────────────────────────────────────────────────────────
-/** 'squad' | 'following'. Squad is the default: it is the only tab guaranteed
- *  non-empty for a runner who has never followed anyone. */
+/** 'squad' | 'following' | 'discover'. Squad is the default: it is the only tab
+ *  guaranteed non-empty for a runner who has never followed anyone. */
 let tab = 'squad';
 /** Ids I follow, kept in memory so every card can render the right menu item. */
 let followingIds = new Set();
 let followCursor = null;
 let followLoading = false;
-/** users.public_since — null means my own posts are squad-only. */
-let publicSince = null;
+let discoverCursor = null;
+let discoverLoading = false;
+/** The audience for the next post: 'circle' | 'followers' | 'public'. */
+let audience = 'circle';
 
 // ─── Formatting ─────────────────────────────────────────────────────────────
 
@@ -344,11 +346,15 @@ function followingCardHtml(p) {
           <div class="author">${esc(p.author_name)}</div>
           <div class="when">${esc(timeAgo(p.created_at))}</div>
         </div>
-        <span class="pill pill-quiet">Following</span>
+        ${p.scope === 'discover' && !p.followed_by_me
+          ? '<button type="button" class="chip chip-follow" data-act="follow-author">Follow</button>'
+          : '<span class="pill pill-quiet">Following</span>'}
         <details class="menu">
           <summary aria-label="Post actions">···</summary>
           <div class="menu-list">
-            <button type="button" data-act="unfollow">Unfollow ${esc(p.author_name)}</button>
+            ${p.followed_by_me || p.scope === 'following'
+              ? `<button type="button" data-act="unfollow">Unfollow ${esc(p.author_name)}</button>` : ''}
+            <button type="button" data-act="mute">Mute ${esc(p.author_name)}</button>
             <button type="button" data-act="report">Report post</button>
             <button type="button" data-act="block">Block this runner</button>
           </div>
@@ -369,7 +375,7 @@ function followingCardHtml(p) {
 
 /** Squad and Following cards share ids and actions but not markup. */
 function cardHtml(p) {
-  return p.scope === 'following' ? followingCardHtml(p) : postHtml(p);
+  return p.scope === 'squad' ? postHtml(p) : followingCardHtml(p);
 }
 
 /** Re-render one card in place from postState — used after like/pin/comment. */
@@ -442,7 +448,7 @@ async function hydrate(rows) {
  * server-side, including image_path being nulled on run posts, so there is no
  * client-side visibility decision left to get wrong here.
  */
-async function hydrateFollowing(rows) {
+async function hydrateFollowing(rows, scope = 'following') {
   if (rows.length === 0) return '';
   const urlByPath = await signedUrlsFor(sb, 'post-images', rows.map(r => r.image_path).filter(Boolean));
   return rows.map((row) => {
@@ -464,7 +470,8 @@ async function hydrateFollowing(rows) {
       comment_count: Number(row.comment_count) || 0,
       liked_by_me: !!row.liked_by_me,
       is_mine: false,
-      scope: 'following',
+      followed_by_me: row.followed_by_me ?? true,
+      scope,
     };
     postState.set(p.id, p);
     return p;
@@ -509,6 +516,42 @@ async function loadFollowing({ reset }) {
   more.hidden = !followCursor;
 
   if (reset && cards.length === 0) await paintEmptyFollowing();
+}
+
+// ─── Discover ───────────────────────────────────────────────────────────────
+
+async function loadDiscover({ reset }) {
+  if (discoverLoading) return;
+  discoverLoading = true;
+  const host = $('discoverPosts');
+  const more = $('discoverMore');
+  const note = $('discoverMsg');
+  more.hidden = true;
+
+  if (reset) {
+    discoverCursor = null;
+    host.innerHTML = '<div class="skel"><div style="width:55%"></div></div>';
+    msg(note, '');
+  }
+
+  const page = await listPublicFeed(sb, discoverCursor);
+  discoverLoading = false;
+
+  if (page.failed) {
+    if (reset) host.innerHTML = '';
+    return msg(note, "Couldn't load Discover. Refresh to try again.", 'err');
+  }
+
+  const cards = await hydrateFollowing(page.rows, 'discover');
+  const html = cards.map(followingCardHtml).join('');
+  if (reset) host.innerHTML = html; else host.insertAdjacentHTML('beforeend', html);
+
+  discoverCursor = page.cursor;
+  more.hidden = !discoverCursor;
+
+  if (reset && cards.length === 0) {
+    msg(note, 'Nothing public yet. Posts show up here when a runner picks Public as their audience.');
+  }
 }
 
 /**
@@ -561,7 +604,7 @@ async function loadPage({ reset }) {
   if (reset) {
     const { data: pinned } = await sb
       .from('posts').select(POST_SELECT)
-      .eq('circle_id', activeSquad.id).eq('pinned', true)
+      .eq('post_targets.circle_id', activeSquad.id).eq('pinned', true)
       .order('created_at', { ascending: false })
       .limit(PINNED_LIMIT);
     if (pinned?.length) html += await hydrate(pinned);
@@ -569,7 +612,7 @@ async function loadPage({ reset }) {
 
   let q = sb
     .from('posts').select(POST_SELECT)
-    .eq('circle_id', activeSquad.id).eq('pinned', false)
+    .eq('post_targets.circle_id', activeSquad.id).eq('pinned', false)
     .order('created_at', { ascending: false })
     .order('id', { ascending: false })
     .limit(PAGE_SIZE);
@@ -728,7 +771,34 @@ async function onReport(postId) {
 /** Reload whichever tab is on screen — used after a block or an unfollow. */
 async function reloadActive() {
   if (tab === 'following') await loadFollowing({ reset: true });
+  else if (tab === 'discover') await loadDiscover({ reset: true });
   else await loadPage({ reset: true });
+}
+
+async function onMute(postId) {
+  const p = postState.get(postId);
+  if (!p) return;
+  const yes = await openModal({
+    title: `Mute ${p.author_name}?`,
+    body: '<p>Their posts leave your feeds. They are not told, they keep seeing yours, and you can undo it in the app. Use Block instead if you want it to cut both ways.</p>',
+    options: [{ label: 'Cancel', value: false }, { label: 'Mute', value: true, primary: true }],
+  });
+  if (!yes) return;
+  if (await muteUser(sb, me.id, p.author_id)) await reloadActive();
+  else msg($('feedMsg'), "Couldn't mute that runner. Try again.", 'err');
+}
+
+/** Follow straight from a Discover card. */
+async function onFollowAuthor(postId) {
+  const p = postState.get(postId);
+  if (!p) return;
+  const res = await followUser(sb, me.id, p.author_id);
+  if (!res.ok) return msg($('discoverMsg'), reasonMessage(res.reason), 'err');
+  followingIds.add(p.author_id);
+  for (const [, other] of postState) {
+    if (other.author_id === p.author_id) other.followed_by_me = true;
+  }
+  await loadDiscover({ reset: true });
 }
 
 async function onFollow(userId, btn) {
@@ -799,33 +869,55 @@ async function onPin(postId) {
 
 // ─── Composer ───────────────────────────────────────────────────────────────
 
-/** Target chips: which squads this post goes to. Defaults to the active one. */
+/**
+ * The share control: which squads, plus followers, plus public.
+ *
+ * Public is not a fourth destination sitting beside the squads — it means every
+ * squad you are in AND your followers AND everyone else, so choosing it selects
+ * and locks the squad chips rather than clearing them. That mirrors what the
+ * post actually does, instead of leaving the runner to infer it.
+ */
 function paintTargets() {
   const host = $('cTargets');
   const options = postableSquads();
-  if (options.length === 0) {
-    host.innerHTML = '';
-    return;
-  }
-  const selected = currentTargets();
-  const all = options.length > 1 && selected.length === options.length;
-  host.innerHTML = [
-    ...options.map(s => `
-      <button type="button" class="chip" data-target="${esc(s.id)}"
-              aria-pressed="${selected.includes(s.id)}">${esc(s.name)}</button>`),
-    options.length > 1
-      ? `<button type="button" class="chip chip-all" data-target="__all"
-                 aria-pressed="${all}">All squads</button>`
-      : '',
-  ].join('');
+  if (options.length === 0) { host.innerHTML = ''; return; }
+
+  const isPublic = audience === 'public';
+  const selected = isPublic ? options.map(s => s.id) : currentTargets();
+
+  host.innerHTML = `
+    <div class="aud-group" role="group" aria-label="Squads to post to">
+      ${options.map(s => `
+        <button type="button" class="chip" data-target="${esc(s.id)}"
+                aria-pressed="${selected.includes(s.id)}" ${isPublic ? 'disabled' : ''}>
+          ${esc(s.name)}
+        </button>`).join('')}
+      ${options.length > 1 && !isPublic
+        ? `<button type="button" class="chip chip-all" data-target="__all"
+                   aria-pressed="${selected.length === options.length}">All squads</button>`
+        : ''}
+    </div>
+    <div class="aud-group aud-reach" role="group" aria-label="Who else sees this">
+      <button type="button" class="chip" data-aud="followers"
+              aria-pressed="${audience !== 'circle'}" ${isPublic ? 'disabled' : ''}>
+        + Followers
+      </button>
+      <button type="button" class="chip chip-public" data-aud="public"
+              aria-pressed="${isPublic}">Public</button>
+    </div>
+    <p class="aud-note">${audienceNote(options.length, selected.length)}</p>`;
 }
 
-let targetIds = [];
-function currentTargets() {
-  // Resolved against the live list, so a squad that disappears (left, or
-  // flipped to owners-only) silently drops out of the targets.
-  const ids = new Set(postableSquads().map(s => s.id));
-  return targetIds.filter(id => ids.has(id));
+/** Say in one line exactly who ends up seeing this. */
+function audienceNote(squadCount, selectedCount) {
+  if (audience === 'public') {
+    return 'Everyone: all ' + squadCount + (squadCount === 1 ? ' squad' : ' squads')
+      + " you are in, your followers, and runners who don't follow you.";
+  }
+  const squads = `${selectedCount} ${selectedCount === 1 ? 'squad' : 'squads'}`;
+  return audience === 'followers'
+    ? `${squads} and your followers.`
+    : `${squads} only. Nobody outside them sees this.`;
 }
 
 function setComposerEnabled() {
@@ -865,7 +957,10 @@ async function onPickPhoto(file) {
 async function onPost() {
   const typed = $('cBody').value.trim();
   const note = $('cMsg');
-  const targets = currentTargets();
+  const options = postableSquads();
+  // Public means every squad you are in, so the caller resolves that here —
+  // only the client knows the full list.
+  const targets = audience === 'public' ? options.map(s => s.id) : currentTargets();
 
   if (targets.length === 0) return msg(note, 'Pick at least one squad to post to.', 'err');
   if (!typed && !pendingPhoto) return msg(note, 'Write something, or add a photo.', 'err');
@@ -889,46 +984,31 @@ async function onPost() {
 
   const btn = $('cPost');
   btn.disabled = true;
-  msg(note, targets.length > 1 ? `Posting to ${targets.length} squads…` : 'Posting…');
+  msg(note, 'Posting…');
 
-  // One post per squad, sequentially — mirroring onPostToSquad in the app.
-  // Storage reads are gated by the circle id in the object path, so each squad
-  // needs its own copy of the image: squad A's members cannot read an object
-  // filed under squad B.
-  const posted = [];
-  const failed = [];
-  for (const id of targets) {
-    const squad = squads.find(s => s.id === id);
-    const res = pendingPhoto
-      ? await createImagePost(sb, id, 'photo', pendingPhoto, body || null, null)
-      : await createTextPost(sb, id, body);
-    if (res.ok) posted.push({ id, row: res.row });
-    else failed.push({ name: squad?.name ?? 'that squad', reason: res.reason });
-  }
+  // ONE post with many targets — not the per-squad loop this used to run. Image
+  // paths key on the author now, so a single object serves every squad, and a
+  // follower sees the post once with one like count.
+  const res = await createPost(sb, {
+    targets,
+    visibility: audience,
+    body,
+    blob: pendingPhoto,
+    kind: pendingPhoto ? 'photo' : 'text',
+  });
 
   btn.disabled = false;
+  if (!res.ok) return msg(note, reasonMessage(res.reason), 'err');
 
-  if (posted.length > 0) {
-    $('cBody').value = '';
-    await onPickPhoto(null);
-    $('cPhoto').value = '';
-    // Show the copy that landed in the squad currently on screen, if any.
-    const here = posted.find(p => p.id === activeSquad.id);
-    if (here) {
-      const html = await hydrate([here.row]);
-      $('posts').insertAdjacentHTML('afterbegin', html);
-      msg($('feedMsg'), '');
-    }
+  $('cBody').value = '';
+  await onPickPhoto(null);
+  $('cPhoto').value = '';
+  if (targets.includes(activeSquad.id)) {
+    $('posts').insertAdjacentHTML('afterbegin', await hydrate([res.row]));
+    msg($('feedMsg'), '');
   }
-
-  if (failed.length === 0) {
-    msg(note, posted.length > 1 ? `Posted to ${posted.length} squads.` : 'Posted.', 'ok');
-    setTimeout(() => msg(note, ''), 4000);
-  } else if (posted.length === 0) {
-    msg(note, reasonMessage(failed[0].reason), 'err');
-  } else {
-    msg(note, `Posted to ${posted.length}. Failed for ${failed.map(f => f.name).join(', ')}.`, 'err');
-  }
+  msg(note, targets.length > 1 ? `Posted to ${targets.length} squads.` : 'Posted.', 'ok');
+  setTimeout(() => msg(note, ''), 4000);
 }
 
 // ─── Mention autocomplete ───────────────────────────────────────────────────
@@ -1019,6 +1099,8 @@ function wirePostActions(host) {
       case 'like':      return onLike(postId);
       case 'comments':  return openComments(article, postId);
       case 'unfollow':  return onUnfollow(postId);
+      case 'mute':      return onMute(postId);
+      case 'follow-author': return onFollowAuthor(postId);
       case 'pin':       return onPin(postId);
       case 'delete':    return onDelete(postId);
       case 'report':    return onReport(postId);
@@ -1050,8 +1132,19 @@ function wirePostActions(host) {
 
 function wireComposer() {
   $('cTargets').addEventListener('click', (e) => {
+    const aud = e.target.closest('button[data-aud]');
+    if (aud) {
+      if (aud.dataset.aud === 'public') {
+        audience = audience === 'public' ? 'circle' : 'public';
+      } else {
+        // "+ Followers" is a toggle between circle and followers; it never
+        // silently drops you out of public.
+        audience = audience === 'circle' ? 'followers' : 'circle';
+      }
+      return paintTargets();
+    }
     const btn = e.target.closest('button[data-target]');
-    if (!btn) return;
+    if (!btn || btn.disabled) return;
     const options = postableSquads();
     if (btn.dataset.target === '__all') {
       // ALL is a toggle: collapse back to the active squad rather than leaving
@@ -1081,37 +1174,41 @@ function wireComposer() {
 }
 
 /**
- * The control that decides whether anyone's Following feed can contain you.
+ * Retraction.
  *
- * Wording matters here more than usual: going public applies to what you post
- * FROM NOW ON, never to what is already written. The migration enforces that
- * (created_at > public_since); this copy has to say it, or the toggle reads as
- * "publish my history".
+ * This replaces the old "show my posts to followers" toggle, which per-post
+ * audience made redundant — you now choose the audience when you write. What
+ * that toggle also did, and what a per-post choice cannot, is take everything
+ * back at once. So the control that remains is the one worth keeping, stated as
+ * the action it actually performs: it rewrites the posts.
+ *
+ * One-way on purpose. An un-retract would silently republish things.
  */
-function paintVisibility() {
-  const on = !!publicSince;
-  $('visToggle').innerHTML = `
+function paintPrivacy() {
+  $('privacyBox').innerHTML = `
     <div class="vis-row">
       <div>
-        <div class="vis-title">${on ? 'Your new posts are visible to followers' : 'Your posts are squad-only'}</div>
-        <div class="vis-sub">${on
-          ? 'Posts you write from now on reach your followers too. Posts from before you turned this on stay in their squads.'
-          : 'Turn this on and posts you write from now on will also reach your followers. Nothing you have already posted is affected.'}</div>
+        <div class="vis-title">Pull everything back</div>
+        <div class="vis-sub">Rewrites every post you have made to squad-only, in every squad it went to. Followers and Discover lose them immediately. This cannot be undone — posting them again means posting them again.</div>
       </div>
-      <button type="button" class="btn-quiet" data-act="toggle-vis">${on ? 'Make squad-only' : 'Show to followers'}</button>
+      <button type="button" class="btn-quiet" data-act="retract">Make all squad-only</button>
     </div>`;
 }
 
 function wireFollowingPane() {
-  $('visToggle').addEventListener('click', async (e) => {
-    if (!e.target.closest('[data-act="toggle-vis"]')) return;
-    const next = !publicSince;
-    if (next && !(await ensureRules())) return;
-    if (!(await setPublic(sb, me.id, next))) {
-      return msg($('followMsg'), "Couldn't change that. Try again.", 'err');
-    }
-    publicSince = next ? new Date().toISOString() : null;
-    paintVisibility();
+  $('privacyBox').addEventListener('click', async (e) => {
+    if (!e.target.closest('[data-act="retract"]')) return;
+    const yes = await openModal({
+      title: 'Make every post squad-only?',
+      body: '<p>Every post you have written goes back to its squads and nowhere else. Followers and Discover lose them straight away.</p><p>This cannot be undone.</p>',
+      options: [{ label: 'Cancel', value: false }, { label: 'Pull everything back', value: true, primary: true }],
+    });
+    if (!yes) return;
+    const n = await retractMyPosts(sb);
+    if (n === null) return msg($('followMsg'), "Couldn't do that. Try again.", 'err');
+    msg($('followMsg'), n === 0 ? 'Nothing to pull back — everything was already squad-only.'
+                                : `${n} ${n === 1 ? 'post is' : 'posts are'} squad-only again.`, 'ok');
+    await reloadActive();
   });
 
   $('suggested').addEventListener('click', (e) => {
@@ -1121,7 +1218,9 @@ function wireFollowingPane() {
   });
 
   $('followMore').addEventListener('click', () => loadFollowing({ reset: false }));
+  $('discoverMore').addEventListener('click', () => loadDiscover({ reset: false }));
   wirePostActions($('followPosts'));
+  wirePostActions($('discoverPosts'));
 }
 
 async function switchTab(next) {
@@ -1132,9 +1231,12 @@ async function switchTab(next) {
   }
   $('paneSquad').hidden = next !== 'squad';
   $('paneFollowing').hidden = next !== 'following';
+  $('paneDiscover').hidden = next !== 'discover';
   if (next === 'following') {
-    paintVisibility();
+    paintPrivacy();
     await loadFollowing({ reset: true });
+  } else if (next === 'discover') {
+    await loadDiscover({ reset: true });
   }
 }
 
@@ -1173,7 +1275,6 @@ async function showFeed() {
 
   // Cheap and needed by both tabs — the graph decides every card's menu.
   followingIds = new Set(await listFollowingIds(sb, me.id));
-  publicSince = await getPublicSince(sb, me.id);
 
   targetIds = [activeSquad.id];
   paintTargets();

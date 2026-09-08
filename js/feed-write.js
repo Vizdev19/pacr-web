@@ -36,7 +36,11 @@ const POST_IMAGE_BUCKET = 'post-images';
  * retroactively.
  */
 export const POST_SELECT =
-  'id, circle_id, author_id, kind, body, image_path, pinned, hidden_at, created_at, run_id, ' +
+  'id, circle_id, author_id, kind, body, image_path, pinned, hidden_at, created_at, run_id, visibility, ' +
+  // Joined, not filtered on posts.circle_id: a post can name several squads and
+  // circle_id holds only the first, so filtering on it would hide the post in
+  // every other squad it was sent to. `!inner` makes it a real join.
+  'post_targets!inner(circle_id), ' +
   'author:users!posts_author_id_fkey(display_name), ' +
   'run:run_summaries!posts_run_id_fkey(distance_km, duration_sec, pace_sec_per_km, started_at), ' +
   'post_likes(count), post_comments(count)';
@@ -75,76 +79,90 @@ async function classifyPostInsertFailure(sb, circleId, message) {
 
 // ─── Posts ──────────────────────────────────────────────────────────────────
 
-async function insertPost(sb, fields, circleId, kind) {
-  const { data: { user } } = await sb.auth.getUser();
-  if (!user) return { ok: false, reason: 'error' };
-
-  const { data, error } = await sb.from('posts')
-    .insert({ ...fields, author_id: user.id, circle_id: circleId, kind })
-    .select(POST_SELECT)
-    .single();
-  if (error || !data) {
-    const reason = await classifyPostInsertFailure(sb, circleId, error?.message ?? '');
-    console.warn('[pacr] post insert failed', reason, error?.message);
-    return { ok: false, reason };
-  }
-  return { ok: true, row: data };
-}
-
-/** Plain text post (body required, mentions inline). */
-export async function createTextPost(sb, circleId, body) {
-  if (!sb) return { ok: false, reason: 'error' };
-  const trimmed = String(body ?? '').trim();
-  if (!trimmed || trimmed.length > MAX_BODY) return { ok: false, reason: 'error' };
-  try {
-    return await insertPost(sb, { body: trimmed }, circleId, 'text');
-  } catch (e) {
-    console.warn('[pacr] post insert failed', e);
-    return { ok: false, reason: 'error' };
-  }
-}
-
-function uploadPathFor(circleId, contentType) {
-  const isPng = contentType === 'image/png';
-  const rand = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
-  return `${circleId}/${rand}.${isPng ? 'png' : 'jpg'}`;
-}
-
 /**
- * Photo post: upload the bytes first, then insert the row. On insert failure
- * the freshly-uploaded object is best-effort removed so we don't strand it.
+ * Create one post with an audience.
  *
- * `blob` rather than the app's local file URI — in a browser the picker hands
- * us a File and downscaleImage returns a Blob, so there is nothing to read off
- * a filesystem.
+ * One row, many targets — not the one-row-per-squad fan-out the app still uses.
+ * That shape existed because image reads were gated by the circle id in the
+ * object path; 20260909120000 re-keys images to "<author_id>/<random>" so an
+ * object follows its post, which is what makes a single row possible. Post to
+ * two squads and your followers now and the followers see it ONCE, with one
+ * like count.
+ *
+ * circle_id is still written (the first target) so app builds that predate the
+ * audience control keep finding the post in at least one of its squads.
+ *
+ * `visibility` is 'circle' | 'followers' | 'public'. Public also targets every
+ * squad the author is in — that is the caller's job, since only it knows the
+ * full list.
  */
-export async function createImagePost(sb, circleId, kind, blob, caption, runId) {
+export async function createPost(sb, { targets, visibility, body, blob, kind, runId }) {
   if (!sb) return { ok: false, reason: 'error' };
+  const circleIds = [...new Set(targets ?? [])];
+  if (circleIds.length === 0) return { ok: false, reason: 'error' };
 
-  const body = String(caption ?? '').trim() ? String(caption).trim().slice(0, MAX_BODY) : null;
-  const contentType = blob?.type === 'image/png' ? 'image/png' : 'image/jpeg';
-  const path = uploadPathFor(circleId, contentType);
+  const trimmed = String(body ?? '').trim();
+  const text = trimmed ? trimmed.slice(0, MAX_BODY) : null;
+  if (!text && !blob) return { ok: false, reason: 'error' };
+
   try {
-    const { error: upErr } = await sb.storage
-      .from(POST_IMAGE_BUCKET)
-      .upload(path, blob, { contentType, upsert: false });
-    if (upErr) {
-      // An upload rejected by storage RLS carries the same gates as the posts
-      // insert — classify it the same way.
-      const reason = await classifyPostInsertFailure(sb, circleId, upErr.message ?? '');
-      console.warn('[pacr] image upload failed', reason, upErr.message);
-      return { ok: false, reason: reason === 'error' ? 'upload_failed' : reason };
+    const { data: { user } } = await sb.auth.getUser();
+    if (!user) return { ok: false, reason: 'error' };
+
+    // Upload first: the path keys on the author, the only thing known before
+    // the row exists.
+    let imagePath = null;
+    if (blob) {
+      const contentType = blob.type === 'image/png' ? 'image/png' : 'image/jpeg';
+      imagePath = `${user.id}/${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}` +
+        (contentType === 'image/png' ? '.png' : '.jpg');
+      const { error: upErr } = await sb.storage
+        .from(POST_IMAGE_BUCKET)
+        .upload(imagePath, blob, { contentType, upsert: false });
+      if (upErr) {
+        const reason = await classifyPostInsertFailure(sb, circleIds[0], upErr.message ?? '');
+        console.warn('[pacr] image upload failed', reason, upErr.message);
+        return { ok: false, reason: reason === 'error' ? 'upload_failed' : reason };
+      }
     }
 
-    const result = await insertPost(
-      sb, { body, image_path: path, run_id: runId ?? null }, circleId, kind,
-    );
-    if (!result.ok) {
-      try { await sb.storage.from(POST_IMAGE_BUCKET).remove([path]); } catch {}
+    const { data, error } = await sb.from('posts')
+      .insert({
+        author_id: user.id,
+        circle_id: circleIds[0],
+        kind: kind ?? (imagePath ? 'photo' : 'text'),
+        body: text,
+        image_path: imagePath,
+        run_id: runId ?? null,
+        visibility,
+      })
+      .select(POST_SELECT)
+      .single();
+
+    if (error || !data) {
+      const reason = await classifyPostInsertFailure(sb, circleIds[0], error?.message ?? '');
+      console.warn('[pacr] post insert failed', reason, error?.message);
+      if (imagePath) { try { await sb.storage.from(POST_IMAGE_BUCKET).remove([imagePath]); } catch {} }
+      return { ok: false, reason };
     }
-    return result;
+
+    // The remaining targets. The insert trigger already filed circle_id, so
+    // ignoreDuplicates rather than letting the first one collide.
+    const rest = circleIds.map(id => ({ post_id: data.id, circle_id: id }));
+    const { error: tErr } = await sb.from('post_targets')
+      .upsert(rest, { onConflict: 'post_id,circle_id', ignoreDuplicates: true });
+    if (tErr) {
+      // A post that reached only some of its squads is worse than none: roll it
+      // back rather than leave the author believing it landed everywhere.
+      console.warn('[pacr] post targets failed', tErr.message);
+      try { await sb.from('posts').delete().eq('id', data.id); } catch {}
+      if (imagePath) { try { await sb.storage.from(POST_IMAGE_BUCKET).remove([imagePath]); } catch {} }
+      return { ok: false, reason: 'error' };
+    }
+
+    return { ok: true, row: data };
   } catch (e) {
-    console.warn('[pacr] image post failed', e);
+    console.warn('[pacr] post failed', e);
     return { ok: false, reason: 'error' };
   }
 }
@@ -226,26 +244,35 @@ export async function setPinned(sb, postId, pinned) {
 
 const COMMENTS_CAP = 200;
 
+/**
+ * Comments for a post, via list_post_comments.
+ *
+ * Not a PostgREST read any more. The comment ROWS are readable wherever their
+ * post is, but users.display_name is not — a commenter on a public post is
+ * often neither a squadmate nor someone you follow, so a direct read renders
+ * them as "—". The RPC returns the names alongside the rows and applies the
+ * viewer's own block / mute / report filters.
+ */
 export async function listComments(sb, postId, meId) {
   if (!sb) return [];
   try {
-    const { data, error } = await sb.from('post_comments')
-      .select('id, post_id, author_id, body, hidden_at, created_at, users(display_name)')
-      .eq('post_id', postId)
-      .order('created_at', { ascending: true })
-      .limit(COMMENTS_CAP);
-    if (error) return [];
+    const { data, error } = await sb.rpc('list_post_comments', { p_post_id: postId });
+    if (error) {
+      console.warn('[pacr] comments failed', error.message);
+      return [];
+    }
     return (data ?? []).map(row => ({
       id: row.id,
       post_id: row.post_id,
       author_id: row.author_id,
-      author_name: row.users?.display_name ?? '—',
+      author_name: row.author_name ?? '—',
       body: row.body,
       created_at: row.created_at,
       is_mine: row.author_id === meId,
-      hidden: !!row.hidden_at,
+      hidden: !!row.hidden,
     }));
-  } catch {
+  } catch (e) {
+    console.warn('[pacr] comments failed', e);
     return [];
   }
 }
