@@ -69,21 +69,24 @@
             font-size:16px; line-height:1.55; color:#0F0F0D; background:#FFFFFF; border:1px solid #C8C8BD;
             border-radius:2px; padding:13px 15px; }
   .composer textarea:focus-visible { outline:none; border-color:#0F0F0D; box-shadow:inset 0 -3px 0 #E8FF3A; }
-  .composer-wrap { position:relative; }
   .composer-row { display:flex; align-items:center; justify-content:space-between; gap:16px;
             flex-wrap:wrap; margin-top:14px; }
   .composer-targets { display:flex; flex-wrap:wrap; gap:8px; margin-top:14px; }
   .composer-preview { margin-top:14px; display:flex; align-items:flex-start; gap:14px; }
   .composer-preview img { width:110px; height:110px; object-fit:cover; border:1px solid #DCDCD1; display:block; }
 
-  /* @-autocomplete, anchored under the caret's field */
-  .mention-picker { position:absolute; z-index:20; left:0; right:0; top:100%; background:#FFFFFF;
-            border:1px solid #0F0F0D; max-height:196px; overflow-y:auto; }
-  .mention-picker button { display:block; width:100%; text-align:left; background:none; border:0;
-            border-bottom:1px solid #E3E3DA; padding:11px 15px; font-family:Manrope, sans-serif;
-            font-size:14px; font-weight:500; color:#0F0F0D; cursor:pointer; }
-  .mention-picker button:hover { background:#E8FF3A; }
-  .mention-picker button:last-child { border-bottom:0; }
+  /* @-autocomplete. A chip row ABOVE the field, matching the app's
+     MentionInput rather than the dropdown a web autocomplete would default to.
+     Acid reads as a border on this light ground, not as a fill. */
+  .mention-row { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:10px; }
+  .mention-chip {
+    font-family:Manrope, sans-serif; font-weight:600; font-size:11px; letter-spacing:0.1em;
+    border:1px solid #5A6B00; background:rgba(232,255,58,0.22); color:#0F0F0D;
+    padding:7px 12px; cursor:pointer; max-width:200px; overflow:hidden;
+    text-overflow:ellipsis; white-space:nowrap; transition:background .16s ease;
+  }
+  .mention-chip:hover { background:#E8FF3A; }
+  .cmt-mentions { margin-top:10px; margin-bottom:0; }
 
   /* ── Posts ──────────────────────────────────────────────────────────────── */
   .post { border:1px solid #E3E3DA; background:#FFFFFF; padding:24px 26px; margin-bottom:-1px; }
@@ -205,11 +208,9 @@
          the client checks only so a refusal can be explained. -->
     <div class="composer" id="composer">
       <label class="field-label" for="cBody">Post to your squad</label>
-      <div class="composer-wrap">
-        <textarea id="cBody" maxlength="2000"
-                  placeholder="How was the run? Use @ to tag a squadmate."></textarea>
-        <div class="mention-picker" id="cMentions" hidden></div>
-      </div>
+      <div class="mention-row" id="cMentions" hidden></div>
+      <textarea id="cBody" maxlength="2000"
+                placeholder="Say something… @ to tag"></textarea>
       <div class="composer-preview" id="cPreview" hidden></div>
       <div class="composer-targets" id="cTargets" role="group" aria-label="Squads to post to"></div>
       <div class="composer-row">

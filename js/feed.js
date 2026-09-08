@@ -29,7 +29,10 @@
 
 import { getSupabase, esc, initials, signedUrlsFor } from './supabase.js';
 import { mountHeaderAuth, signinHref } from './auth.js';
-import { renderBody, activeMentionQuery, applyMention, countMentions, MAX_MENTIONS_PER_BODY } from './mentions.js';
+import {
+  renderBody, activeMentionQuery, insertMention, serializeMentions,
+  countPlainMentions, MAX_MENTIONS_PER_BODY,
+} from './mentions.js';
 import { findBlockedTerm, BLOCKED_CONTENT_MESSAGE } from './content-filter.js';
 import {
   POST_SELECT, MAX_BODY, MAX_COMMENT,
@@ -321,6 +324,12 @@ function repaint(postId) {
     box.innerHTML = commentsHtml;
     box.hidden = false;
     next.querySelector('[data-act="comments"]').setAttribute('aria-expanded', 'true');
+    // innerHTML rebuilds the nodes, so the comment field's mention wiring went
+    // with them. (dataset.mentionsWired came along in the markup — clear it, or
+    // wireMentions declines to bind the fresh, unwired field.)
+    const cmtInput = box.querySelector('.cmt-input');
+    if (cmtInput) delete cmtInput.dataset.mentionsWired;
+    wireMentions(cmtInput, box.querySelector('.cmt-mentions'));
   }
 }
 
@@ -457,27 +466,33 @@ async function openComments(article, postId) {
   const rows = await listComments(sb, postId, me.id);
   box.innerHTML = `
     <div class="cmt-list">${rows.map(commentHtml).join('') || '<p class="cmt-empty">No comments yet.</p>'}</div>
+    <div class="mention-row cmt-mentions" hidden></div>
     <form class="cmt-form" data-act="cmt-form">
       <input type="text" class="input cmt-input" name="body" maxlength="${MAX_COMMENT}"
-             placeholder="Add a comment" aria-label="Add a comment" autocomplete="off">
+             placeholder="Add a comment… @ to tag" aria-label="Add a comment" autocomplete="off">
       <button type="submit" class="btn-quiet">Reply</button>
     </form>
     <p class="msg cmt-msg" hidden></p>`;
+  wireMentions(box.querySelector('.cmt-input'), box.querySelector('.cmt-mentions'));
 }
 
 async function submitComment(article, postId, form) {
   const input = form.querySelector('.cmt-input');
   const note = article.querySelector('.cmt-msg');
-  const body = input.value.trim();
-  if (!body) return;
+  const typed = input.value.trim();
+  if (!typed) return;
+  if (typed.length > MAX_COMMENT) {
+    return msg(note, `Keep it under ${MAX_COMMENT} characters.`, 'err');
+  }
 
-  const term = findBlockedTerm(body);
+  const term = findBlockedTerm(typed);
   if (term) return msg(note, BLOCKED_CONTENT_MESSAGE, 'err');
   if (!(await ensureRules())) return;
 
   msg(note, '');
   input.disabled = true;
-  const res = await addComment(sb, postId, body);
+  // The composer holds plain "@Name" text; tokens are only a storage format.
+  const res = await addComment(sb, postId, serializeMentions(typed, members));
   input.disabled = false;
 
   if (!res.ok) return msg(note, reasonMessage(res.reason), 'err');
@@ -645,21 +660,27 @@ async function onPickPhoto(file) {
 }
 
 async function onPost() {
-  const body = $('cBody').value.trim();
+  const typed = $('cBody').value.trim();
   const note = $('cMsg');
   const targets = currentTargets();
 
   if (targets.length === 0) return msg(note, 'Pick at least one squad to post to.', 'err');
-  if (!body && !pendingPhoto) return msg(note, 'Write something, or add a photo.', 'err');
-  if (body.length > MAX_BODY) return msg(note, `Keep it under ${MAX_BODY} characters.`, 'err');
-  if (countMentions(body) > MAX_MENTIONS_PER_BODY) {
-    return msg(note, `That is more than ${MAX_MENTIONS_PER_BODY} mentions.`, 'err');
-  }
+  if (!typed && !pendingPhoto) return msg(note, 'Write something, or add a photo.', 'err');
+  if (typed.length > MAX_BODY) return msg(note, `Keep it under ${MAX_BODY} characters.`, 'err');
 
   // The server trigger is the authority; this refuses in the same frame rather
-  // than round-tripping to a 400.
-  const term = findBlockedTerm(body);
+  // than round-tripping to a 400. Checked on the typed text, as the app does.
+  const term = findBlockedTerm(typed);
   if (term) return msg(note, BLOCKED_CONTENT_MESSAGE, 'err');
+
+  // The composer holds plain "@Name" text; tokens are only a storage format.
+  const body = serializeMentions(typed, members);
+  // A token is longer than the name it replaces, so a body at the composer's
+  // limit can cross the column's 2000-char check once tags expand. Say that,
+  // rather than letting the insert fail as a generic error.
+  if (body.length > MAX_BODY) {
+    return msg(note, 'That is too long once your tags are expanded. Shorten it, or tag fewer people.', 'err');
+  }
 
   if (!(await ensureRules())) return;
 
@@ -708,39 +729,66 @@ async function onPost() {
 }
 
 // ─── Mention autocomplete ───────────────────────────────────────────────────
+// Same contract as the app's MentionInput: the field holds PLAIN "@Name" text,
+// picking splices a plain name in, and serializeMentions() creates tokens only
+// at submit. A raw "@[Name](uuid)" must never appear in a composer, and the
+// uuid must never reach the screen at all.
+//
+// Rendered as a chip row ABOVE the field, matching the app rather than the
+// dropdown a web autocomplete would default to — same component, same place,
+// so the two surfaces teach the same gesture.
 
-function paintMentionPicker(input, box) {
-  const q = activeMentionQuery(input.value, input.selectionStart ?? 0);
-  if (q === null || members.length === 0) { box.hidden = true; box.innerHTML = ''; return; }
-  const needle = q.toLowerCase();
-  const hits = members
-    .filter(m => m.userId !== me.id && m.displayName.toLowerCase().includes(needle))
-    .slice(0, 6);
-  if (hits.length === 0) { box.hidden = true; box.innerHTML = ''; return; }
-  box.hidden = false;
-  box.innerHTML = hits.map(m => `
-    <button type="button" data-uid="${esc(m.userId)}" data-name="${esc(m.displayName)}">
-      ${esc(m.displayName)}
-    </button>`).join('');
+const MAX_SUGGESTIONS = 5;
+
+function suggestionsFor(input) {
+  const value = input.value;
+  const query = activeMentionQuery(value, input.selectionStart ?? value.length);
+  if (query === null) return [];
+  // Stop offering once the body is already at the cap, as the app does —
+  // otherwise we suggest picks that serializeMentions will silently drop.
+  if (countPlainMentions(value, members) >= MAX_MENTIONS_PER_BODY) return [];
+  const q = query.toLowerCase();
+  return members
+    .filter(m => m.userId !== me.id)
+    .filter(m => m.displayName.toLowerCase().includes(q))
+    .slice(0, MAX_SUGGESTIONS);
 }
 
-function wireMentions(input, box) {
-  const refresh = () => paintMentionPicker(input, box);
+function paintMentionRow(input, row) {
+  const hits = suggestionsFor(input);
+  if (hits.length === 0) { row.hidden = true; row.innerHTML = ''; return; }
+  row.hidden = false;
+  row.innerHTML = hits.map(m => `
+    <button type="button" class="mention-chip" data-uid="${esc(m.userId)}"
+            data-name="${esc(m.displayName)}">@${esc(m.displayName)}</button>`).join('');
+}
+
+/** Bind a composer field to its suggestion row. Safe to call again on re-render. */
+function wireMentions(input, row) {
+  if (!input || !row || input.dataset.mentionsWired === '1') return;
+  input.dataset.mentionsWired = '1';
+
+  const refresh = () => paintMentionRow(input, row);
   input.addEventListener('input', refresh);
   input.addEventListener('click', refresh);
-  input.addEventListener('keyup', (e) => { if (e.key.startsWith('Arrow')) refresh(); });
-  input.addEventListener('blur', () => setTimeout(() => { box.hidden = true; }, 150));
-  box.addEventListener('mousedown', (e) => {
+  input.addEventListener('keyup', refresh);
+  input.addEventListener('blur', () => setTimeout(() => { row.hidden = true; }, 150));
+
+  // mousedown, not click: blur fires first on a click and would hide the row
+  // out from under the pointer.
+  row.addEventListener('mousedown', (e) => {
     const btn = e.target.closest('button[data-uid]');
     if (!btn) return;
     e.preventDefault();
-    const { body, caret } = applyMention(
-      input.value, input.selectionStart ?? 0, btn.dataset.name, btn.dataset.uid,
+    const next = insertMention(
+      input.value,
+      input.selectionStart ?? input.value.length,
+      { userId: btn.dataset.uid, displayName: btn.dataset.name },
     );
-    input.value = body;
-    input.setSelectionRange(caret, caret);
-    box.hidden = true;
+    input.value = next.body;
+    input.setSelectionRange(next.caret, next.caret);
     input.focus();
+    paintMentionRow(input, row);
   });
 }
 
