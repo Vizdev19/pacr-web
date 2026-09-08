@@ -61,6 +61,14 @@
   .stat-cell .k { font-weight:600; font-size:10px; letter-spacing:0.14em; color:#6A6A61; }
   .stat-cell .v { font-family:Outfit, sans-serif; font-weight:700; font-size:26px; margin-top:8px; }
   @media (max-width:760px) { .masthead { padding:28px 22px 24px; } }
+  /* min-width:140px wraps three cells to 2+1 on a phone and leaves the strip's
+     own hairline showing through as an empty grey cell. Let them share the row
+     instead. */
+  @media (max-width:620px) {
+    .stat-strip { width:100%; }
+    .stat-cell { flex:1 1 0; min-width:0; padding:14px 12px; }
+    .stat-cell .v { font-size:20px; }
+  }
 
   /* ── Layout ─────────────────────────────────────────────────────────────── */
   .wrap { max-width:1280px; margin:0 auto; padding:0 40px 96px;
@@ -156,7 +164,20 @@
   .post-stats .v { font-family:Outfit, sans-serif; font-weight:700; font-size:19px; margin-top:6px;
     font-variant-numeric:tabular-nums; }
   @media (max-width:620px) { .post-stats { grid-template-columns:repeat(2, minmax(0,1fr)); } }
-  .post-img { display:block; width:100%; border-top:1px solid #E3E3DA; background:#F2F2EC; }
+  /* Media box, per the design: aspect-ratio 4/5, capped at 560px, overflow
+     hidden — a fixed slot the photo is cropped into, not a free-height image.
+     Two departures, both so a whole post fits one screen: the slot is full
+     width, because the design's second media column (shot-at / split / air) has
+     no data source here and was dropped; and the 560px cap is also bounded by
+     52vh, since 560 was sized for a half-width cell and a laptop viewport is
+     shorter than the desktop the design was drawn at. Without any cap a
+     portrait photo at column width is ~940px on its own. */
+  .post-media { position:relative; width:100%; height:min(560px, 52vh); overflow:hidden;
+    background:#EAEAE2; border-top:1px solid #E3E3DA; }
+  .post-media img { display:block; width:100%; height:100%; object-fit:cover; }
+  /* Narrower column means the header, body and 2x2 stat grid all grow taller,
+     so the media has to give back more of the screen for a post to still fit. */
+  @media (max-width:620px) { .post-media { height:min(420px, 44vh); } }
   .post-foot { display:flex; align-items:center; justify-content:space-between; gap:16px;
     flex-wrap:wrap; border-top:1px solid #E3E3DA; padding:14px 22px; }
   .kudos { font-weight:600; font-size:11px; letter-spacing:0.1em; border:1px solid #E3E3DA;

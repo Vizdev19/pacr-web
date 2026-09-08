@@ -342,7 +342,7 @@ function cardShell(p, { club, tag, menu, follow, foot }) {
         ${p.body ? `<p class="post-body">${renderBody(p.body)}</p>` : ''}
       </div>
       ${statsGridHtml(p)}
-      ${p.image_url ? `<img class="post-img" src="${esc(p.image_url)}" alt="" loading="lazy">` : ''}
+      ${p.image_url ? `<div class="post-media"><img src="${esc(p.image_url)}" alt="" loading="lazy"></div>` : ''}
       ${foot}
       <div class="comments" hidden></div>
     </article>`;
