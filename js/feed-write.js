@@ -42,7 +42,7 @@ export const POST_SELECT =
   // every other squad it was sent to. `!inner` makes it a real join.
   'post_targets!inner(circle_id), ' +
   'author:users!posts_author_id_fkey(display_name), ' +
-  'run:run_summaries!posts_run_id_fkey(distance_km, duration_sec, pace_sec_per_km, started_at), ' +
+  'run:run_summaries!posts_run_id_fkey(distance_km, duration_sec, pace_sec_per_km, started_at, neighborhood), ' +
   'post_likes(count), post_comments(count)';
 
 export const MAX_BODY = 2000;

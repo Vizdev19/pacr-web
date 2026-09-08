@@ -14,309 +14,429 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-  html, body { margin:0; padding:0; background:#FFFFFF; color:#0F0F0D; font-family:Manrope, sans-serif; }
-  * { box-sizing: border-box; }
+  /* ─────────────────────────────────────────────────────────────────────────
+     PACR — Feed. Implements "PACR Feed.dc.html" from the Claude Design project
+     (PACR AI Running Coach). Colours, type, spacing and component structure are
+     lifted from that file; the canvas markup's inline styles are collected into
+     classes here so the page can be driven by real data instead of the design's
+     sc-for placeholders.
+     ───────────────────────────────────────────────────────────────────────── */
+  html, body { margin:0; padding:0; background:#FFFFFF; color:#0F0F0D;
+               font-family:Manrope, Helvetica, sans-serif; overflow-x:clip; }
+  * { box-sizing:border-box; }
   a { color:#5A6B00; text-decoration:none; }
   a:hover { color:#0F0F0D; }
   ::selection { background:#E8FF3A; color:#0A0A09; }
   img { -webkit-user-drag:none; max-width:100%; }
   [hidden] { display:none !important; }
+  @keyframes pacr-pulse { 0%,100% { opacity:1; } 50% { opacity:0.25; } }
 
-  .pad-x { padding-left:40px; padding-right:40px; }
-  @media (max-width:760px) { .pad-x { padding-left:22px; padding-right:22px; } }
+  /* ── Header ─────────────────────────────────────────────────────────────── */
+  .site-head { position:sticky; top:0; z-index:30; display:flex; align-items:center;
+    justify-content:space-between; gap:24px; padding:16px 40px;
+    background:rgba(255,255,255,0.85); backdrop-filter:blur(14px); border-bottom:1px solid #E3E3DA; }
+  .brand { display:flex; align-items:center; gap:12px; color:#0F0F0D; }
+  .brand img { width:34px; height:34px; border-radius:8px; display:block; }
+  .brand span { font-family:Outfit, sans-serif; font-weight:700; font-size:20px; letter-spacing:0.14em; }
+  .site-nav { display:flex; align-items:center; gap:34px; font-weight:600; font-size:12px;
+    letter-spacing:0.14em; text-transform:uppercase; color:#5C5C54; }
+  .site-nav a { color:inherit; }
+  .site-nav a:hover { color:#0F0F0D; }
+  .site-nav a.on { color:#0F0F0D; border-bottom:2px solid #E8FF3A; padding-bottom:3px; }
+  .head-right { display:flex; align-items:center; gap:16px; }
+  .avatar-me { width:34px; height:34px; border-radius:50%; background:#E8FF3A; color:#0A0A09;
+    font-weight:700; font-size:12px; display:flex; align-items:center; justify-content:center; flex:none; }
+  @media (max-width:900px) { .site-nav { display:none; } .site-head { padding:16px 22px; } }
 
-  .eyebrow { font-family:Manrope, sans-serif; font-weight:600; font-size:11px; letter-spacing:0.2em;
-             text-transform:uppercase; color:#5A6B00; margin-bottom:18px; display:flex; align-items:center; gap:10px; }
-  .eyebrow::before { content:''; display:block; width:24px; height:2px; background:#A8BC00; }
+  /* ── Masthead band ──────────────────────────────────────────────────────── */
+  .masthead { border-bottom:1px solid #E3E3DA; padding:40px 40px 34px; }
+  .masthead-in { max-width:1280px; margin:0 auto; display:flex; align-items:flex-end;
+    justify-content:space-between; gap:40px; flex-wrap:wrap; }
+  .eyebrow { font-weight:600; font-size:11px; letter-spacing:0.2em; text-transform:uppercase;
+    color:#5A6B00; margin-bottom:16px; }
+  .disp { font-family:Outfit, sans-serif; font-weight:700; font-size:clamp(36px,5vw,72px);
+    line-height:0.9; letter-spacing:-0.03em; text-transform:uppercase; margin:0; }
+  .stat-strip { display:flex; gap:1px; background:#E3E3DA; border:1px solid #E3E3DA; flex-wrap:wrap; }
+  .stat-cell { background:#FFFFFF; padding:18px 26px; min-width:140px; }
+  .stat-cell .k { font-weight:600; font-size:10px; letter-spacing:0.14em; color:#6A6A61; }
+  .stat-cell .v { font-family:Outfit, sans-serif; font-weight:700; font-size:26px; margin-top:8px; }
+  @media (max-width:760px) { .masthead { padding:28px 22px 24px; } }
 
-  h1.disp { font-family:Outfit, sans-serif; font-weight:700; font-size:clamp(34px,4.4vw,52px);
-            line-height:0.96; letter-spacing:-0.02em; text-transform:uppercase; margin:0 0 18px; }
+  /* ── Layout ─────────────────────────────────────────────────────────────── */
+  .wrap { max-width:1280px; margin:0 auto; padding:0 40px 96px;
+    display:grid; grid-template-columns:minmax(0,1.55fr) minmax(0,0.85fr); gap:40px; align-items:start; }
+  .col-main { display:flex; flex-direction:column; gap:24px; padding-top:32px; }
+  .col-side { display:flex; flex-direction:column; gap:24px; padding-top:32px; position:sticky; top:91px; }
+  @media (max-width:1000px) {
+    .wrap { grid-template-columns:minmax(0,1fr); padding:0 22px 64px; }
+    .col-side { position:static; padding-top:0; }
+  }
 
-  .lede { font-size:17px; line-height:1.6; color:#5C5C54; margin:0 0 28px; max-width:44ch; }
-
-  .field-label { display:block; font-family:Manrope, sans-serif; font-weight:600; font-size:11px;
-                 letter-spacing:0.14em; text-transform:uppercase; color:#6A6A61; margin-bottom:8px; }
-  .input { width:100%; max-width:380px; font-family:Manrope, sans-serif; font-size:16px; color:#0F0F0D;
-           background:#FFFFFF; border:1px solid #C8C8BD; border-radius:2px; padding:14px 16px; }
-  .input:focus-visible { outline:none; border-color:#0F0F0D; box-shadow:inset 0 -3px 0 #E8FF3A; }
-  .input.code { font-family:Outfit, sans-serif; font-weight:700; font-size:26px; letter-spacing:0.5em;
-                text-indent:0.5em; max-width:280px; text-align:center; }
-
-  .btn { font-family:Manrope, sans-serif; font-weight:600; font-size:12px; letter-spacing:0.14em;
-         text-transform:uppercase; background:#E8FF3A; color:#0A0A09; border:1px solid #E8FF3A;
-         padding:15px 26px; border-radius:2px; cursor:pointer; transition:all .18s ease; }
+  /* ── Composer (the design's draft card) ─────────────────────────────────── */
+  .draft { border:1px solid #C8C8BD; background:#F7F7F3; }
+  .draft-head { display:flex; align-items:center; justify-content:space-between; gap:12px;
+    padding:14px 22px; border-bottom:1px solid #E3E3DA; font-weight:600; font-size:10px;
+    letter-spacing:0.14em; color:#6A6A61; }
+  .draft-head .live { color:#5A6B00; }
+  .draft-body { background:#FFFFFF; padding:24px 22px; display:flex; gap:18px; align-items:flex-start; }
+  .draft-body .avatar-me { width:38px; height:38px; font-size:12px; }
+  .draft-main { flex:1; min-width:0; position:relative; }
+  .draft textarea { width:100%; min-height:82px; resize:vertical; font-family:Manrope, sans-serif;
+    font-size:15px; line-height:1.6; color:#0F0F0D; background:#FFFFFF; border:1px solid #C8C8BD;
+    padding:13px 15px; outline:none; }
+  .draft textarea:focus-visible { border-color:#0F0F0D; box-shadow:inset 0 -3px 0 #E8FF3A; }
+  .draft-actions { display:flex; gap:10px; flex-wrap:wrap; margin-top:20px; align-items:center; }
+  .btn { font-weight:600; font-size:12px; letter-spacing:0.14em; text-transform:uppercase;
+    background:#E8FF3A; color:#0A0A09; border:1px solid #E8FF3A; padding:13px 24px; cursor:pointer; }
   .btn:hover { background:#0A0A09; border-color:#0A0A09; color:#E8FF3A; }
   .btn[disabled] { opacity:0.45; cursor:default; }
-  .btn-quiet { background:none; border:0; border-bottom:1px solid #C8C8BD; padding:0 0 4px;
-               font-family:Manrope, sans-serif; font-weight:600; font-size:12px; letter-spacing:0.14em;
-               text-transform:uppercase; color:#5C5C54; cursor:pointer; }
-  .btn-quiet:hover { color:#0F0F0D; border-color:#5A6B00; }
-
-  .msg { font-size:14px; line-height:1.5; margin:14px 0 0; max-width:44ch; }
-  .msg.err { color:#A03A1E; }
-  .msg.ok  { color:#5A6B00; }
-
-  .chip { font-family:Manrope, sans-serif; font-weight:600; font-size:11px; letter-spacing:0.12em;
-          text-transform:uppercase; border:1px solid #C8C8BD; background:#FFFFFF; color:#5C5C54;
-          padding:9px 15px; cursor:pointer; transition:all .16s ease; }
-  .chip:hover { border-color:#5A6B00; color:#5A6B00; }
-  .chip[aria-pressed="true"] { border-color:#0F0F0D; background:#E8FF3A; color:#0A0A09; }
-  .chip-all { font-style:italic; }
-
-  /* ── Tabs ───────────────────────────────────────────────────────────────── */
-  #tabs { display:flex; gap:0; border-bottom:1px solid #C8C8BD; margin:0 0 28px; }
-  #tabs button { background:none; border:0; border-bottom:2px solid transparent; margin-bottom:-1px;
-         padding:12px 20px 13px; cursor:pointer; font-family:Manrope, sans-serif; font-weight:600;
-         font-size:12px; letter-spacing:0.14em; text-transform:uppercase; color:#8B8B80;
-         transition:color .16s ease, border-color .16s ease; }
-  #tabs button:hover { color:#0F0F0D; }
-  #tabs button[aria-selected="true"] { color:#0F0F0D; border-bottom-color:#0F0F0D;
-         box-shadow:inset 0 -6px 0 -3px #E8FF3A; }
-
-  /* ── Following pane ─────────────────────────────────────────────────────── */
-  .vis-row { display:flex; align-items:flex-start; justify-content:space-between; gap:22px;
-         flex-wrap:wrap; border:1px solid #C8C8BD; background:#FDFDFB; padding:18px 20px; margin-bottom:28px; }
-  .vis-title { font-family:Outfit, sans-serif; font-weight:700; font-size:15px; text-transform:uppercase;
-         letter-spacing:-0.01em; margin-bottom:6px; }
-  .vis-sub { font-size:14px; line-height:1.55; color:#5C5C54; max-width:48ch; }
-
-  .suggest-head { font-family:Outfit, sans-serif; font-weight:700; font-size:20px; text-transform:uppercase;
-         letter-spacing:-0.01em; margin:8px 0 8px; }
-  .suggest-lede { font-size:14.5px; line-height:1.55; color:#5C5C54; margin:0 0 20px; max-width:52ch; }
-  .suggest-list { border-top:1px solid #E3E3DA; }
-  .suggest-row { display:flex; align-items:center; gap:14px; padding:14px 0;
-         border-bottom:1px solid #E3E3DA; }
-  .suggest-name { flex:1; min-width:0; font-family:Outfit, sans-serif; font-weight:700; font-size:16px;
-         text-transform:uppercase; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-
-  .act-static { color:#8B8B80; padding:8px 12px; font-family:Manrope, sans-serif; font-weight:600;
-         font-size:11px; letter-spacing:0.12em; text-transform:uppercase; }
-
-  /* ── Composer ───────────────────────────────────────────────────────────── */
-  .composer { border:1px solid #C8C8BD; background:#FDFDFB; padding:20px 22px; margin-bottom:32px; }
-  .composer textarea { width:100%; min-height:84px; resize:vertical; font-family:Manrope, sans-serif;
-            font-size:16px; line-height:1.55; color:#0F0F0D; background:#FFFFFF; border:1px solid #C8C8BD;
-            border-radius:2px; padding:13px 15px; }
-  .composer textarea:focus-visible { outline:none; border-color:#0F0F0D; box-shadow:inset 0 -3px 0 #E8FF3A; }
-  .composer-row { display:flex; align-items:center; justify-content:space-between; gap:16px;
-            flex-wrap:wrap; margin-top:14px; }
-  .composer-targets { margin-top:16px; }
-  /* The share control: squads on one line, reach on the next, and a sentence
-     saying who that actually adds up to. */
-  .aud-group { display:flex; flex-wrap:wrap; gap:8px; }
-  .aud-reach { margin-top:8px; padding-top:10px; border-top:1px dashed #DCDCD1; }
-  .aud-note { font-size:13px; line-height:1.5; color:#5C5C54; margin:10px 0 0; max-width:52ch; }
-  .chip[disabled] { opacity:0.5; cursor:default; }
-  .chip[disabled]:hover { border-color:#C8C8BD; color:#5C5C54; }
-  .chip[disabled][aria-pressed="true"]:hover { border-color:#0F0F0D; color:#0A0A09; }
-  .chip-public[aria-pressed="true"] { background:#0F0F0D; border-color:#0F0F0D; color:#E8FF3A; }
+  .btn-outline { font-weight:600; font-size:12px; letter-spacing:0.14em; text-transform:uppercase;
+    border:1px solid #C8C8BD; background:none; color:#0F0F0D; padding:13px 24px; cursor:pointer; }
+  .btn-outline:hover { border-color:#5A6B00; color:#5A6B00; }
+  .btn-quiet { font-weight:600; font-size:12px; letter-spacing:0.14em; text-transform:uppercase;
+    color:#6A6A61; background:none; border:0; padding:13px 8px; cursor:pointer; }
+  .btn-quiet:hover { color:#0F0F0D; }
   .composer-preview { margin-top:14px; display:flex; align-items:flex-start; gap:14px; }
   .composer-preview img { width:110px; height:110px; object-fit:cover; border:1px solid #DCDCD1; display:block; }
 
-  /* @-autocomplete. A chip row ABOVE the field, matching the app's
-     MentionInput rather than the dropdown a web autocomplete would default to.
-     Acid reads as a border on this light ground, not as a fill. */
-  .mention-row { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:10px; }
-  .mention-chip {
-    font-family:Manrope, sans-serif; font-weight:600; font-size:11px; letter-spacing:0.1em;
-    border:1px solid #5A6B00; background:rgba(232,255,58,0.22); color:#0F0F0D;
-    padding:7px 12px; cursor:pointer; max-width:200px; overflow:hidden;
-    text-overflow:ellipsis; white-space:nowrap; transition:background .16s ease;
-  }
-  .mention-chip:hover { background:#E8FF3A; }
-  .cmt-mentions { margin-top:10px; margin-bottom:0; }
+  /* ── Audience control ───────────────────────────────────────────────────── */
+  .aud { margin-top:16px; }
+  .aud-group { display:flex; flex-wrap:wrap; gap:8px; }
+  .aud-reach { margin-top:8px; padding-top:10px; border-top:1px dashed #DCDCD1; }
+  .aud-note { font-size:13px; line-height:1.5; color:#5C5C54; margin:10px 0 0; max-width:52ch; }
+  .chip { font-weight:600; font-size:11px; letter-spacing:0.12em; text-transform:uppercase;
+    border:1px solid #C8C8BD; background:#FFFFFF; color:#5C5C54; padding:9px 15px; cursor:pointer;
+    transition:all .16s ease; }
+  .chip:hover { border-color:#5A6B00; color:#5A6B00; }
+  .chip[aria-pressed="true"] { border-color:#0F0F0D; background:#E8FF3A; color:#0A0A09; }
+  .chip[disabled] { opacity:0.5; cursor:default; }
+  .chip[disabled]:hover { border-color:#C8C8BD; color:#5C5C54; }
+  .chip-all { font-style:italic; }
+  .chip-public[aria-pressed="true"] { background:#0A0A09; border-color:#0A0A09; color:#E8FF3A; }
+  .chip-follow { padding:7px 13px; font-size:10px; letter-spacing:0.12em; border-color:#E8FF3A;
+    background:#E8FF3A; color:#0A0A09; }
+  .chip-follow:hover { border-color:#5A6B00; }
 
-  /* ── Posts ──────────────────────────────────────────────────────────────── */
-  .post { border:1px solid #E3E3DA; background:#FFFFFF; padding:24px 26px; margin-bottom:-1px; }
-  .post-top { display:flex; align-items:center; gap:14px; margin-bottom:14px; }
-  .avatar { width:38px; height:38px; flex:0 0 38px; background:#F7F7F3; border:1px solid #DCDCD1;
-            display:flex; align-items:center; justify-content:center; font-family:Outfit, sans-serif;
-            font-weight:700; font-size:13px; color:#5A6B00; }
-  .author { font-family:Outfit, sans-serif; font-weight:700; font-size:17px; text-transform:uppercase; }
-  .when { font-family:Manrope, sans-serif; font-weight:600; font-size:11px; letter-spacing:0.1em;
-          text-transform:uppercase; color:#8B8B80; margin-top:3px; }
-  .body { font-size:16px; line-height:1.6; color:#2C2C27; margin:0 0 14px; white-space:pre-wrap; overflow-wrap:anywhere; }
+  /* ── Tab rail ───────────────────────────────────────────────────────────── */
+  .tabrail { position:sticky; top:67px; z-index:20; background:rgba(255,255,255,0.94);
+    backdrop-filter:blur(10px); border-bottom:1px solid #E3E3DA; display:flex; align-items:center;
+    justify-content:space-between; gap:24px; flex-wrap:wrap; padding-top:6px; }
+  .tabs { display:flex; gap:26px; }
+  .tabs button { display:flex; flex-direction:column; gap:11px; cursor:pointer; background:none;
+    border:0; padding:0; font-family:Manrope, sans-serif; font-weight:600; font-size:11px;
+    letter-spacing:0.16em; text-transform:uppercase; color:#6A6A61; }
+  .tabs button:hover { color:#0F0F0D; }
+  .tabs button[aria-selected="true"] { color:#0F0F0D; }
+  .tabs button .bar { display:block; height:3px; background:#E9E9E1; }
+  .tabs button[aria-selected="true"] .bar { background:#E8FF3A; }
+  .countline { font-weight:600; font-size:10px; letter-spacing:0.14em; color:#6A6A61; padding-bottom:14px; }
+
+  /* ── Post card ──────────────────────────────────────────────────────────── */
+  .post { border:1px solid #E3E3DA; background:#FFFFFF; }
+  .post-top { display:flex; align-items:center; gap:14px; padding:18px 22px; border-bottom:1px solid #E3E3DA; }
+  .avatar { width:38px; height:38px; border-radius:50%; background:#C8C8BD; color:#3F4A00;
+    font-weight:700; font-size:12px; display:flex; align-items:center; justify-content:center; flex:none; }
+  .post-who { flex:1; min-width:0; }
+  .post-name-row { display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; }
+  .post-name { font-size:16px; font-weight:600; }
+  .post-club { font-weight:600; font-size:10px; letter-spacing:0.12em; text-transform:uppercase;
+    color:#5A6B00; border-bottom:2px solid #E8FF3A; }
+  .post-meta { font-weight:600; font-size:10px; letter-spacing:0.1em; color:#6A6A61; margin-top:4px; }
+  .post-tag { font-weight:600; font-size:10px; letter-spacing:0.14em; color:#6A6A61; white-space:nowrap; }
+  .post-lede { padding:22px 22px 0; }
+  .post-headline { font-family:Outfit, sans-serif; font-weight:700; font-size:23px;
+    text-transform:uppercase; line-height:1.05; }
+  .post-body { font-size:15px; line-height:1.65; color:#5C5C54; margin:12px 0 0; max-width:62ch;
+    white-space:pre-wrap; overflow-wrap:anywhere; }
   .mention { color:#5A6B00; font-weight:600; }
-  .post-img { display:block; width:100%; border:1px solid #E3E3DA; margin-bottom:14px; background:#F2F2EC; }
-  .pill { font-family:Manrope, sans-serif; font-weight:600; font-size:10px; letter-spacing:0.14em;
-          text-transform:uppercase; background:#E8FF3A; color:#0A0A09; padding:5px 10px; }
-  /* Must follow .pill: same specificity, so source order is what decides. */
+  .post-stats { display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:1px; background:#E3E3DA;
+    border-top:1px solid #E3E3DA; border-bottom:1px solid #E3E3DA; margin-top:22px; }
+  .post-stats .cell { background:#FFFFFF; padding:16px 20px; }
+  .post-stats .k { font-weight:600; font-size:9px; letter-spacing:0.14em; color:#6A6A61; }
+  .post-stats .v { font-family:Outfit, sans-serif; font-weight:700; font-size:19px; margin-top:6px;
+    font-variant-numeric:tabular-nums; }
+  @media (max-width:620px) { .post-stats { grid-template-columns:repeat(2, minmax(0,1fr)); } }
+  .post-img { display:block; width:100%; border-top:1px solid #E3E3DA; background:#F2F2EC; }
+  .post-foot { display:flex; align-items:center; justify-content:space-between; gap:16px;
+    flex-wrap:wrap; border-top:1px solid #E3E3DA; padding:14px 22px; }
+  .kudos { font-weight:600; font-size:11px; letter-spacing:0.1em; border:1px solid #E3E3DA;
+    border-radius:999px; padding:8px 15px; white-space:nowrap; color:#5C5C54; background:#FBFBF7;
+    cursor:pointer; }
+  .kudos:hover { border-color:#5A6B00; }
+  .kudos.on { border-color:#A8BC00; background:rgba(232,255,58,0.4); color:#3F4A00; }
+  .cmt-toggle { font-weight:600; font-size:11px; letter-spacing:0.14em; text-transform:uppercase;
+    white-space:nowrap; color:#6A6A61; background:none; border:0; cursor:pointer; }
+  .cmt-toggle:hover { color:#0F0F0D; }
+  .pill { font-weight:600; font-size:10px; letter-spacing:0.14em; text-transform:uppercase;
+    background:#E8FF3A; color:#0A0A09; padding:5px 10px; }
   .pill-quiet { background:none; border:1px solid #C8C8BD; color:#8B8B80; }
-  .chip-follow { padding:6px 12px; font-size:10px; }
 
-  /* Run stats, from the run_summaries embed — the app's run posts carry a
-     run_id that no client used to read. */
-  .run-stats { display:flex; align-items:baseline; gap:18px; flex-wrap:wrap;
-          border-top:1px solid #E3E3DA; padding-top:14px; margin-bottom:14px; }
-  .run-hero { font-family:Outfit, sans-serif; font-weight:700; font-size:34px; line-height:1;
-          letter-spacing:-0.02em; font-variant-numeric:tabular-nums; }
-  .run-hero small { font-size:14px; color:#5A6B00; margin-left:3px; }
-  .run-meta { display:flex; gap:18px; flex-wrap:wrap; font-family:Manrope, sans-serif; font-weight:600;
-          font-size:11px; letter-spacing:0.12em; text-transform:uppercase; color:#8B8B80; }
-  .run-meta b { color:#0F0F0D; font-variant-numeric:tabular-nums; }
-
-  /* ── Card actions ───────────────────────────────────────────────────────── */
-  .acts { display:flex; gap:8px; align-items:center; }
-  .act { font-family:Manrope, sans-serif; font-weight:600; font-size:11px; letter-spacing:0.12em;
-         text-transform:uppercase; color:#6A6A61; background:none; border:1px solid transparent;
-         padding:8px 12px; cursor:pointer; transition:all .16s ease; }
-  .act:hover { border-color:#C8C8BD; color:#0F0F0D; }
-  .act.on { color:#5A6B00; }
-  .act .act-mark { color:#C8C8BD; }
-  .act.on .act-mark { color:#5A6B00; }
-
-  .menu { position:relative; }
-  .menu summary { list-style:none; cursor:pointer; padding:4px 10px; color:#8B8B80;
-         font-size:18px; line-height:1; user-select:none; }
+  /* ── Post menu ──────────────────────────────────────────────────────────── */
+  .menu { position:relative; flex:none; }
+  .menu summary { list-style:none; cursor:pointer; padding:4px 10px; color:#8B8B80; font-size:18px; line-height:1; }
   .menu summary::-webkit-details-marker { display:none; }
   .menu summary:hover { color:#0F0F0D; }
-  .menu-list { position:absolute; right:0; top:100%; z-index:20; min-width:194px; background:#FFFFFF;
-         border:1px solid #0F0F0D; }
+  .menu-list { position:absolute; right:0; top:100%; z-index:25; min-width:200px; background:#FFFFFF;
+    border:1px solid #0F0F0D; }
   .menu-list button { display:block; width:100%; text-align:left; background:none; border:0;
-         border-bottom:1px solid #E3E3DA; padding:12px 15px; font-family:Manrope, sans-serif;
-         font-size:13px; font-weight:500; color:#0F0F0D; cursor:pointer; }
+    border-bottom:1px solid #E3E3DA; padding:12px 15px; font-family:Manrope, sans-serif; font-size:13px;
+    font-weight:500; color:#0F0F0D; cursor:pointer; }
   .menu-list button:last-child { border-bottom:0; }
   .menu-list button:hover { background:#E8FF3A; }
 
   /* ── Comments ───────────────────────────────────────────────────────────── */
-  .comments { border-top:1px solid #E3E3DA; margin-top:14px; padding-top:16px; }
-  .cmt { margin-bottom:14px; }
-  .cmt-top { display:flex; align-items:baseline; gap:12px; }
-  .cmt-who { font-family:Outfit, sans-serif; font-weight:700; font-size:13px; text-transform:uppercase; }
-  .cmt-when { font-family:Manrope, sans-serif; font-weight:600; font-size:10px; letter-spacing:0.1em;
-         text-transform:uppercase; color:#8B8B80; }
-  .cmt-del { margin-left:auto; background:none; border:0; padding:0; cursor:pointer;
-         font-family:Manrope, sans-serif; font-weight:600; font-size:10px; letter-spacing:0.1em;
-         text-transform:uppercase; color:#8B8B80; }
+  .comments { border-top:1px solid #E3E3DA; background:#F7F7F3; padding:8px 22px 18px; }
+  .cmt { display:flex; gap:14px; padding:16px 0; border-bottom:1px solid #E3E3DA; }
+  .cmt-av { width:28px; height:28px; border-radius:50%; background:#DFDFD5; color:#3F4A00;
+    font-weight:700; font-size:10px; display:flex; align-items:center; justify-content:center; flex:none; }
+  .cmt-name { font-size:13px; font-weight:600; }
+  .cmt-text { font-size:15px; line-height:1.55; color:#5C5C54; margin:4px 0 0;
+    white-space:pre-wrap; overflow-wrap:anywhere; }
+  .cmt-del { margin-left:auto; background:none; border:0; padding:0; cursor:pointer; font-weight:600;
+    font-size:10px; letter-spacing:0.1em; text-transform:uppercase; color:#8B8B80; }
   .cmt-del:hover { color:#A03A1E; }
-  .cmt-body { font-size:15px; line-height:1.55; color:#2C2C27; margin:4px 0 0;
-         white-space:pre-wrap; overflow-wrap:anywhere; }
-  .cmt-empty, .cmt-loading { font-size:14px; color:#8B8B80; margin:0 0 14px; }
-  .cmt-form { display:flex; gap:12px; align-items:center; margin-top:6px; }
-  .cmt-input { flex:1; max-width:none; padding:11px 14px; font-size:15px; }
+  .cmt-empty, .cmt-loading { font-size:14px; color:#8B8B80; margin:14px 0; }
+  .cmt-form { display:flex; align-items:center; gap:12px; padding-top:16px; position:relative; }
+  .cmt-form .avatar-me { width:28px; height:28px; font-size:10px; }
+  .cmt-input { flex:1; border:1px solid #C8C8BD; background:#FFFFFF; padding:11px 14px;
+    font-family:Manrope, sans-serif; font-size:14px; color:#0F0F0D; outline:none; }
+  .cmt-input:focus-visible { border-color:#0F0F0D; box-shadow:inset 0 -3px 0 #E8FF3A; }
+
+  /* ── @-autocomplete ─────────────────────────────────────────────────────── */
+  .mention-row { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:10px; }
+  .mention-chip { font-weight:600; font-size:11px; letter-spacing:0.1em; border:1px solid #5A6B00;
+    background:rgba(232,255,58,0.22); color:#0F0F0D; padding:7px 12px; cursor:pointer; max-width:200px;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .mention-chip:hover { background:#E8FF3A; }
+  .cmt-mentions { margin:10px 0 0; }
+
+  /* ── Sidebar cards ──────────────────────────────────────────────────────── */
+  .side-card { border:1px solid #E3E3DA; background:#FFFFFF; }
+  .side-head { padding:18px 20px; border-bottom:1px solid #E3E3DA; }
+  .side-k { font-weight:600; font-size:10px; letter-spacing:0.14em; color:#6A6A61; }
+  .side-title { font-family:Outfit, sans-serif; font-weight:700; font-size:20px;
+    text-transform:uppercase; margin-top:8px; }
+  .side-foot { display:block; padding:14px 20px; border-top:1px solid #E3E3DA; font-weight:600;
+    font-size:10px; letter-spacing:0.14em; color:#6A6A61; }
+  .side-foot:hover { color:#5A6B00; }
+  .side-note { padding:14px 20px; font-weight:600; font-size:10px; letter-spacing:0.14em; color:#6A6A61; }
+  .side-empty { padding:18px 20px; font-size:14px; line-height:1.55; color:#8B8B80; }
+
+  .board-row { display:flex; align-items:center; gap:14px; padding:13px 20px;
+    border-bottom:1px solid #EFEFE8; background:#FFFFFF; }
+  .board-row.me { background:rgba(232,255,58,0.28); }
+  .board-rank { font-family:Outfit, sans-serif; font-weight:700; font-size:13px; color:#6A6A61;
+    width:18px; flex:none; }
+  .board-name { flex:1; min-width:0; font-size:14px; font-weight:600; overflow:hidden;
+    text-overflow:ellipsis; white-space:nowrap; }
+  .board-val { font-weight:600; font-size:11px; letter-spacing:0.08em; color:#5A6B00;
+    font-variant-numeric:tabular-nums; }
+
+  .sug-list { display:flex; flex-direction:column; gap:1px; background:#E3E3DA; }
+  .sug-row { background:#FFFFFF; padding:16px 20px; display:flex; align-items:flex-start; gap:13px; }
+  .sug-av { width:34px; height:34px; border-radius:50%; background:#DFDFD5; color:#3F4A00;
+    font-weight:700; font-size:11px; display:flex; align-items:center; justify-content:center; flex:none; }
+  .sug-main { flex:1; min-width:0; }
+  .sug-name { font-size:14px; font-weight:600; }
+  .sug-meta { font-weight:600; font-size:10px; letter-spacing:0.1em; color:#6A6A61; margin-top:3px; }
+  .sug-reason { font-size:13px; line-height:1.5; color:#5C5C54; margin-top:7px; }
+
+  .route-row { background:#FFFFFF; padding:15px 20px; display:flex; align-items:center;
+    justify-content:space-between; gap:14px; color:#0F0F0D; }
+  .route-row:hover { background:#F7F7F3; }
+  .route-name { display:block; font-size:14px; font-weight:600; }
+  .route-meta { display:block; font-weight:600; font-size:10px; letter-spacing:0.1em; color:#6A6A61; margin-top:3px; }
+  .route-val { font-weight:600; font-size:11px; color:#5A6B00; white-space:nowrap; }
+
+  /* ── Misc ───────────────────────────────────────────────────────────────── */
+  .loadmore { border:1px dashed #C8C8BD; padding:26px; text-align:center; font-weight:600;
+    font-size:11px; letter-spacing:0.16em; text-transform:uppercase; color:#6A6A61; cursor:pointer;
+    background:none; width:100%; }
+  .loadmore:hover { border-color:#5A6B00; color:#5A6B00; }
+  .msg { font-size:14px; line-height:1.5; margin:14px 0 0; max-width:52ch; color:#5C5C54; }
+  .msg.err { color:#A03A1E; }
+  .msg.ok  { color:#5A6B00; }
+  .field-label { display:block; font-weight:600; font-size:11px; letter-spacing:0.14em;
+    text-transform:uppercase; color:#6A6A61; margin-bottom:8px; }
+  .skel { border:1px solid #E3E3DA; background:#FFFFFF; padding:24px 26px; }
+  .skel div { background:#F2F2EC; height:12px; animation:pacr-pulse 1.3s ease-in-out infinite; }
+
+  .site-foot { border-top:1px solid #E3E3DA; background:#F7F7F3; }
+  .site-foot-in { max-width:1280px; margin:0 auto; padding:44px 40px; display:flex; align-items:center;
+    justify-content:space-between; gap:24px; flex-wrap:wrap; font-weight:600; font-size:11px;
+    letter-spacing:0.14em; text-transform:uppercase; color:#6A6A61; }
+  .site-foot-in a { color:#6A6A61; }
+  .site-foot-in a:hover { color:#5A6B00; }
 
   /* ── Modal ──────────────────────────────────────────────────────────────── */
-  #modal { position:fixed; inset:0; z-index:60; display:flex; align-items:center; justify-content:center; padding:22px; }
+  #modal { position:fixed; inset:0; z-index:60; display:flex; align-items:center;
+    justify-content:center; padding:22px; }
   .modal-scrim { position:absolute; inset:0; background:rgba(10,10,9,0.55); }
   .modal-card { position:relative; background:#FFFFFF; border:1px solid #0F0F0D; max-width:440px;
-         width:100%; padding:28px 30px; max-height:86vh; overflow-y:auto; }
-  .modal-title { font-family:Outfit, sans-serif; font-weight:700; font-size:22px; text-transform:uppercase;
-         letter-spacing:-0.01em; margin:0 0 14px; }
+    width:100%; padding:28px 30px; max-height:86vh; overflow-y:auto; }
+  .modal-title { font-family:Outfit, sans-serif; font-weight:700; font-size:22px;
+    text-transform:uppercase; letter-spacing:-0.01em; margin:0 0 14px; }
   .modal-body { font-size:15px; line-height:1.6; color:#5C5C54; }
   .modal-body p { margin:0 0 12px; }
   .modal-acts { display:flex; flex-direction:column; align-items:flex-start; gap:14px; margin-top:22px; }
 
-  .skel { border:1px solid #E3E3DA; background:#FFFFFF; padding:24px 26px; margin-bottom:-1px; }
-  .skel div { background:#F2F2EC; height:12px; border-radius:2px; animation:pacr-pulse 1.3s ease-in-out infinite; }
-  @keyframes pacr-pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+  :where(a,button,input,textarea,summary):focus-visible { outline:2px solid #5A6B00; outline-offset:2px; }
   @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation:none !important; transition:none !important; } }
 </style>
 </head>
 <body>
 
-<header class="pad-x" style="position:sticky; top:0; z-index:30; display:flex; align-items:center; justify-content:space-between; gap:24px; padding:16px 40px; background:rgba(255,255,255,0.85); backdrop-filter:blur(14px); border-bottom:1px solid #E3E3DA;">
-  <a href="/" style="display:flex; align-items:center; gap:12px; color:inherit;">
-    <img src="assets/pacr-mark.png" alt="PACR" width="34" height="34" style="width:34px; height:34px; border-radius:8px; display:block;">
-    <span style="font-family:Outfit, sans-serif; font-weight:700; font-size:20px; letter-spacing:0.14em;">PACR</span>
+<header class="site-head">
+  <a class="brand" href="/" aria-label="PACR home">
+    <img src="assets/pacr-mark.png" alt="" width="34" height="34">
+    <span>PACR</span>
   </a>
-  <div id="authSlot"></div>
+  <nav class="site-nav" aria-label="Primary">
+    <a href="/#how">How it works</a>
+    <a href="/feed" class="on">Feed</a>
+    <a href="/#clubs">Clubs</a>
+    <a href="/#routes">Routes</a>
+  </nav>
+  <div class="head-right">
+    <div id="authSlot"></div>
+    <div class="avatar-me" id="meAvatar" hidden></div>
+  </div>
 </header>
 
-<main class="pad-x" style="max-width:760px; margin:0 auto; padding-top:64px; padding-bottom:96px;">
+<!-- Resolving the session. A signed-out visitor is redirected to /signin from
+     here, so the feed itself never renders without one. -->
+<section id="paneBoot" style="max-width:1280px; margin:0 auto; padding:64px 40px;">
+  <div class="eyebrow">Feed</div>
+  <div class="skel"><div style="width:40%"></div></div>
+  <noscript>
+    <p class="msg err" style="margin-top:22px;">Your feed needs JavaScript to load.</p>
+    <p class="msg"><a href="/signin">Go to sign in</a> · <a href="/">Back to pacr.life</a></p>
+  </noscript>
+</section>
 
-  <!-- Resolving the session. A signed-out visitor is redirected to /signin
-       from here, so the feed itself never renders without one. -->
-  <section id="paneBoot">
-    <div class="eyebrow">Feed</div>
-    <div class="skel"><div style="width:40%"></div></div>
-    <!-- The feed is entirely script-driven, so without JS this page can never
-         resolve past the skeleton. Say so, and still offer the way out. -->
-    <noscript>
-      <p class="msg err" style="margin-top:22px;">Your feed needs JavaScript to load.</p>
-      <p class="msg"><a href="/signin">Go to sign in</a> · <a href="/">Back to pacr.life</a></p>
-    </noscript>
-  </section>
-
-  <!-- Signed in. Signed-out visitors are sent to /signin before this renders. -->
-  <section id="paneFeed" hidden>
-    <div class="eyebrow">Feed</div>
-    <h1 class="disp" id="feedTitle">Your feed</h1>
-    <div id="tabs" role="tablist" aria-label="Feed">
-      <button type="button" role="tab" data-tab="squad" aria-selected="true">Squad</button>
-      <button type="button" role="tab" data-tab="following" aria-selected="false">Following</button>
-      <button type="button" role="tab" data-tab="discover" aria-selected="false">Discover</button>
-    </div>
-
-    <div id="paneSquad" role="tabpanel">
-    <div id="squadChips" role="group" aria-label="Choose a squad"
-         style="display:flex; flex-wrap:wrap; gap:8px; margin:0 0 32px;"></div>
-
-    <!-- Composer. Every gate below it is the server's — can_post_in_circle()
-         decides posting and enforce_content_filter() rejects blocked terms;
-         the client checks only so a refusal can be explained. -->
-    <div class="composer" id="composer">
-      <label class="field-label" for="cBody">New post</label>
-      <div class="mention-row" id="cMentions" hidden></div>
-      <textarea id="cBody" maxlength="2000"
-                placeholder="Say something… @ to tag"></textarea>
-      <div class="composer-preview" id="cPreview" hidden></div>
-      <div class="composer-targets" id="cTargets" role="group" aria-label="Squads to post to"></div>
-      <div class="composer-row">
-        <button type="button" class="btn-quiet" id="cPhotoBtn">Add photo</button>
-        <button type="button" class="btn" id="cPost">Post</button>
+<div id="paneFeed" hidden>
+  <div class="masthead">
+    <div class="masthead-in">
+      <div>
+        <div class="eyebrow" id="feedDate">Feed</div>
+        <h1 class="disp">Post the run.<br>Get the noise.</h1>
       </div>
-      <input type="file" id="cPhoto" accept="image/jpeg,image/png" hidden>
-      <p class="msg" id="cMsg" hidden></p>
+      <div class="stat-strip" id="headStats" hidden></div>
     </div>
-    <p class="msg" id="cGate" hidden></p>
+  </div>
 
-    <div id="posts"></div>
-    <p class="msg" id="feedMsg" hidden></p>
-    <div style="margin-top:28px;">
-      <button class="btn" id="moreBtn" type="button" hidden>Load more</button>
-    </div>
-    </div><!-- /paneSquad -->
+  <div class="wrap">
+    <div class="col-main">
 
-    <!-- Following. Posts reach this pane only when their author has turned on
-         follower visibility, and only for posts written after they did — see
-         20260908120000_follows.sql. Run-card images never reach it at all. -->
-    <div id="paneFollowing" role="tabpanel" hidden>
-      <div id="privacyBox"></div>
-      <div id="followPosts"></div>
-      <p class="msg" id="followMsg" hidden></p>
-      <div id="suggested"></div>
-      <div style="margin-top:28px;">
-        <button class="btn" id="followMore" type="button" hidden>Load more</button>
+      <!-- Composer, in the design's draft-card frame. -->
+      <div class="draft" id="composer">
+        <div class="draft-head">
+          <span id="draftHead">NEW POST</span>
+          <span class="live" id="draftScope"></span>
+        </div>
+        <div class="draft-body">
+          <div class="avatar-me" id="draftAvatar"></div>
+          <div class="draft-main">
+            <label class="field-label" for="cBody" style="display:none;">New post</label>
+            <div class="mention-row" id="cMentions" hidden></div>
+            <textarea id="cBody" maxlength="2000" placeholder="Say something… @ to tag"></textarea>
+            <div class="composer-preview" id="cPreview" hidden></div>
+            <div class="aud" id="cTargets" role="group" aria-label="Who sees this"></div>
+            <div class="draft-actions">
+              <button type="button" class="btn" id="cPost">Post to feed</button>
+              <button type="button" class="btn-outline" id="cPhotoBtn">Add photo</button>
+              <span style="flex:1"></span>
+            </div>
+            <input type="file" id="cPhoto" accept="image/jpeg,image/png" hidden>
+            <p class="msg" id="cMsg" hidden></p>
+          </div>
+        </div>
+      </div>
+      <p class="msg" id="cGate" hidden></p>
+
+      <div class="tabrail">
+        <div class="tabs" id="tabs" role="tablist" aria-label="Feed">
+          <button type="button" role="tab" data-tab="squad" aria-selected="true">
+            <span>Squad</span><span class="bar"></span>
+          </button>
+          <button type="button" role="tab" data-tab="following" aria-selected="false">
+            <span>Following</span><span class="bar"></span>
+          </button>
+          <button type="button" role="tab" data-tab="discover" aria-selected="false">
+            <span>Discover</span><span class="bar"></span>
+          </button>
+        </div>
+        <div class="countline" id="countLine"></div>
+      </div>
+
+      <div id="squadChips" role="group" aria-label="Choose a squad"
+           style="display:flex; flex-wrap:wrap; gap:8px;"></div>
+
+      <div id="paneSquad" role="tabpanel">
+        <div id="posts" style="display:flex; flex-direction:column; gap:24px;"></div>
+        <p class="msg" id="feedMsg" hidden></p>
+        <button class="loadmore" id="moreBtn" type="button" hidden style="margin-top:24px;">Load earlier runs</button>
+      </div>
+
+      <div id="paneFollowing" role="tabpanel" hidden>
+        <div id="privacyBox"></div>
+        <div id="followPosts" style="display:flex; flex-direction:column; gap:24px;"></div>
+        <p class="msg" id="followMsg" hidden></p>
+        <div id="suggested"></div>
+        <button class="loadmore" id="followMore" type="button" hidden style="margin-top:24px;">Load earlier runs</button>
+      </div>
+
+      <!-- Discover: only posts whose author chose Public, strictly chronological. -->
+      <div id="paneDiscover" role="tabpanel" hidden>
+        <div id="discoverPosts" style="display:flex; flex-direction:column; gap:24px;"></div>
+        <p class="msg" id="discoverMsg" hidden></p>
+        <button class="loadmore" id="discoverMore" type="button" hidden style="margin-top:24px;">Load earlier runs</button>
       </div>
     </div>
 
-    <!-- Discover. Only posts whose author chose Public as the audience, in
-         strict chronological order — no ranking, no engagement weighting. -->
-    <div id="paneDiscover" role="tabpanel" hidden>
-      <div id="discoverPosts"></div>
-      <p class="msg" id="discoverMsg" hidden></p>
-      <div style="margin-top:28px;">
-        <button class="btn" id="discoverMore" type="button" hidden>Load more</button>
+    <aside class="col-side">
+      <div class="side-card" id="boardCard" hidden>
+        <div class="side-head">
+          <div class="side-k" id="boardClub">YOUR SQUAD</div>
+          <div class="side-title">Consistency board</div>
+        </div>
+        <div id="boardRows"></div>
+        <div class="side-note">RANKED BY RUNS LOGGED THIS WEEK</div>
+      </div>
+
+      <div class="side-card" id="sugCard" hidden>
+        <div class="side-head">
+          <div class="side-k">RUNNERS TO FOLLOW</div>
+          <div class="side-title">In your squads</div>
+        </div>
+        <div class="sug-list" id="sugRows"></div>
+      </div>
+
+      <div class="side-card" id="routesCard" hidden>
+        <div class="side-head">
+          <div class="side-k">ROUTES NEARBY</div>
+          <div class="side-title">Where people run</div>
+        </div>
+        <div class="sug-list" id="routeRows"></div>
+        <a class="side-foot" href="/#routes">BROWSE ALL ROUTES</a>
+      </div>
+    </aside>
+  </div>
+
+  <footer class="site-foot">
+    <div class="site-foot-in">
+      <span>© 2026 PACR — Feed shows only what you post.</span>
+      <div style="display:flex; gap:26px; flex-wrap:wrap;">
+        <a href="/community-rules">Community rules</a>
+        <a href="/#clubs">Clubs</a>
+        <a href="/privacy">Privacy</a>
+        <a href="/support">Support</a>
       </div>
     </div>
-    <p style="font-size:13.5px; color:#8B8B80; margin-top:48px; max-width:52ch;">
-      Posting a run card, joining a squad and managing blocked accounts live in the app —
-      <a href="/#get">open PACR</a>.
-    </p>
-  </section>
-</main>
+  </footer>
+</div>
 
 <div id="modal" hidden></div>
-
-<footer class="pad-x" style="border-top:1px solid #E3E3DA; padding:32px 40px; display:flex; justify-content:space-between; gap:20px; flex-wrap:wrap; font-family:Manrope, sans-serif; font-weight:600; font-size:11px; letter-spacing:0.14em; text-transform:uppercase; color:#8B8B80;">
-  <span>© PACR</span>
-  <span style="display:flex; gap:22px; flex-wrap:wrap;">
-    <a href="/">Home</a>
-    <a href="/community-rules">Rules</a>
-    <a href="/privacy">Privacy</a>
-    <a href="/support">Support</a>
-  </span>
-</footer>
 
 <script type="module">
   import { initFeed } from '/js/feed.js';

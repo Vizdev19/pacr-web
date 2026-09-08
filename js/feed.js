@@ -261,119 +261,161 @@ function paintChips() {
 
 // ─── Post rendering ─────────────────────────────────────────────────────────
 
-function runStatsHtml(run) {
+/** ISO-8601 week key, matching computeWeekKey in the app's runSync. */
+function isoWeekKey(d) {
+  const dt = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  const day = dt.getUTCDay() || 7;
+  dt.setUTCDate(dt.getUTCDate() + 4 - day);
+  const yearStart = new Date(Date.UTC(dt.getUTCFullYear(), 0, 1));
+  const week = Math.ceil((((dt - yearStart) / 86400000) + 1) / 7);
+  return `${dt.getUTCFullYear()}-W${String(week).padStart(2, '0')}`;
+}
+
+/**
+ * The design's four-cell stat grid.
+ *
+ * Only run posts have anything to put in it. The design shows HARD WORK, AIR,
+ * READINESS and RPE alongside these — run_summaries carries none of those, so
+ * the grid is filled from what a run actually records and is left out entirely
+ * for text and photo posts rather than padded with blanks.
+ */
+function statsGridHtml(p) {
+  const run = p.run;
   if (!run) return '';
   const km = Number(run.distance_km);
   if (!Number.isFinite(km)) return '';
   const pace = fmtPace(run.pace_sec_per_km);
+  const when = run.started_at
+    ? new Date(run.started_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
+    : '—';
+  const cells = [
+    ['DISTANCE', `${km.toFixed(2)} km`],
+    ['TIME', fmtDuration(run.duration_sec)],
+    ['AVG PACE', pace ?? '—'],
+    ['STARTED', when],
+  ];
+  return `<div class="post-stats">${cells.map(([k, v]) => `
+    <div class="cell"><div class="k">${esc(k)}</div><div class="v">${esc(v)}</div></div>`).join('')}</div>`;
+}
+
+/**
+ * A headline, only where one can be derived from real data.
+ *
+ * The design gives every card a prose headline written by its author. A Pacr
+ * post has a body and nothing else, so inventing one would mean putting words
+ * in a runner's mouth. Run posts get a factual line instead; text and photo
+ * posts start at the body.
+ */
+function headlineHtml(p) {
+  if (!p.run) return '';
+  const km = Number(p.run.distance_km);
+  if (!Number.isFinite(km)) return '';
+  const where = p.run.neighborhood ? ` · ${p.run.neighborhood}` : '';
+  return `<div class="post-headline">${esc(`${km.toFixed(2)} km${where}`)}</div>`;
+}
+
+/** SQUAD / FOLLOWERS / PUBLIC — the design's top-right tag, carrying real meaning. */
+function audienceTag(p) {
+  const label = p.visibility === 'public' ? 'PUBLIC'
+    : p.visibility === 'followers' ? 'FOLLOWERS' : 'SQUAD';
+  return `<div class="post-tag">${label}</div>`;
+}
+
+function cardShell(p, { club, tag, menu, follow, foot }) {
   return `
-    <div class="run-stats">
-      <span class="run-hero">${km.toFixed(2)}<small>KM</small></span>
-      <span class="run-meta">
-        <span>Time <b>${esc(fmtDuration(run.duration_sec))}</b></span>
-        ${pace ? `<span>Pace <b>${esc(pace)}</b></span>` : ''}
-      </span>
+    <article class="post" data-id="${esc(p.id)}">
+      <div class="post-top">
+        <div class="avatar">${esc(initials(p.author_name))}</div>
+        <div class="post-who">
+          <div class="post-name-row">
+            <span class="post-name">${esc(p.author_name)}</span>
+            ${club ? `<span class="post-club">${esc(club)}</span>` : ''}
+          </div>
+          <div class="post-meta">${esc(timeAgo(p.created_at))}${p.pinned ? ' · PINNED' : ''}</div>
+        </div>
+        ${follow ?? ''}
+        ${tag}
+        ${menu}
+      </div>
+      <div class="post-lede">
+        ${headlineHtml(p)}
+        ${p.body ? `<p class="post-body">${renderBody(p.body)}</p>` : ''}
+      </div>
+      ${statsGridHtml(p)}
+      ${p.image_url ? `<img class="post-img" src="${esc(p.image_url)}" alt="" loading="lazy">` : ''}
+      ${foot}
+      <div class="comments" hidden></div>
+    </article>`;
+}
+
+function footHtml(p, { comments = true } = {}) {
+  const likeWord = p.like_count === 1 ? 'kudos' : 'kudos';
+  const cmtWord = p.comment_count === 1 ? 'comment' : 'comments';
+  return `
+    <div class="post-foot">
+      <button type="button" class="kudos ${p.liked_by_me ? 'on' : ''}" data-act="like"
+              aria-pressed="${!!p.liked_by_me}">👏 ${p.like_count} · ${p.liked_by_me ? 'Kudos given' : 'Kudos'}</button>
+      ${comments
+        ? `<button type="button" class="cmt-toggle" data-act="comments" aria-expanded="false">${p.comment_count} ${cmtWord}</button>`
+        : `<span class="cmt-toggle" style="cursor:default;">${p.comment_count} ${cmtWord}</span>`}
     </div>`;
 }
 
 function menuHtml(p) {
   const isOwner = activeSquad?.role === 'owner';
   const items = [];
-  if (isOwner) {
-    items.push(`<button type="button" data-act="pin">${p.pinned ? 'Unpin' : 'Pin to top'}</button>`);
-  }
-  if (p.is_mine || isOwner) {
-    items.push('<button type="button" data-act="delete">Delete post</button>');
-  }
+  if (isOwner) items.push(`<button type="button" data-act="pin">${p.pinned ? 'Unpin' : 'Pin to top'}</button>`);
+  if (p.is_mine || isOwner) items.push('<button type="button" data-act="delete">Delete post</button>');
   if (!p.is_mine) {
+    items.push(`<button type="button" data-act="mute">Mute ${esc(p.author_name)}</button>`);
     items.push('<button type="button" data-act="report">Report post</button>');
     items.push('<button type="button" data-act="block">Block this runner</button>');
   }
   if (items.length === 0) return '';
-  return `
-    <details class="menu">
-      <summary aria-label="Post actions">···</summary>
-      <div class="menu-list">${items.join('')}</div>
-    </details>`;
+  return `<details class="menu"><summary aria-label="Post actions">···</summary>
+    <div class="menu-list">${items.join('')}</div></details>`;
 }
 
 function postHtml(p) {
-  const likeWord = p.like_count === 1 ? 'like' : 'likes';
-  const cmtWord = p.comment_count === 1 ? 'comment' : 'comments';
-  return `
-    <article class="post" data-id="${esc(p.id)}">
-      <div class="post-top">
-        <div class="avatar">${esc(initials(p.author_name))}</div>
-        <div style="flex:1; min-width:0;">
-          <div class="author">${esc(p.author_name)}</div>
-          <div class="when">${esc(timeAgo(p.created_at))}</div>
-        </div>
-        ${p.pinned ? '<span class="pill">Pinned</span>' : ''}
-        ${menuHtml(p)}
-      </div>
-      ${p.body ? `<p class="body">${renderBody(p.body)}</p>` : ''}
-      ${p.image_url ? `<img class="post-img" src="${esc(p.image_url)}" alt="" loading="lazy">` : ''}
-      ${runStatsHtml(p.run)}
-      <div class="acts">
-        <button type="button" class="act ${p.liked_by_me ? 'on' : ''}" data-act="like"
-                aria-pressed="${!!p.liked_by_me}">
-          <span class="act-mark">▲</span> ${p.like_count} ${likeWord}
-        </button>
-        <button type="button" class="act" data-act="comments" aria-expanded="false">
-          ${p.comment_count} ${cmtWord}
-        </button>
-      </div>
-      <div class="comments" hidden></div>
-    </article>`;
+  return cardShell(p, {
+    club: activeSquad?.name ?? null,
+    tag: audienceTag(p),
+    menu: menuHtml(p),
+    foot: footHtml(p),
+  });
 }
 
 /**
- * A card in the Following feed.
+ * Following and Discover cards.
  *
- * Deliberately not the squad card. There is no comment button — comments on a
- * followed post stay squad-only (see the migration), so the count renders as
- * plain text rather than a control that would open an empty thread. There is no
- * pin and no delete either: it is not your squad and never your post.
+ * No pin and no delete — never your squad, never your post. Comments are a
+ * count rather than a control on Discover: a public post can be seen by anyone
+ * signed in, but only squadmates and followers may reply, so opening a thread
+ * you cannot post to would be a dead end.
  */
 function followingCardHtml(p) {
-  const likeWord = p.like_count === 1 ? 'like' : 'likes';
-  const cmtWord = p.comment_count === 1 ? 'comment' : 'comments';
-  return `
-    <article class="post" data-id="${esc(p.id)}">
-      <div class="post-top">
-        <div class="avatar">${esc(initials(p.author_name))}</div>
-        <div style="flex:1; min-width:0;">
-          <div class="author">${esc(p.author_name)}</div>
-          <div class="when">${esc(timeAgo(p.created_at))}</div>
-        </div>
-        ${p.scope === 'discover' && !p.followed_by_me
-          ? '<button type="button" class="chip chip-follow" data-act="follow-author">Follow</button>'
-          : '<span class="pill pill-quiet">Following</span>'}
-        <details class="menu">
-          <summary aria-label="Post actions">···</summary>
-          <div class="menu-list">
-            ${p.followed_by_me || p.scope === 'following'
-              ? `<button type="button" data-act="unfollow">Unfollow ${esc(p.author_name)}</button>` : ''}
-            <button type="button" data-act="mute">Mute ${esc(p.author_name)}</button>
-            <button type="button" data-act="report">Report post</button>
-            <button type="button" data-act="block">Block this runner</button>
-          </div>
-        </details>
-      </div>
-      ${p.body ? `<p class="body">${renderBody(p.body)}</p>` : ''}
-      ${p.image_url ? `<img class="post-img" src="${esc(p.image_url)}" alt="" loading="lazy">` : ''}
-      ${runStatsHtml(p.run)}
-      <div class="acts">
-        <button type="button" class="act ${p.liked_by_me ? 'on' : ''}" data-act="like"
-                aria-pressed="${!!p.liked_by_me}">
-          <span class="act-mark">▲</span> ${p.like_count} ${likeWord}
-        </button>
-        <span class="act act-static">${p.comment_count} ${cmtWord}</span>
-      </div>
-    </article>`;
+  const canComment = p.scope === 'following' || p.followed_by_me;
+  const items = [];
+  if (p.followed_by_me || p.scope === 'following') {
+    items.push(`<button type="button" data-act="unfollow">Unfollow ${esc(p.author_name)}</button>`);
+  }
+  items.push(`<button type="button" data-act="mute">Mute ${esc(p.author_name)}</button>`);
+  items.push('<button type="button" data-act="report">Report post</button>');
+  items.push('<button type="button" data-act="block">Block this runner</button>');
+
+  return cardShell(p, {
+    club: null,
+    tag: audienceTag(p),
+    follow: p.scope === 'discover' && !p.followed_by_me
+      ? '<button type="button" class="chip chip-follow" data-act="follow-author">Follow</button>'
+      : '<span class="pill pill-quiet">Following</span>',
+    menu: `<details class="menu"><summary aria-label="Post actions">···</summary>
+      <div class="menu-list">${items.join('')}</div></details>`,
+    foot: footHtml(p, { comments: canComment }),
+  });
 }
 
-/** Squad and Following cards share ids and actions but not markup. */
+/** Squad and Following/Discover cards share ids and actions but not markup. */
 function cardHtml(p) {
   return p.scope === 'squad' ? postHtml(p) : followingCardHtml(p);
 }
@@ -429,6 +471,7 @@ async function hydrate(rows) {
       image_url: row.image_path ? (urlByPath.get(row.image_path) ?? null) : null,
       run: row.run ?? null,
       pinned: !!row.pinned,
+      visibility: row.visibility ?? 'circle',
       created_at: row.created_at,
       like_count: Number(row.post_likes?.[0]?.count) || 0,
       comment_count: Number(row.post_comments?.[0]?.count) || 0,
@@ -465,6 +508,7 @@ async function hydrateFollowing(rows, scope = 'following') {
         pace_sec_per_km: row.pace_sec_per_km,
       },
       pinned: false,
+      visibility: row.visibility ?? 'public',
       created_at: row.created_at,
       like_count: Number(row.like_count) || 0,
       comment_count: Number(row.comment_count) || 0,
@@ -514,6 +558,7 @@ async function loadFollowing({ reset }) {
 
   followCursor = page.cursor;
   more.hidden = !followCursor;
+  paintCountLine(host.querySelectorAll('article.post').length);
 
   if (reset && cards.length === 0) await paintEmptyFollowing();
 }
@@ -548,6 +593,7 @@ async function loadDiscover({ reset }) {
 
   discoverCursor = page.cursor;
   more.hidden = !discoverCursor;
+  paintCountLine(host.querySelectorAll('article.post').length);
 
   if (reset && cards.length === 0) {
     msg(note, 'Nothing public yet. Posts show up here when a runner picks Public as their audience.');
@@ -564,22 +610,9 @@ async function paintEmptyFollowing() {
   if (followingIds.size > 0) {
     return msg(note, 'Nobody you follow has posted to their followers yet. Their squad posts stay in their squads.');
   }
-  msg(note, '');
-  const people = await suggestedToFollow(sb, me.id, squads.map(s => s.id), [...followingIds]);
-  if (people.length === 0) {
-    return msg(note, 'Follow a squadmate to see their runs here — including the ones from squads you are not in.');
-  }
-  $('suggested').innerHTML = `
-    <h2 class="suggest-head">Runners in your squads</h2>
-    <p class="suggest-lede">Following someone shows you their runs from every squad they are in, not just the one you share.</p>
-    <div class="suggest-list">
-      ${people.map(m => `
-        <div class="suggest-row" data-uid="${esc(m.userId)}">
-          <div class="avatar">${esc(initials(m.displayName))}</div>
-          <span class="suggest-name">${esc(m.displayName)}</span>
-          <button type="button" class="btn-quiet" data-act="follow">Follow</button>
-        </div>`).join('')}
-    </div>`;
+  // Suggestions live in the sidebar (the design's "Runners to follow"), so this
+  // points at them rather than rendering a second list of the same people.
+  msg(note, 'You are not following anyone yet. Pick a runner from "Runners to follow" and their runs show up here — including the ones from squads you are not in.');
 }
 
 async function loadPage({ reset }) {
@@ -643,8 +676,9 @@ async function loadPage({ reset }) {
     : null;
   more.hidden = !cursor;
 
+  paintCountLine(host.querySelectorAll('article.post').length);
   if (reset && host.innerHTML === '') {
-    msg(feedMsg, 'No posts in this squad yet. Be the first — say something below.');
+    msg(feedMsg, 'No posts in this squad yet. Be the first — say something above.');
   }
 }
 
@@ -906,6 +940,9 @@ function paintTargets() {
               aria-pressed="${isPublic}">Public</button>
     </div>
     <p class="aud-note">${audienceNote(options.length, selected.length)}</p>`;
+
+  $('draftScope').textContent = audience === 'public' ? '● PUBLIC'
+    : audience === 'followers' ? '● SQUADS + FOLLOWERS' : '● SQUADS ONLY';
 }
 
 /** Say in one line exactly who ends up seeing this. */
@@ -1075,6 +1112,144 @@ function wireMentions(input, row) {
   });
 }
 
+// ─── Masthead and sidebar ───────────────────────────────────────────────────
+// The design also carries an auto-drafted session card, upcoming marathons, a
+// club challenge and live "N out" counts per route. None of those have a data
+// source in this product — run_summaries records distance, duration, pace,
+// neighbourhood and a week key, and there is no races table, no challenge and
+// no presence — so those blocks are left out rather than filled with numbers
+// nobody actually ran. Everything below is real.
+
+function paintIdentity(name) {
+  const ini = initials(name || '—');
+  for (const id of ['meAvatar', 'draftAvatar']) {
+    const el = $(id);
+    if (el) { el.textContent = ini; el.hidden = false; }
+  }
+  $('feedDate').textContent = `Feed — ${new Date().toLocaleDateString('en-IN', {
+    weekday: 'long', day: '2-digit', month: 'short',
+  })}`;
+}
+
+/** My own week, from my own runs. The one head stat with a real source. */
+async function paintHeadStats() {
+  try {
+    const { data, error } = await sb.from('run_summaries')
+      .select('distance_km')
+      .eq('user_id', me.id)
+      .eq('week_key', isoWeekKey(new Date()));
+    if (error) return;
+    const runs = data ?? [];
+    const km = runs.reduce((n, r) => n + (Number(r.distance_km) || 0), 0);
+    const cells = [
+      ['YOUR WEEK', `${km.toFixed(1)} km`],
+      ['RUNS', String(runs.length)],
+      ['SQUADS', String(squads.length)],
+    ];
+    $('headStats').innerHTML = cells.map(([k, v]) => `
+      <div class="stat-cell"><div class="k">${esc(k)}</div><div class="v">${esc(v)}</div></div>`).join('');
+    $('headStats').hidden = false;
+  } catch {
+    // A missing head stat is not worth failing the page over.
+  }
+}
+
+/**
+ * The squad's consistency board for this week.
+ *
+ * Aggregated client-side from run_summaries, which co-members may read. Capped
+ * at 60 members for the same reason the app caps it — above that this stops
+ * being a query and starts being a download.
+ */
+async function paintBoard() {
+  const card = $('boardCard');
+  if (!activeSquad) { card.hidden = true; return; }
+  try {
+    const roster = await listMembers(sb, activeSquad.id, 60);
+    if (roster.length === 0) { card.hidden = true; return; }
+    const { data, error } = await sb.from('run_summaries')
+      .select('user_id, distance_km')
+      .in('user_id', roster.map(m => m.userId))
+      .eq('week_key', isoWeekKey(new Date()));
+    if (error) { card.hidden = true; return; }
+
+    const tally = new Map(roster.map(m => [m.userId, { name: m.displayName, runs: 0, km: 0 }]));
+    for (const r of data ?? []) {
+      const row = tally.get(r.user_id);
+      if (row) { row.runs += 1; row.km += Number(r.distance_km) || 0; }
+    }
+    const rows = [...tally.entries()]
+      .map(([id, v]) => ({ id, ...v }))
+      .sort((a, b) => b.runs - a.runs || b.km - a.km)
+      .slice(0, 6);
+
+    $('boardClub').textContent = `YOUR SQUAD — ${activeSquad.name.toUpperCase()}`;
+    $('boardRows').innerHTML = rows.map((r, i) => `
+      <div class="board-row ${r.id === me.id ? 'me' : ''}">
+        <span class="board-rank">${i + 1}</span>
+        <span class="board-name">${esc(r.id === me.id ? 'You' : r.name)}</span>
+        <span class="board-val">${r.runs} ${r.runs === 1 ? 'run' : 'runs'} · ${r.km.toFixed(1)} km</span>
+      </div>`).join('');
+    card.hidden = false;
+  } catch {
+    card.hidden = true;
+  }
+}
+
+/** The design's "Runners to follow" — squadmates you don't already follow. */
+async function paintSuggestions() {
+  const card = $('sugCard');
+  const people = await suggestedToFollow(sb, me.id, squads.map(s => s.id), [...followingIds]);
+  if (people.length === 0) { card.hidden = true; return; }
+  $('sugRows').innerHTML = people.slice(0, 5).map(m => `
+    <div class="sug-row" data-uid="${esc(m.userId)}">
+      <div class="sug-av">${esc(initials(m.displayName))}</div>
+      <div class="sug-main">
+        <div class="sug-name">${esc(m.displayName)}</div>
+        <div class="sug-meta">IN YOUR SQUADS</div>
+        <div class="sug-reason">Following them shows their runs from every squad they are in, not just the one you share.</div>
+      </div>
+      <button type="button" class="chip chip-follow" data-act="follow">Follow</button>
+    </div>`).join('');
+  card.hidden = false;
+}
+
+/**
+ * Routes, from public.spots.
+ *
+ * The design shows a live "14 out" per route. There is no presence anywhere in
+ * this product, so the right-hand slot carries the route's city instead of a
+ * number that would be invented.
+ */
+async function paintRoutes() {
+  const card = $('routesCard');
+  try {
+    const { data, error } = await sb.from('spots')
+      .select('id, name, city, loop_km, surface')
+      .limit(4);
+    const rows = data ?? [];
+    if (error || rows.length === 0) { card.hidden = true; return; }
+    $('routeRows').innerHTML = rows.map(r => {
+      const meta = [r.loop_km ? `${Number(r.loop_km).toFixed(1)} KM LOOP` : null, (r.surface || '').toUpperCase() || null]
+        .filter(Boolean).join(' · ');
+      return `<a class="route-row" href="/#routes">
+        <span>
+          <span class="route-name">${esc(r.name)}</span>
+          <span class="route-meta">${esc(meta || 'ROUTE')}</span>
+        </span>
+        <span class="route-val">${esc(r.city ?? '')}</span>
+      </a>`;
+    }).join('');
+    card.hidden = false;
+  } catch {
+    card.hidden = true;
+  }
+}
+
+function paintCountLine(n) {
+  $('countLine').textContent = `${n} ${n === 1 ? 'post' : 'posts'}`;
+}
+
 // ─── Wiring ─────────────────────────────────────────────────────────────────
 
 async function switchSquad(id) {
@@ -1084,7 +1259,7 @@ async function switchSquad(id) {
   paintTargets();
   setComposerEnabled();
   members = await listMembers(sb, activeSquad.id);
-  await loadPage({ reset: true });
+  await Promise.all([loadPage({ reset: true }), paintBoard()]);
 }
 
 function wirePostActions(host) {
@@ -1211,10 +1386,21 @@ function wireFollowingPane() {
     await reloadActive();
   });
 
-  $('suggested').addEventListener('click', (e) => {
+  $('sugRows').addEventListener('click', async (e) => {
     const btn = e.target.closest('button[data-act="follow"]');
     if (!btn) return;
-    onFollow(btn.closest('.suggest-row').dataset.uid, btn);
+    const row = btn.closest('.sug-row');
+    btn.disabled = true;
+    btn.textContent = 'Following…';
+    const res = await followUser(sb, me.id, row.dataset.uid);
+    if (!res.ok) {
+      btn.disabled = false;
+      btn.textContent = 'Follow';
+      return msg($('followMsg'), reasonMessage(res.reason), 'err');
+    }
+    followingIds.add(row.dataset.uid);
+    await paintSuggestions();
+    if (tab === 'following') await loadFollowing({ reset: true });
   });
 
   $('followMore').addEventListener('click', () => loadFollowing({ reset: false }));
@@ -1244,9 +1430,14 @@ async function showFeed() {
   $('paneBoot').hidden = true;
   $('paneFeed').hidden = false;
 
+  // Display name drives both avatars and is not on the auth user.
+  try {
+    const { data } = await sb.from('users').select('display_name').eq('id', me.id).maybeSingle();
+    paintIdentity(data?.display_name ?? me.email ?? '—');
+  } catch { paintIdentity(me.email ?? '—'); }
+
   squads = await loadSquads();
   if (squads.length === 0) {
-    $('feedTitle').textContent = 'No squad yet';
     $('squadChips').hidden = true;
     $('composer').hidden = true;
     $('tabs').hidden = true;
@@ -1256,7 +1447,6 @@ async function showFeed() {
   }
 
   activeSquad = squads[0];
-  $('feedTitle').textContent = squads.length > 1 ? 'Your feed' : activeSquad.name;
   paintChips();
 
   $('squadChips').addEventListener('click', (e) => {
@@ -1280,7 +1470,14 @@ async function showFeed() {
   paintTargets();
   setComposerEnabled();
   members = await listMembers(sb, activeSquad.id);
-  await loadPage({ reset: true });
+
+  await Promise.all([
+    loadPage({ reset: true }),
+    paintHeadStats(),
+    paintBoard(),
+    paintSuggestions(),
+    paintRoutes(),
+  ]);
 }
 
 export async function initFeed() {
