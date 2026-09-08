@@ -43,6 +43,10 @@ import {
 import {
   REPORT_REASONS, reportContent, blockUser, hasAcceptedRules, acceptRules,
 } from './moderation.js';
+import {
+  listFollowingIds, followUser, unfollowUser, listFollowingFeed,
+  getPublicSince, setPublic, suggestedToFollow,
+} from './follow.js';
 
 const PAGE_SIZE = 20;
 const PINNED_LIMIT = 5;
@@ -64,6 +68,17 @@ let members = [];
 let rulesOk = null;
 /** The picked photo, downscaled and ready to upload. */
 let pendingPhoto = null;
+
+// ─── Following state ────────────────────────────────────────────────────────
+/** 'squad' | 'following'. Squad is the default: it is the only tab guaranteed
+ *  non-empty for a runner who has never followed anyone. */
+let tab = 'squad';
+/** Ids I follow, kept in memory so every card can render the right menu item. */
+let followingIds = new Set();
+let followCursor = null;
+let followLoading = false;
+/** users.public_since — null means my own posts are squad-only. */
+let publicSince = null;
 
 // ─── Formatting ─────────────────────────────────────────────────────────────
 
@@ -310,14 +325,62 @@ function postHtml(p) {
     </article>`;
 }
 
+/**
+ * A card in the Following feed.
+ *
+ * Deliberately not the squad card. There is no comment button — comments on a
+ * followed post stay squad-only (see the migration), so the count renders as
+ * plain text rather than a control that would open an empty thread. There is no
+ * pin and no delete either: it is not your squad and never your post.
+ */
+function followingCardHtml(p) {
+  const likeWord = p.like_count === 1 ? 'like' : 'likes';
+  const cmtWord = p.comment_count === 1 ? 'comment' : 'comments';
+  return `
+    <article class="post" data-id="${esc(p.id)}">
+      <div class="post-top">
+        <div class="avatar">${esc(initials(p.author_name))}</div>
+        <div style="flex:1; min-width:0;">
+          <div class="author">${esc(p.author_name)}</div>
+          <div class="when">${esc(timeAgo(p.created_at))}</div>
+        </div>
+        <span class="pill pill-quiet">Following</span>
+        <details class="menu">
+          <summary aria-label="Post actions">···</summary>
+          <div class="menu-list">
+            <button type="button" data-act="unfollow">Unfollow ${esc(p.author_name)}</button>
+            <button type="button" data-act="report">Report post</button>
+            <button type="button" data-act="block">Block this runner</button>
+          </div>
+        </details>
+      </div>
+      ${p.body ? `<p class="body">${renderBody(p.body)}</p>` : ''}
+      ${p.image_url ? `<img class="post-img" src="${esc(p.image_url)}" alt="" loading="lazy">` : ''}
+      ${runStatsHtml(p.run)}
+      <div class="acts">
+        <button type="button" class="act ${p.liked_by_me ? 'on' : ''}" data-act="like"
+                aria-pressed="${!!p.liked_by_me}">
+          <span class="act-mark">▲</span> ${p.like_count} ${likeWord}
+        </button>
+        <span class="act act-static">${p.comment_count} ${cmtWord}</span>
+      </div>
+    </article>`;
+}
+
+/** Squad and Following cards share ids and actions but not markup. */
+function cardHtml(p) {
+  return p.scope === 'following' ? followingCardHtml(p) : postHtml(p);
+}
+
 /** Re-render one card in place from postState — used after like/pin/comment. */
 function repaint(postId) {
   const el = document.querySelector(`article.post[data-id="${CSS.escape(postId)}"]`);
   const p = postState.get(postId);
   if (!el || !p) return;
-  const openComments = !el.querySelector('.comments').hidden;
-  const commentsHtml = el.querySelector('.comments').innerHTML;
-  el.outerHTML = postHtml(p);
+  const box = el.querySelector('.comments');
+  const openComments = !!box && !box.hidden;
+  const commentsHtml = box ? box.innerHTML : '';
+  el.outerHTML = cardHtml(p);
   if (openComments) {
     const next = document.querySelector(`article.post[data-id="${CSS.escape(postId)}"]`);
     const box = next.querySelector('.comments');
@@ -366,9 +429,114 @@ async function hydrate(rows) {
       liked_by_me: likedIds.has(row.id),
       is_mine: row.author_id === me.id,
     };
+    p.scope = 'squad';
     postState.set(p.id, p);
     return postHtml(p);
   }).join('');
+}
+
+// ─── Following feed ─────────────────────────────────────────────────────────
+
+/**
+ * Map RPC rows → view models. The rows are already flat and already filtered
+ * server-side, including image_path being nulled on run posts, so there is no
+ * client-side visibility decision left to get wrong here.
+ */
+async function hydrateFollowing(rows) {
+  if (rows.length === 0) return '';
+  const urlByPath = await signedUrlsFor(sb, 'post-images', rows.map(r => r.image_path).filter(Boolean));
+  return rows.map((row) => {
+    const p = {
+      id: row.id,
+      author_id: row.author_id,
+      author_name: row.author_name ?? '—',
+      kind: row.kind,
+      body: row.body,
+      image_url: row.image_path ? (urlByPath.get(row.image_path) ?? null) : null,
+      run: row.distance_km == null ? null : {
+        distance_km: row.distance_km,
+        duration_sec: row.duration_sec,
+        pace_sec_per_km: row.pace_sec_per_km,
+      },
+      pinned: false,
+      created_at: row.created_at,
+      like_count: Number(row.like_count) || 0,
+      comment_count: Number(row.comment_count) || 0,
+      liked_by_me: !!row.liked_by_me,
+      is_mine: false,
+      scope: 'following',
+    };
+    postState.set(p.id, p);
+    return p;
+  });
+}
+
+// A density cap ("no more than two cards in a row from one author") was
+// specced here and deliberately dropped: the only way to enforce it is to move
+// a card down the list, and this feed is chronological. Reordering makes "2h
+// ago" sit above "5h ago" above "3h ago", which reads as a bug. If one prolific
+// friend starts flooding the feed, the fix is to COLLAPSE their run into a
+// single grouped card in place — which keeps the ordering — not to shuffle it.
+
+async function loadFollowing({ reset }) {
+  if (followLoading) return;
+  followLoading = true;
+  const host = $('followPosts');
+  const more = $('followMore');
+  const note = $('followMsg');
+  more.hidden = true;
+
+  if (reset) {
+    followCursor = null;
+    host.innerHTML = '<div class="skel"><div style="width:55%"></div></div>';
+    msg(note, '');
+    $('suggested').innerHTML = '';
+  }
+
+  const page = await listFollowingFeed(sb, followCursor);
+  followLoading = false;
+
+  if (page.failed) {
+    if (reset) host.innerHTML = '';
+    return msg(note, "Couldn't load your Following feed. Refresh to try again.", 'err');
+  }
+
+  const cards = await hydrateFollowing(page.rows);
+  const html = cards.map(followingCardHtml).join('');
+  if (reset) host.innerHTML = html; else host.insertAdjacentHTML('beforeend', html);
+
+  followCursor = page.cursor;
+  more.hidden = !followCursor;
+
+  if (reset && cards.length === 0) await paintEmptyFollowing();
+}
+
+/**
+ * The two empty states are different problems and need different answers:
+ * following nobody is a discovery problem, following people who post nothing
+ * publicly is a them-problem we can only explain.
+ */
+async function paintEmptyFollowing() {
+  const note = $('followMsg');
+  if (followingIds.size > 0) {
+    return msg(note, 'Nobody you follow has posted to their followers yet. Their squad posts stay in their squads.');
+  }
+  msg(note, '');
+  const people = await suggestedToFollow(sb, me.id, squads.map(s => s.id), [...followingIds]);
+  if (people.length === 0) {
+    return msg(note, 'Follow a squadmate to see their runs here — including the ones from squads you are not in.');
+  }
+  $('suggested').innerHTML = `
+    <h2 class="suggest-head">Runners in your squads</h2>
+    <p class="suggest-lede">Following someone shows you their runs from every squad they are in, not just the one you share.</p>
+    <div class="suggest-list">
+      ${people.map(m => `
+        <div class="suggest-row" data-uid="${esc(m.userId)}">
+          <div class="avatar">${esc(initials(m.displayName))}</div>
+          <span class="suggest-name">${esc(m.displayName)}</span>
+          <button type="button" class="btn-quiet" data-act="follow">Follow</button>
+        </div>`).join('')}
+    </div>`;
 }
 
 async function loadPage({ reset }) {
@@ -557,6 +725,40 @@ async function onReport(postId) {
   }
 }
 
+/** Reload whichever tab is on screen — used after a block or an unfollow. */
+async function reloadActive() {
+  if (tab === 'following') await loadFollowing({ reset: true });
+  else await loadPage({ reset: true });
+}
+
+async function onFollow(userId, btn) {
+  if (btn) { btn.disabled = true; btn.textContent = 'Following…'; }
+  const res = await followUser(sb, me.id, userId);
+  if (!res.ok) {
+    if (btn) { btn.disabled = false; btn.textContent = 'Follow'; }
+    return msg($('followMsg'), reasonMessage(res.reason), 'err');
+  }
+  followingIds.add(userId);
+  await loadFollowing({ reset: true });
+}
+
+async function onUnfollow(postId) {
+  const p = postState.get(postId);
+  if (!p) return;
+  const yes = await openModal({
+    title: `Unfollow ${p.author_name}?`,
+    body: '<p>Their runs stop showing in your Following feed. Anything they post in a squad you share is unaffected.</p>',
+    options: [{ label: 'Cancel', value: false }, { label: 'Unfollow', value: true, primary: true }],
+  });
+  if (!yes) return;
+  if (await unfollowUser(sb, me.id, p.author_id)) {
+    followingIds.delete(p.author_id);
+    await loadFollowing({ reset: true });
+  } else {
+    msg($('followMsg'), "Couldn't unfollow. Try again.", 'err');
+  }
+}
+
 async function onBlock(postId) {
   const p = postState.get(postId);
   if (!p) return;
@@ -569,7 +771,8 @@ async function onBlock(postId) {
 
   const ok = await blockUser(sb, p.author_id);
   if (!ok) return msg($('feedMsg'), "Couldn't block that runner. Try again.", 'err');
-  await loadPage({ reset: true });
+  followingIds.delete(p.author_id);
+  await reloadActive();
 }
 
 async function onDelete(postId) {
@@ -804,8 +1007,8 @@ async function switchSquad(id) {
   await loadPage({ reset: true });
 }
 
-function wirePostActions() {
-  $('posts').addEventListener('click', async (e) => {
+function wirePostActions(host) {
+  host.addEventListener('click', async (e) => {
     const article = e.target.closest('article.post');
     if (!article) return;
     const postId = article.dataset.id;
@@ -815,6 +1018,7 @@ function wirePostActions() {
     switch (btn.dataset.act) {
       case 'like':      return onLike(postId);
       case 'comments':  return openComments(article, postId);
+      case 'unfollow':  return onUnfollow(postId);
       case 'pin':       return onPin(postId);
       case 'delete':    return onDelete(postId);
       case 'report':    return onReport(postId);
@@ -835,7 +1039,7 @@ function wirePostActions() {
     }
   });
 
-  $('posts').addEventListener('submit', (e) => {
+  host.addEventListener('submit', (e) => {
     const form = e.target.closest('form[data-act="cmt-form"]');
     if (!form) return;
     e.preventDefault();
@@ -876,6 +1080,64 @@ function wireComposer() {
   wireMentions($('cBody'), $('cMentions'));
 }
 
+/**
+ * The control that decides whether anyone's Following feed can contain you.
+ *
+ * Wording matters here more than usual: going public applies to what you post
+ * FROM NOW ON, never to what is already written. The migration enforces that
+ * (created_at > public_since); this copy has to say it, or the toggle reads as
+ * "publish my history".
+ */
+function paintVisibility() {
+  const on = !!publicSince;
+  $('visToggle').innerHTML = `
+    <div class="vis-row">
+      <div>
+        <div class="vis-title">${on ? 'Your new posts are visible to followers' : 'Your posts are squad-only'}</div>
+        <div class="vis-sub">${on
+          ? 'Posts you write from now on reach your followers too. Posts from before you turned this on stay in their squads.'
+          : 'Turn this on and posts you write from now on will also reach your followers. Nothing you have already posted is affected.'}</div>
+      </div>
+      <button type="button" class="btn-quiet" data-act="toggle-vis">${on ? 'Make squad-only' : 'Show to followers'}</button>
+    </div>`;
+}
+
+function wireFollowingPane() {
+  $('visToggle').addEventListener('click', async (e) => {
+    if (!e.target.closest('[data-act="toggle-vis"]')) return;
+    const next = !publicSince;
+    if (next && !(await ensureRules())) return;
+    if (!(await setPublic(sb, me.id, next))) {
+      return msg($('followMsg'), "Couldn't change that. Try again.", 'err');
+    }
+    publicSince = next ? new Date().toISOString() : null;
+    paintVisibility();
+  });
+
+  $('suggested').addEventListener('click', (e) => {
+    const btn = e.target.closest('button[data-act="follow"]');
+    if (!btn) return;
+    onFollow(btn.closest('.suggest-row').dataset.uid, btn);
+  });
+
+  $('followMore').addEventListener('click', () => loadFollowing({ reset: false }));
+  wirePostActions($('followPosts'));
+}
+
+async function switchTab(next) {
+  if (tab === next) return;
+  tab = next;
+  for (const b of document.querySelectorAll('#tabs button')) {
+    b.setAttribute('aria-selected', String(b.dataset.tab === next));
+  }
+  $('paneSquad').hidden = next !== 'squad';
+  $('paneFollowing').hidden = next !== 'following';
+  if (next === 'following') {
+    paintVisibility();
+    await loadFollowing({ reset: true });
+  }
+}
+
 async function showFeed() {
   $('paneBoot').hidden = true;
   $('paneFeed').hidden = false;
@@ -885,6 +1147,7 @@ async function showFeed() {
     $('feedTitle').textContent = 'No squad yet';
     $('squadChips').hidden = true;
     $('composer').hidden = true;
+    $('tabs').hidden = true;
     $('posts').innerHTML = '';
     return msg($('feedMsg'),
       'You are not in a squad yet. Join or create one in the app and it will show up here.');
@@ -900,8 +1163,17 @@ async function showFeed() {
     switchSquad(btn.dataset.id);
   });
   $('moreBtn').addEventListener('click', () => loadPage({ reset: false }));
+  $('tabs').addEventListener('click', (e) => {
+    const btn = e.target.closest('button[data-tab]');
+    if (btn) switchTab(btn.dataset.tab);
+  });
   wireComposer();
-  wirePostActions();
+  wirePostActions($('posts'));
+  wireFollowingPane();
+
+  // Cheap and needed by both tabs — the graph decides every card's menu.
+  followingIds = new Set(await listFollowingIds(sb, me.id));
+  publicSince = await getPublicSince(sb, me.id);
 
   targetIds = [activeSquad.id];
   paintTargets();
