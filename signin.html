@@ -13,6 +13,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/nav.css">
 <style>
   html, body { margin:0; padding:0; background:#FFFFFF; color:#0F0F0D; font-family:Manrope, sans-serif; }
   * { box-sizing: border-box; }
@@ -59,11 +60,21 @@
 </head>
 <body>
 
-<header class="pad-x" style="display:flex; align-items:center; justify-content:space-between; gap:24px; padding:16px 40px; border-bottom:1px solid #E3E3DA;">
-  <a href="/" style="display:flex; align-items:center; gap:12px; color:inherit;">
-    <img src="/assets/pacr-mark.png" alt="PACR" width="34" height="34" style="width:34px; height:34px; border-radius:8px; display:block;">
-    <span style="font-family:Outfit, sans-serif; font-weight:700; font-size:20px; letter-spacing:0.14em;">PACR</span>
+<header class="site-head">
+  <a class="brand" href="/" aria-label="PACR home">
+    <img src="/assets/pacr-mark.png" alt="" width="34" height="34">
+    <span>PACR</span>
   </a>
+  <nav class="site-nav" aria-label="Primary">
+    <a href="/#coach">How it works</a>
+    <a href="/#clubs">Clubs</a>
+    <a href="/#routes">Routes</a>
+    <a href="/feed">Feed</a>
+    <a href="/profile">Profile</a>
+  </nav>
+  <div class="head-right">
+    <a class="btn-acid" href="/#get">Get PACR</a>
+  </div>
 </header>
 
 <main class="pad-x" style="max-width:620px; margin:0 auto; padding-top:80px; padding-bottom:120px;">

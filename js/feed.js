@@ -1476,7 +1476,7 @@ export async function initFeed() {
   me = user;
   // signOutTo sends this tab home the moment the session ends — including when
   // it ends in another tab — so the feed is never left on screen without one.
-  mountHeaderAuth($('authSlot'), { className: 'btn-quiet', signOutTo: '/' });
+  mountHeaderAuth($('authSlot'), { className: 'nav-a', signOutTo: '/' });
   try {
     await showFeed();
   } catch (e) {

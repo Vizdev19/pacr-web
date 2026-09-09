@@ -178,6 +178,10 @@ button.link-quiet { background: none; border: 0; border-bottom: 1px solid var(--
   margin-left: -26px;
 }
 .nav-links { display: flex; align-items: center; gap: 24px; }
+.nav-sections { display: flex; align-items: center; gap: 24px; }
+/* Mirrors nav.css: the section links collapse on a phone, #authSlot never
+   does — it is the way into an account. */
+@media (max-width: 760px) { .nav-sections { display: none; } }
 .nav-store { display: inline-flex; align-items: center; gap: 8px; }
 .nav-store .play-mark { width: 14px; height: 15px; }
 

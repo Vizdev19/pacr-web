@@ -16,6 +16,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/nav.css">
 <style>
   /* ─────────────────────────────────────────────────────────────────────────
      PACR — Feed. Implements "PACR Feed.dc.html" from the Claude Design project
@@ -35,21 +36,7 @@
   @keyframes pacr-pulse { 0%,100% { opacity:1; } 50% { opacity:0.25; } }
 
   /* ── Header ─────────────────────────────────────────────────────────────── */
-  .site-head { position:sticky; top:0; z-index:30; display:flex; align-items:center;
-    justify-content:space-between; gap:24px; padding:16px 40px;
-    background:rgba(255,255,255,0.85); backdrop-filter:blur(14px); border-bottom:1px solid #E3E3DA; }
-  .brand { display:flex; align-items:center; gap:12px; color:#0F0F0D; }
-  .brand img { width:34px; height:34px; border-radius:8px; display:block; }
-  .brand span { font-family:Outfit, sans-serif; font-weight:700; font-size:20px; letter-spacing:0.14em; }
-  .site-nav { display:flex; align-items:center; gap:34px; font-weight:600; font-size:12px;
-    letter-spacing:0.14em; text-transform:uppercase; color:#5C5C54; }
-  .site-nav a { color:inherit; }
-  .site-nav a:hover { color:#0F0F0D; }
-  .site-nav a.on { color:#0F0F0D; border-bottom:2px solid #E8FF3A; padding-bottom:3px; }
-  .head-right { display:flex; align-items:center; gap:16px; }
-  .avatar-me { width:34px; height:34px; border-radius:50%; background:#E8FF3A; color:#0A0A09;
-    font-weight:700; font-size:12px; display:flex; align-items:center; justify-content:center; flex:none; }
-  @media (max-width:900px) { .site-nav { display:none; } .site-head { padding:16px 22px; } }
+  /* Lives in /nav.css, shared with every other page in this system. */
 
   /* ── Masthead band ──────────────────────────────────────────────────────── */
   .masthead { border-bottom:1px solid #E3E3DA; padding:40px 40px 34px; }
@@ -322,14 +309,18 @@
     <span>PACR</span>
   </a>
   <nav class="site-nav" aria-label="Primary">
-    <a href="/#how">How it works</a>
-    <a href="/feed" class="on">Feed</a>
+    <a href="/#coach">How it works</a>
     <a href="/#clubs">Clubs</a>
     <a href="/#routes">Routes</a>
+    <a href="/feed" class="on">Feed</a>
+    <a href="/profile">Profile</a>
   </nav>
   <div class="head-right">
-    <div id="authSlot"></div>
-    <div class="avatar-me" id="meAvatar" hidden></div>
+    <!-- Baseline Sign in link: reaching /signin never needed a Supabase client,
+         so it survives JS off, a blocked CDN and an unconfigured key. auth.js
+         swaps it for Sign out once it knows there is a session. -->
+    <div id="authSlot"><a class="nav-a" data-auth="in" href="/signin">Sign in</a></div>
+    <a href="/profile" aria-label="Your profile"><div class="avatar-me" id="meAvatar" hidden></div></a>
   </div>
 </header>
 

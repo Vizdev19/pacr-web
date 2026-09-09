@@ -1,0 +1,94 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+   PACR — the site header, in one place.
+ 
+   Every page in the Outfit/Manrope system (the homepage, the plan landing
+   pages, /signin, /feed, /profile) links this file and carries the SAME header
+   markup. It exists because the alternative had been tried: the header was
+   copied into each page as inline styles, and the copies drifted into five
+   different navs — the homepage's "Feed" pointed at a marketing section while
+   /feed's pointed at the app, /feed's "How it works" pointed at /#how which is
+   not an id on the homepage, /profile had lost Routes, and the same Sign in
+   control was styled by three different class names.
+
+   The primary nav is SITE-level and identical on every page:
+   How it works · Clubs · Routes · Feed · Profile. In-page anchors (#faq,
+   #plans) are page navigation and deliberately do not appear here — a nav
+   whose entries mean different things on different pages is the thing this
+   file is fixing.
+
+   Two variations are intentional and are the only ones allowed:
+     • .btn-acid ("Get PACR") — marketing pages, where the CTA is the point.
+     • .avatar-me — /feed and /profile, the two pages whose JS knows who you are.
+
+   The three legal pages (/privacy, /support, /community-rules) are a different
+   design system on purpose — dark hero, Barlow/JetBrains, styles.css — so they
+   do not link this file. They carry the same link set in their own clothes.
+   ───────────────────────────────────────────────────────────────────────────── */
+
+.site-head {
+  position: sticky; top: 0; z-index: 30;
+  display: flex; align-items: center; justify-content: space-between; gap: 24px;
+  padding: 16px 40px;
+  background: rgba(255,255,255,0.85);
+  backdrop-filter: blur(14px);
+  border-bottom: 1px solid #E3E3DA;
+}
+
+.brand { display: flex; align-items: center; gap: 12px; color: #0F0F0D; text-decoration: none; }
+.brand img { width: 34px; height: 34px; border-radius: 8px; display: block; }
+.brand span {
+  font-family: Outfit, sans-serif; font-weight: 700; font-size: 20px; letter-spacing: 0.14em;
+}
+
+.site-nav {
+  display: flex; align-items: center; gap: 34px;
+  font-family: Manrope, sans-serif; font-weight: 600; font-size: 12px;
+  letter-spacing: 0.14em; text-transform: uppercase; color: #5C5C54;
+}
+.site-nav a { color: inherit; text-decoration: none; }
+.site-nav a:hover { color: #0F0F0D; }
+/* The page you are on. */
+.site-nav a.on { color: #0F0F0D; border-bottom: 2px solid #E8FF3A; padding-bottom: 3px; }
+
+.head-right {
+  display: flex; align-items: center; gap: 22px;
+  font-family: Manrope, sans-serif; font-weight: 600; font-size: 12px;
+  letter-spacing: 0.14em; text-transform: uppercase; color: #5C5C54;
+}
+
+/* The Sign in / Sign out control. One class on every page in this system:
+   auth.js is handed "nav-a" and paints an <a> or a <button> into #authSlot, so
+   the button needs the anchor's shape rather than the UA's. */
+.nav-a { color: inherit; text-decoration: none; }
+.nav-a:hover { color: #0F0F0D; }
+button.nav-a {
+  background: none; border: 0; padding: 0; cursor: pointer;
+  font: inherit; color: inherit; letter-spacing: inherit; text-transform: inherit;
+}
+
+.btn-acid {
+  font-family: Manrope, sans-serif; font-weight: 600; font-size: 12px;
+  letter-spacing: 0.14em; text-transform: uppercase;
+  background: #E8FF3A; color: #0A0A09; padding: 12px 20px; border-radius: 2px;
+  transition: all .18s ease; white-space: nowrap; text-decoration: none;
+}
+.btn-acid:hover { background: #0F0F0D; color: #FFFFFF; }
+
+.avatar-me {
+  width: 34px; height: 34px; border-radius: 50%;
+  background: #E8FF3A; color: #0A0A09;
+  font-weight: 700; font-size: 12px;
+  display: flex; align-items: center; justify-content: center; flex: none;
+  overflow: hidden;
+}
+.avatar-me img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+/* The section links collapse on a phone; the way into your account must not,
+   which is why #authSlot lives in .head-right and never in .site-nav. 900px is
+   where five links plus a CTA stop fitting. */
+@media (max-width: 900px) {
+  .site-nav { display: none; }
+  .site-head { padding: 16px 22px; }
+}
+
+:where(.site-head a, .site-head button):focus-visible { outline: 2px solid #5A6B00; outline-offset: 2px; }
