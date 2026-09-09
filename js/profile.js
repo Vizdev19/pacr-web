@@ -654,22 +654,93 @@ function paintYear() {
   $('yearCard').hidden = false;
 }
 
-function paintRecent() {
-  if (!runsComplete) return;
-  const recent = runs.slice(0, 5);
-  if (recent.length === 0) return;
-  $('recentRows').innerHTML = recent.map(r => {
-    const pace = fmtPace(runPace(r));
-    const meta = [fmtDate(r.started_at), placeOf(r)].filter(Boolean).join(' · ');
-    return `<div class="run-row">
+function runRowHtml(r) {
+  const pace = fmtPace(runPace(r));
+  const meta = [fmtDate(r.started_at), placeOf(r)].filter(Boolean).join(' · ');
+  return `<div class="run-row">
       <span>
         <span class="run-name">${esc(Number(r.distance_km).toFixed(2))} km</span>
         <span class="run-meta">${esc(meta)}</span>
       </span>
       <span class="run-val">${esc(pace ?? fmtDuration(r.duration_sec))}</span>
     </div>`;
-  }).join('');
+}
+
+function paintRecent() {
+  if (!runsComplete) return;
+  const recent = runs.slice(0, 5);
+  if (recent.length === 0) return;
+  $('recentRows').innerHTML = recent.map(runRowHtml).join('');
+  paintHistory();
   $('recentCard').hidden = false;
+  fitFlip();
+  // The height is measured, not declared, so let the first one land before the
+  // transition is armed — otherwise the card animates open on page load.
+  requestAnimationFrame(() => $('recentCard').classList.add('anim'));
+}
+
+/**
+ * The back of the recent card: every run this page can see, newest first,
+ * grouped by month so a long scroll keeps its place. Capped by RUN_CAP like
+ * every other block derived from `runs`, and it says so when the cap bites.
+ */
+function paintHistory() {
+  const btn = $('historyOpen');
+  // Under six runs the front of the card already is the history.
+  btn.hidden = runs.length <= 5;
+  if (btn.hidden) return;
+
+  const tally = new Map();
+  for (const r of runs) {
+    const label = fmtMonth(r.started_at);
+    const t = tally.get(label) ?? { km: 0, n: 0 };
+    t.km += Number(r.distance_km) || 0;
+    t.n += 1;
+    tally.set(label, t);
+  }
+
+  const parts = [];
+  let month = null;
+  for (const r of runs) {
+    const label = fmtMonth(r.started_at);
+    if (label !== month) {
+      month = label;
+      const t = tally.get(label);
+      parts.push(`<div class="run-group">${esc(label)}
+        <span class="run-group-v">${esc(t.km.toFixed(1))} KM · ${esc(num(t.n))}</span>
+      </div>`);
+    }
+    parts.push(runRowHtml(r));
+  }
+  $('historyRows').innerHTML = parts.join('');
+  $('historyTitle').textContent = `${num(runs.length)} runs`;
+
+  if (runs.length < runCount) {
+    $('historyNote').textContent =
+      `SHOWING THE MOST RECENT ${num(runs.length)} OF ${num(runCount)} RUNS`;
+    $('historyNote').hidden = false;
+  }
+}
+
+/** Give .flip-inner the height of whichever face is showing — the faces are
+ *  absolutely positioned, so nothing else can size it. */
+function fitFlip() {
+  const card = $('recentCard');
+  if (card.hidden) return;
+  const face = card.classList.contains('flipped') ? $('recentBack') : $('recentFront');
+  $('recentFlip').style.height = `${face.offsetHeight}px`;
+}
+
+/** Turn the card over. `inert` keeps the hidden face out of the tab order and
+ *  off screen readers, which backface-visibility alone does not do. */
+function flipRecent(toHistory) {
+  const card = $('recentCard');
+  card.classList.toggle('flipped', toHistory);
+  $('recentFront').toggleAttribute('inert', toHistory);
+  $('recentBack').toggleAttribute('inert', !toHistory);
+  fitFlip();
+  if (toHistory) $('historyRows').scrollTop = 0;
+  (toHistory ? $('historyClose') : $('historyOpen')).focus({ preventScroll: true });
 }
 
 /** The app card is a pitch on my own profile and an explanation on someone
@@ -1169,6 +1240,11 @@ function wire() {
 
   $('moreBtn').addEventListener('click', () => loadPosts({ reset: false }));
 
+  $('historyOpen').addEventListener('click', () => flipRecent(true));
+  $('historyClose').addEventListener('click', () => flipRecent(false));
+  // A reflow can change either face's height; the measured one has to follow.
+  addEventListener('resize', fitFlip);
+
   $('idActs').addEventListener('click', (e) => {
     const btn = e.target.closest('[data-act="follow"]');
     if (btn) onFollowToggle(btn);
@@ -1273,7 +1349,7 @@ export async function initProfile() {
   isMe = !ref || refId === me.id;
   subjectId = isMe ? me.id : refId;
 
-  mountHeaderAuth($('authSlot'), { className: 'btn-quiet', signOutTo: '/' });
+  mountHeaderAuth($('authSlot'), { className: 'nav-a', signOutTo: '/' });
 
   if (!subjectId) {
     $('paneBoot').hidden = true;
