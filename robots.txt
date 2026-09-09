@@ -1,0 +1,11 @@
+# https://pacr.life/robots.txt
+# PACR — AI running coach. Everything public is crawlable.
+
+User-agent: *
+Allow: /
+
+# The signed-in surfaces (/signin, /feed, /profile, /support) carry
+# <meta name="robots" content="noindex">. They are deliberately NOT disallowed
+# here: a crawler has to fetch the page to read that tag.
+
+Sitemap: https://pacr.life/sitemap.xml

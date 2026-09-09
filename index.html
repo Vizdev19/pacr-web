@@ -3,15 +3,28 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>PACR — AI Running Coach</title>
-<meta name="description" content="PACR reads your last session, your true pace, and the air you're about to run through — then talks you through the workout, step by step, in your ear." />
+<title>PACR — AI Running Coach for 5K to Marathon Training</title>
+<meta name="description" content="An AI running coach that rewrites your 5K, 10K, half marathon and marathon training plan every morning — around your last run, your real pace and today's heat." />
+<meta name="keywords" content="AI running coach, running coach app, AI marathon training plan, marathon training plan app, half marathon training plan, 5K training plan, 10K training plan, adaptive running plan, personalised running plan, voice running coach, running app with audio coaching, heat adjusted running pace, threshold pace training, running clubs app, running routes near me" />
+<meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+<meta name="author" content="PACR" />
+<meta name="theme-color" content="#E8FF3A" />
 <link rel="canonical" href="https://pacr.life/" />
 <meta property="og:type" content="website" />
+<meta property="og:site_name" content="PACR" />
+<meta property="og:locale" content="en" />
 <meta property="og:url" content="https://pacr.life/" />
-<meta property="og:title" content="PACR — AI Running Coach" />
-<meta property="og:description" content="Every run, rewritten for today. The AI running coach that rebuilds your session every morning — and talks you through it." />
+<meta property="og:title" content="PACR — AI Running Coach for 5K to Marathon Training" />
+<meta property="og:description" content="Every run, rewritten for today. The AI running coach that rebuilds your training plan every morning — and talks you through it, step by step, in your ear." />
 <meta property="og:image" content="https://pacr.life/og-image.png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:image:alt" content="PACR — the AI running coach that rewrites every session for today." />
 <meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="PACR — AI Running Coach for 5K to Marathon Training" />
+<meta name="twitter:description" content="An adaptive running plan rebuilt every morning from your last run, your real pace and today's heat — coached out loud while you run." />
+<meta name="twitter:image" content="https://pacr.life/og-image.png" />
+<meta name="twitter:image:alt" content="PACR — the AI running coach that rewrites every session for today." />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 <link rel="icon" type="image/png" sizes="32x32" href="/brand-acid/favicon.png" />
 <link rel="icon" type="image/png" sizes="16x16" href="/brand-acid/favicon-16.png" />
@@ -51,7 +64,7 @@
   .badge:hover { transform:translateY(-2px); opacity:0.85; }
 
   /* Responsive collapse of the artboard grids */
-  .g-hero > *, .g-voice > *, .g-clubs > *, .g-routes > *, .g-inputs > *, .g-posts > *, .g-footer > * { min-width:0; }
+  .g-hero > *, .g-voice > *, .g-clubs > *, .g-routes > *, .g-inputs > *, .g-posts > *, .g-faq > *, .g-footer > * { min-width:0; }
 
   @media (max-width: 1080px) {
     .g-hero, .g-voice, .g-clubs, .g-routes { grid-template-columns: 1fr !important; gap:48px !important; align-items:start !important; }
@@ -62,7 +75,7 @@
   }
   @media (max-width: 760px) {
     .pad-x { padding-left:22px !important; padding-right:22px !important; }
-    .g-inputs, .g-posts, .g-footer { grid-template-columns: 1fr !important; }
+    .g-inputs, .g-posts, .g-faq, .g-footer { grid-template-columns: 1fr !important; }
     .site-nav { display:none !important; }
     .hero-phone { width:100% !important; max-width:320px; }
     .sec { padding-top:68px !important; padding-bottom:68px !important; }
@@ -72,6 +85,157 @@
     * { animation: none !important; }
   }
 </style>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": "https://pacr.life/#organization",
+      "name": "PACR",
+      "url": "https://pacr.life/",
+      "description": "PACR is an AI running coach that rebuilds each training session every morning and coaches it out loud.",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://pacr.life/brand-acid/icon-512.png",
+        "width": 512,
+        "height": 512
+      },
+      "email": "support@pacr.life",
+      "sameAs": [
+        "https://www.instagram.com/pacr.life",
+        "https://play.google.com/store/apps/details?id=life.pacr.app"
+      ]
+    },
+    {
+      "@type": "WebSite",
+      "@id": "https://pacr.life/#website",
+      "url": "https://pacr.life/",
+      "name": "PACR",
+      "description": "AI running coach for 5K, 10K, half marathon and marathon training.",
+      "publisher": {
+        "@id": "https://pacr.life/#organization"
+      },
+      "inLanguage": "en"
+    },
+    {
+      "@type": "WebPage",
+      "@id": "https://pacr.life/#webpage",
+      "url": "https://pacr.life/",
+      "name": "PACR — AI Running Coach for 5K to Marathon Training",
+      "description": "An adaptive running plan rebuilt every morning from your last run, your real threshold pace and today's heat — coached out loud while you run.",
+      "isPartOf": {
+        "@id": "https://pacr.life/#website"
+      },
+      "about": {
+        "@id": "https://pacr.life/#app"
+      },
+      "inLanguage": "en"
+    },
+    {
+      "@type": "MobileApplication",
+      "@id": "https://pacr.life/#app",
+      "name": "PACR",
+      "applicationCategory": "HealthApplication",
+      "applicationSubCategory": "Running coach",
+      "operatingSystem": "Android",
+      "url": "https://pacr.life/",
+      "downloadUrl": "https://play.google.com/store/apps/details?id=life.pacr.app",
+      "installUrl": "https://play.google.com/store/apps/details?id=life.pacr.app",
+      "screenshot": "https://pacr.life/og-image.png",
+      "description": "PACR is an AI running coach. It rebuilds your 5K, 10K, half marathon or marathon session every morning from your last run, your real threshold pace and today's heat, then calls the blocks out loud while you run.",
+      "featureList": [
+        "Daily adaptive training plan rebuilt every morning",
+        "Voice coaching that calls each block mid-run",
+        "Heat and humidity adjusted pace targets",
+        "Threshold pace modelled from your own sessions",
+        "Running clubs with weekly boards and long-run slots",
+        "Nearby running routes matched to today's session"
+      ],
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD",
+        "availability": "https://schema.org/InStock"
+      },
+      "publisher": {
+        "@id": "https://pacr.life/#organization"
+      }
+    },
+    {
+      "@type": "FAQPage",
+      "@id": "https://pacr.life/#faq",
+      "inLanguage": "en",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "Is PACR an AI running coach?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. PACR builds and rebuilds your training plan on its own every morning, then coaches the session out loud while you run. There is no template to pick and no coach to email — the plan reacts to the run you actually did yesterday."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Can PACR write a marathon or half marathon training plan?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. Marathon, half marathon, 10K and 5K blocks are all built the same way: PACR sets the week from your race date and current fitness, then rewrites each session the morning you run it. A bad week does not derail the block — the plan absorbs it."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How is this different from a static 12-week plan?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "A printed plan cannot know you slept badly or that it is 33°C outside. PACR rebuilds the session at 4am from three inputs — your last run, your real threshold pace, and today's climate — so the stimulus stays honest even when conditions are not."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Does the coach actually talk to you during the run?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "It calls the next block two beats before the change, pulls you back when you drift past your own tolerance band, and stays quiet when you are holding it. Answer out loud — “cut it short today” — and the session reshapes mid-run."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Does it adjust running pace for heat and humidity?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Every session carries a heat offset in seconds per kilometre, calculated from temperature, humidity and wind on the exposed stretch. You get the same training stimulus at a pace your body can hold, instead of blowing up chasing a cool-morning number."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Is PACR good for beginners?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "It is built for anyone running with a goal, from a first 5K to a sub-3 marathon. Because targets come from your own sessions rather than a pace calculator, the plan starts where you are and moves in seconds, not tiers."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Can I run with a club and follow routes near me?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Clubs share a weekly board, a long-run slot and a leaderboard that counts consistency instead of raw speed. Routes nearby are sorted by surface, elevation and shade at your start time, and flagged when they fit today's session."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How much does PACR cost?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "The plan is free while you build the habit. Bring your watch, your headphones, and whatever the weather is doing."
+          }
+        }
+      ]
+    }
+  ]
+}
+</script>
 </head>
 <body>
 <div style="background:#FFFFFF; color:#0F0F0D; font-family:Manrope, Helvetica, sans-serif; overflow-x:hidden;">
@@ -86,6 +250,7 @@
       <a class="nav-a" href="#feed" style="color:inherit;">Feed</a>
       <a class="nav-a" href="#clubs" style="color:inherit;">Clubs</a>
       <a class="nav-a" href="#routes" style="color:inherit;">Routes</a>
+      <a class="nav-a" href="#faq" style="color:inherit;">FAQ</a>
     </nav>
     <div style="display:flex; align-items:center; gap:22px;">
       <!-- Baseline Sign in link. js/auth.js swaps it for Sign out once it knows
@@ -112,7 +277,7 @@
           Every run,<br>rewritten<br>for <span style="color:#0F0F0D; background:linear-gradient(180deg, transparent 62%, #E8FF3A 62%, #E8FF3A 92%, transparent 92%);">today.</span>
         </h1>
         <p style="font-size:19px; line-height:1.55; color:#5C5C54; max-width:520px; margin:0 0 36px; text-wrap:pretty;">
-          PACR reads your last session, your true pace, and the air you're about to run through — then talks you through the workout, step by step, in your ear.
+          PACR is an AI running coach that reads your last session, your true pace, and the air you're about to run through — then talks you through the workout, step by step, in your ear.
         </p>
         <div style="display:flex; gap:14px; flex-wrap:wrap; margin-bottom:44px;">
           <a class="btn-acid2" href="#get" style="font-family:Manrope, sans-serif; font-weight:600; font-size:13px; letter-spacing:0.14em; text-transform:uppercase; background:#E8FF3A; color:#0A0A09; padding:17px 30px; border-radius:2px; box-shadow:0 8px 22px -12px rgba(120,140,0,0.75); transition:all .18s ease;">Start free plan</a>
@@ -492,6 +657,60 @@
     </div>
   </section>
 
+  <section id="faq" class="pad-x sec" style="padding:104px 40px; border-bottom:1px solid #E3E3DA; background:#F7F7F3;">
+    <div style="max-width:1280px; margin:0 auto;">
+      <div style="display:flex; align-items:flex-end; justify-content:space-between; gap:40px; flex-wrap:wrap; margin-bottom:52px;">
+        <div>
+          <div class="eyebrow" style="font-family:Manrope, sans-serif; font-weight:600; font-size:11px; letter-spacing:0.2em; text-transform:uppercase; color:#5A6B00; margin-bottom:18px; display:flex; align-items:center; gap:10px;">06 / FAQ</div>
+          <h2 style="font-family:Outfit, sans-serif; font-weight:700; font-size:clamp(34px,4.4vw,64px); line-height:0.94; letter-spacing:-0.02em; text-transform:uppercase; margin:0;">Questions runners ask.</h2>
+        </div>
+        <p style="font-size:16px; line-height:1.6; color:#5C5C54; max-width:360px; margin:0;">What the coach does, what it costs, and how a plan that rewrites itself holds a marathon block together.</p>
+      </div>
+      <div class="g-faq" style="display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:20px;">
+        <div class="row-hover" style="border:1px solid #E3E3DA; background:#FFFFFF; padding:28px 26px; transition:background .18s ease, box-shadow .18s ease;">
+          <h3 style="font-family:Outfit, sans-serif; font-weight:600; font-size:19px; line-height:1.25; letter-spacing:-0.01em; margin:0 0 12px;">Is PACR an AI running coach?</h3>
+          <p style="font-size:15px; line-height:1.65; color:#5C5C54; margin:0;">Yes. PACR builds and rebuilds your training plan on its own every morning, then coaches the session out loud while you run. There is no template to pick and no coach to email — the plan reacts to the run you actually did yesterday.</p>
+        </div>
+        <div class="row-hover" style="border:1px solid #E3E3DA; background:#FFFFFF; padding:28px 26px; transition:background .18s ease, box-shadow .18s ease;">
+          <h3 style="font-family:Outfit, sans-serif; font-weight:600; font-size:19px; line-height:1.25; letter-spacing:-0.01em; margin:0 0 12px;">Can PACR write a marathon or half marathon training plan?</h3>
+          <p style="font-size:15px; line-height:1.65; color:#5C5C54; margin:0;">Yes. <a href="/marathon-training-plan" style="color:#5A6B00;">Marathon</a>, <a href="/half-marathon-training-plan" style="color:#5A6B00;">half marathon</a>, <a href="/10k-training-plan" style="color:#5A6B00;">10K</a> and <a href="/5k-training-plan" style="color:#5A6B00;">5K</a> blocks are all built the same way: PACR sets the week from your race date and current fitness, then rewrites each session the morning you run it. A bad week does not derail the block — the plan absorbs it.</p>
+        </div>
+        <div class="row-hover" style="border:1px solid #E3E3DA; background:#FFFFFF; padding:28px 26px; transition:background .18s ease, box-shadow .18s ease;">
+          <h3 style="font-family:Outfit, sans-serif; font-weight:600; font-size:19px; line-height:1.25; letter-spacing:-0.01em; margin:0 0 12px;">How is this different from a static 12-week plan?</h3>
+          <p style="font-size:15px; line-height:1.65; color:#5C5C54; margin:0;">A printed plan cannot know you slept badly or that it is 33°C outside. PACR rebuilds the session at 4am from three inputs — your last run, your real threshold pace, and today's climate — so the stimulus stays honest even when conditions are not.</p>
+        </div>
+        <div class="row-hover" style="border:1px solid #E3E3DA; background:#FFFFFF; padding:28px 26px; transition:background .18s ease, box-shadow .18s ease;">
+          <h3 style="font-family:Outfit, sans-serif; font-weight:600; font-size:19px; line-height:1.25; letter-spacing:-0.01em; margin:0 0 12px;">Does the coach actually talk to you during the run?</h3>
+          <p style="font-size:15px; line-height:1.65; color:#5C5C54; margin:0;">It calls the next block two beats before the change, pulls you back when you drift past your own tolerance band, and stays quiet when you are holding it. Answer out loud — “cut it short today” — and the session reshapes mid-run.</p>
+        </div>
+        <div class="row-hover" style="border:1px solid #E3E3DA; background:#FFFFFF; padding:28px 26px; transition:background .18s ease, box-shadow .18s ease;">
+          <h3 style="font-family:Outfit, sans-serif; font-weight:600; font-size:19px; line-height:1.25; letter-spacing:-0.01em; margin:0 0 12px;">Does it adjust running pace for heat and humidity?</h3>
+          <p style="font-size:15px; line-height:1.65; color:#5C5C54; margin:0;">Every session carries a heat offset in seconds per kilometre, calculated from temperature, humidity and wind on the exposed stretch. You get the same training stimulus at a pace your body can hold, instead of blowing up chasing a cool-morning number.</p>
+        </div>
+        <div class="row-hover" style="border:1px solid #E3E3DA; background:#FFFFFF; padding:28px 26px; transition:background .18s ease, box-shadow .18s ease;">
+          <h3 style="font-family:Outfit, sans-serif; font-weight:600; font-size:19px; line-height:1.25; letter-spacing:-0.01em; margin:0 0 12px;">Is PACR good for beginners?</h3>
+          <p style="font-size:15px; line-height:1.65; color:#5C5C54; margin:0;">It is built for anyone running with a goal, from a first 5K to a sub-3 marathon. Because targets come from your own sessions rather than a pace calculator, the plan starts where you are and moves in seconds, not tiers.</p>
+        </div>
+        <div class="row-hover" style="border:1px solid #E3E3DA; background:#FFFFFF; padding:28px 26px; transition:background .18s ease, box-shadow .18s ease;">
+          <h3 style="font-family:Outfit, sans-serif; font-weight:600; font-size:19px; line-height:1.25; letter-spacing:-0.01em; margin:0 0 12px;">Can I run with a club and follow routes near me?</h3>
+          <p style="font-size:15px; line-height:1.65; color:#5C5C54; margin:0;">Clubs share a weekly board, a long-run slot and a leaderboard that counts consistency instead of raw speed. Routes nearby are sorted by surface, elevation and shade at your start time, and flagged when they fit today's session.</p>
+        </div>
+        <div class="row-hover" style="border:1px solid #E3E3DA; background:#FFFFFF; padding:28px 26px; transition:background .18s ease, box-shadow .18s ease;">
+          <h3 style="font-family:Outfit, sans-serif; font-weight:600; font-size:19px; line-height:1.25; letter-spacing:-0.01em; margin:0 0 12px;">How much does PACR cost?</h3>
+          <p style="font-size:15px; line-height:1.65; color:#5C5C54; margin:0;">The plan is free while you build the habit. Bring your watch, your headphones, and whatever the weather is doing.</p>
+        </div>
+      </div>
+      <div style="display:flex; align-items:center; gap:26px; flex-wrap:wrap; margin-top:34px; font-family:Manrope, sans-serif; font-weight:600; font-size:12px; letter-spacing:0.14em; text-transform:uppercase;">
+        <span style="color:#6A6A61;">Plans</span>
+        <a class="foot-a" href="/marathon-training-plan" style="color:#5A6B00;">Marathon plan</a>
+        <a class="foot-a" href="/half-marathon-training-plan" style="color:#5A6B00;">Half marathon plan</a>
+        <a class="foot-a" href="/10k-training-plan" style="color:#5A6B00;">10K plan</a>
+        <a class="foot-a" href="/5k-training-plan" style="color:#5A6B00;">5K plan</a>
+        <a class="foot-a" href="/running-coach-app" style="color:#5A6B00;">How the coaching works</a>
+      </div>
+    </div>
+  </section>
+
   <section id="get" class="pad-x sec" style="position:relative; padding:120px 40px; overflow:hidden;">
     <div style="position:absolute; top:0; left:8%; width:180px; height:100%; background:#E8FF3A; opacity:0.12; transform:skewX(-14deg);"></div>
     <div style="position:relative; max-width:1000px; margin:0 auto; text-align:center;">
@@ -510,7 +729,7 @@
   </section>
 
   <footer style="border-top:1px solid #E3E3DA; background:#F7F7F3;">
-    <div class="pad-x g-footer" style="max-width:1280px; margin:0 auto; padding:64px 40px 40px; display:grid; grid-template-columns:1.4fr 1fr 1fr 1fr; gap:48px;">
+    <div class="pad-x g-footer" style="max-width:1280px; margin:0 auto; padding:64px 40px 40px; display:grid; grid-template-columns:1.4fr 1fr 1fr 1fr 1fr; gap:48px;">
       <div style="display:flex; flex-direction:column; gap:18px; max-width:320px;">
         <div style="display:flex; align-items:center; gap:12px;">
           <img src="assets/pacr-mark.png" alt="PACR" width="34" height="34" style="width:34px; height:34px; border-radius:8px; display:block;">
@@ -533,12 +752,21 @@
         </div>
       </div>
       <div style="display:flex; flex-direction:column; gap:14px;">
+        <div style="font-family:Manrope, sans-serif; font-weight:600; font-size:11px; letter-spacing:0.16em; text-transform:uppercase; color:#6A6A61;">Training plans</div>
+        <a class="foot-a" href="/marathon-training-plan" style="font-size:15px; color:#0F0F0D;">Marathon plan</a>
+        <a class="foot-a" href="/half-marathon-training-plan" style="font-size:15px; color:#0F0F0D;">Half marathon plan</a>
+        <a class="foot-a" href="/10k-training-plan" style="font-size:15px; color:#0F0F0D;">10K plan</a>
+        <a class="foot-a" href="/5k-training-plan" style="font-size:15px; color:#0F0F0D;">5K plan</a>
+        <a class="foot-a" href="/running-coach-app" style="font-size:15px; color:#0F0F0D;">Running coach app</a>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:14px;">
         <div style="font-family:Manrope, sans-serif; font-weight:600; font-size:11px; letter-spacing:0.16em; text-transform:uppercase; color:#6A6A61;">Product</div>
         <a class="foot-a" href="#coach" style="font-size:15px; color:#0F0F0D;">Daily plan</a>
         <a class="foot-a" href="#voice" style="font-size:15px; color:#0F0F0D;">Voice coach</a>
         <a class="foot-a" href="#feed" style="font-size:15px; color:#0F0F0D;">Feed</a>
         <a class="foot-a" href="#clubs" style="font-size:15px; color:#0F0F0D;">Clubs</a>
         <a class="foot-a" href="#routes" style="font-size:15px; color:#0F0F0D;">Nearby routes</a>
+        <a class="foot-a" href="#faq" style="font-size:15px; color:#0F0F0D;">FAQ</a>
       </div>
       <div style="display:flex; flex-direction:column; gap:14px;">
         <div style="font-family:Manrope, sans-serif; font-weight:600; font-size:11px; letter-spacing:0.16em; text-transform:uppercase; color:#6A6A61;">Company</div>
