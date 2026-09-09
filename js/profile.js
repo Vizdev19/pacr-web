@@ -1,31 +1,41 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// /profile — your own profile
+// /profile — a runner's profile: yours by default, someone else's with ?r=<ref>
 //
 // Implements "PACR Profile.dc.html" from the Claude Design project. Like /feed,
-// this page needs a real identity and gets one the same way: every RLS policy
-// in the app project keys off auth.uid(), so a signed-in browser reads exactly
-// what the app reads and nothing else.
+// this page needs a real identity and gets one the same way: every RLS policy in
+// the app project keys off auth.uid(), so a signed-in browser reads exactly what
+// the app reads and nothing else.
 //
-// This is YOUR profile and only yours. There is deliberately no /profile?u=…:
-// there are no usernames in this product, so a third-party profile would have
-// to be addressed by uuid — a raw id in the URL bar, and a walkable directory
-// of everyone whose id you can guess. The design's Follow button belongs to
-// that page and is therefore absent here; following happens on /feed, where a
-// real person's post is the thing you are choosing to follow.
+// ── Viewing someone else ────────────────────────────────────────────────────
 //
-// What the design carries and this page does not, for want of a data source
-// rather than for want of effort:
+// The link carries a base64url ref, not a uuid — see js/ids.js and
+// [[never-surface-raw-ids]]. The ref is not access control; RLS is. A profile is
+// readable when `users_select_co_members` or `users_select_followed` says so,
+// which is to say: someone you share a squad with, or someone you follow. Any
+// other ref lands on the "not visible" pane, because the row simply does not
+// come back.
 //
-//   • Cover photo — no column, no bucket. The band keeps the stripes.
-//   • Handle, bio, location — public.users has display_name, home_neighborhood
-//     and a streak, and no free text. A bio field would be a new moderation
-//     surface, which is a product decision, not a port.
-//   • Current plan, next session, readiness, gear — the coach prescription is
-//     generated and kept on the phone. None of it is on the server.
-//   • Badges — computed from the full local run history (splits included),
-//     which never leaves the device. run_summaries has whole runs only, so the
-//     Achievements tab becomes Milestones: firsts that ARE derivable, honestly
-//     labelled, with the badges pointed back at the app.
+// Two things do not exist on someone else's profile, and their absence is the
+// schema working, not a gap:
+//
+//   • THEIR followers and following. `follows_select_own` shows you only the
+//     edges you are an endpoint of — there is deliberately no "who follows X"
+//     for a third party, or the whole social graph would be walkable with the
+//     shipped anon key. You can see whether they follow you and whether you
+//     follow them, and that is the lot.
+//   • Their run history, unless you share a squad. `run_summaries_select_followed`
+//     exposes only the runs that back a post you can already see, so a follower's
+//     view is a partial set by design. A twelve-week chart drawn from a partial
+//     set is a lie with a y-axis, so the Overview and Milestones tabs are simply
+//     absent for a runner you only follow.
+//
+// ── What the design carries and this page does not ──────────────────────────
+// For want of a data source rather than for want of effort: cover photo (no
+// column, no bucket — the band keeps the stripes), handle, bio and location
+// (public.users has display_name, home_neighborhood and a streak, and no free
+// text), and the current plan, next session, readiness and gear, all generated
+// on the phone. Badges too, so the Achievements tab became Milestones: firsts
+// that ARE derivable from run_summaries.
 //
 // Personal bests get the same treatment. The app's records are split records —
 // the fastest 5 K *inside* a longer run — and splits are not synced. So this
@@ -37,7 +47,10 @@ import { getSupabase, esc, initials, num, signedUrlsFor } from './supabase.js';
 import { mountHeaderAuth, signinHref, signOut } from './auth.js';
 import { renderBody } from './mentions.js';
 import { POST_SELECT } from './feed-write.js';
-import { followCounts, listFollowEdges, retractMyPosts } from './follow.js';
+import {
+  followCounts, listFollowEdges, followUser, unfollowUser, retractMyPosts,
+} from './follow.js';
+import { decodeUserRef, profileHref } from './ids.js';
 import { openModal } from './modal.js';
 
 const PAGE_SIZE = 10;
@@ -51,15 +64,33 @@ const $ = (id) => document.getElementById(id);
 
 let sb = null;
 let me = null;
-let profile = null;
-/** My run_summaries, newest first, capped at RUN_CAP. */
+/** My own users row — the header avatar stays mine on someone else's profile. */
+let myRow = null;
+
+/** Whose profile this is. subject.id === me.id when it is mine. */
+let subjectId = null;
+let subject = null;
+let isMe = true;
+/** Rendered once and reused on every post card. */
+let subjectFaceHtml = '';
+
+/** How I relate to the subject. Empty and unused when the profile is mine. */
+let rel = { sharedSquads: [], iFollow: false, followsMe: false };
+/**
+ * Whether `runs` is their whole history or only the runs behind posts I can
+ * see. Everything derived from a full history — the load chart, the bests, the
+ * milestones — is gated on this.
+ */
+let runsComplete = true;
+
 let runs = [];
-/** Exact count from the server — may exceed runs.length when capped. */
 let runCount = 0;
+let postCount = 0;
+/** Mine on my profile; the ones we share on someone else's. */
 let squads = [];
 let counts = { followers: 0, following: 0 };
+
 let tab = 'overview';
-/** Panes that fetch on first view, so opening the page is one round of queries. */
 const loaded = { posts: false, squads: false };
 let postCursor = null;
 let postsLoading = false;
@@ -160,24 +191,108 @@ function placeOf(r) {
   return r.neighborhood ? String(r.neighborhood).toUpperCase() : null;
 }
 
+/** A face: signed avatar when the bucket lets us have one, initials otherwise. */
+function faceHtml(name, url) {
+  return url ? `<img src="${esc(url)}" alt="">` : esc(initials(name));
+}
+
+/** Copy for each discriminated follow failure, matching the feed's wording. */
+function reasonMessage(reason) {
+  return reason === 'email_required'
+    ? 'Add an email to your account in the app before following anyone here.'
+    : 'Something went wrong. Try again.';
+}
+
 // ─── Loads ──────────────────────────────────────────────────────────────────
 
 /**
- * Every run I have synced, newest first.
+ * The subject's row, and mine alongside it.
+ *
+ * One query for both, because the header avatar stays mine while the page is
+ * someone else's. A subject row that does not come back is not an error — it is
+ * RLS saying this profile is not mine to see, which the caller turns into the
+ * "not visible" pane.
+ */
+async function loadPeopleRows() {
+  const ids = isMe ? [me.id] : [me.id, subjectId];
+  const { data, error } = await sb.from('users')
+    .select('id, display_name, avatar_path, home_neighborhood, current_streak_days, created_at')
+    .in('id', ids);
+  if (error) throw error;
+
+  const byId = new Map((data ?? []).map(u => [u.id, u]));
+  myRow = byId.get(me.id) ?? null;
+  subject = byId.get(subjectId) ?? null;
+
+  const signed = await signedUrlsFor(sb, 'avatars',
+    [myRow?.avatar_path, subject?.avatar_path].filter(Boolean));
+  if (myRow) myRow.avatarUrl = signed.get(myRow.avatar_path) ?? null;
+  if (subject) subject.avatarUrl = signed.get(subject.avatar_path) ?? null;
+}
+
+/**
+ * Squads in common, and the two follow edges between us.
+ *
+ * Both directions of the edge are readable — I am an endpoint of each — and
+ * both are worth showing: "follows you" is the fact that makes a Follow button
+ * feel like a reply rather than a cold approach.
+ */
+async function loadRelationship() {
+  const mineIds = (await myCircleIds());
+  let sharedSquads = [];
+  if (mineIds.length > 0) {
+    const { data } = await sb.from('memberships')
+      .select('circle_id, role, joined_at, circles(id, name)')
+      .eq('user_id', subjectId)
+      .in('circle_id', mineIds);
+    sharedSquads = (data ?? []).filter(r => r.circles).map(r => ({
+      id: r.circles.id, name: r.circles.name, role: r.role, joinedAt: r.joined_at,
+    }));
+  }
+
+  let iFollow = false;
+  let followsMe = false;
+  try {
+    const { data } = await sb.from('follows')
+      .select('follower_id, followee_id')
+      .or(`and(follower_id.eq.${me.id},followee_id.eq.${subjectId}),`
+        + `and(follower_id.eq.${subjectId},followee_id.eq.${me.id})`);
+    for (const row of data ?? []) {
+      if (row.follower_id === me.id) iFollow = true;
+      if (row.followee_id === me.id) followsMe = true;
+    }
+  } catch {
+    // Unknown reads as "not following", which the button can recover from.
+  }
+  rel = { sharedSquads, iFollow, followsMe };
+}
+
+async function myCircleIds() {
+  const { data, error } = await sb.from('memberships')
+    .select('circle_id')
+    .eq('user_id', me.id);
+  return error ? [] : (data ?? []).map(r => r.circle_id);
+}
+
+/**
+ * The subject's runs, newest first.
  *
  * One query feeds the load chart, the bests table, the year card, the recent
- * list and the milestones — five blocks that would otherwise be five scans of
- * the same rows. The exact count comes separately and is the number shown, so
- * the stat strip stays true even when the row pull is capped.
+ * list and the milestones. The exact count comes separately and is the number
+ * shown, so the stat strip stays true even when the row pull is capped.
+ *
+ * On someone else's profile RLS decides what comes back: everything if we share
+ * a squad, and otherwise only the runs behind posts I can already see — which
+ * is why runsComplete gates every block derived from it.
  */
 async function loadRuns() {
   const { count } = await sb.from('run_summaries')
     .select('id', { count: 'exact', head: true })
-    .eq('user_id', me.id);
+    .eq('user_id', subjectId);
 
   const { data, error } = await sb.from('run_summaries')
     .select('started_at, distance_km, duration_sec, pace_sec_per_km, neighborhood, week_key')
-    .eq('user_id', me.id)
+    .eq('user_id', subjectId)
     .order('started_at', { ascending: false })
     .limit(RUN_CAP);
   if (error) throw error;
@@ -186,8 +301,17 @@ async function loadRuns() {
   runCount = Number.isFinite(count) ? count : runs.length;
 }
 
+/** How many of their posts I can see. RLS applies to a count as it does to a
+ *  page, so this is the real number for THIS viewer, not their post total. */
+async function loadPostCount() {
+  const { count } = await sb.from('posts')
+    .select('id', { count: 'exact', head: true })
+    .eq('author_id', subjectId);
+  postCount = Number(count) || 0;
+}
+
 /** Ported from listMySquads() in pacr/src/services/squads.ts. */
-async function loadSquads() {
+async function loadMySquads() {
   const { data, error } = await sb.from('memberships')
     .select('circle_id, role, joined_at, circles(id, name)')
     .eq('user_id', me.id)
@@ -220,60 +344,108 @@ async function memberCounts(circleIds) {
 
 // ─── Identity ───────────────────────────────────────────────────────────────
 
-async function paintIdentity() {
-  const name = profile?.display_name || me.email || '—';
-  const ini = initials(name);
+function paintIdentity() {
+  const name = subject?.display_name || (isMe ? (me.email ?? '—') : '—');
+  subjectFaceHtml = faceHtml(name, subject?.avatarUrl);
 
-  let avatarUrl = null;
-  if (profile?.avatar_path) {
-    const signed = await signedUrlsFor(sb, 'avatars', [profile.avatar_path]);
-    avatarUrl = signed.get(profile.avatar_path) ?? null;
-  }
-  const face = avatarUrl
-    ? `<img src="${esc(avatarUrl)}" alt="">`
-    : esc(ini);
+  $('pAvatar').innerHTML = subjectFaceHtml;
+  $('pName').textContent = name;
+  if (!isMe) document.title = `${name} — PACR`;
 
-  $('pAvatar').innerHTML = face;
+  // The header avatar is always mine, whoever the page is about.
   const head = $('meAvatar');
-  head.innerHTML = face;
+  head.innerHTML = faceHtml(myRow?.display_name || me.email || '—', myRow?.avatarUrl);
   head.hidden = false;
 
-  $('pName').textContent = name;
-
-  const since = profile?.created_at ? new Date(profile.created_at).getFullYear() : null;
-  const streak = Number(profile?.current_streak_days) || 0;
+  const streak = Number(subject?.current_streak_days) || 0;
   const bits = [];
-  if (profile?.home_neighborhood) bits.push(`<span>${esc(profile.home_neighborhood)}</span>`);
-  if (since) bits.push(`<span>On PACR since ${since}</span>`);
-  if (streak > 0) {
-    bits.push(`<span class="live">● ${streak}-day streak</span>`);
+  if (subject?.home_neighborhood) bits.push(`<span>${esc(subject.home_neighborhood)}</span>`);
+  if (isMe && subject?.created_at) {
+    bits.push(`<span>On PACR since ${new Date(subject.created_at).getFullYear()}</span>`);
+  }
+  if (streak > 0) bits.push(`<span class="live">● ${streak}-day streak</span>`);
+  if (!isMe) {
+    if (rel.sharedSquads.length > 0) {
+      const names = rel.sharedSquads.map(s => s.name).join(', ');
+      bits.push(`<span>In your ${rel.sharedSquads.length === 1 ? 'squad' : 'squads'} — ${esc(names)}</span>`);
+    }
+    if (rel.followsMe) bits.push('<span class="live">● Follows you</span>');
   }
   $('pMeta').innerHTML = bits.join('');
 }
 
 /**
- * The design's five-cell strip. FOLLOWERS, FOLLOWING and SQUADS jump to the tab
- * that lists them, the way the design's cells pick a tab.
+ * The buttons under the name.
  *
- * The design's fifth cell is BADGES; badges live on the phone, so the slot
- * carries total distance, which is the one lifetime number this page can add up
- * from real rows.
+ * Mine: the two links the design puts there. Someone else's: the design's
+ * Follow control, which is the one write this page makes about another person.
+ */
+function paintActions() {
+  if (isMe) {
+    $('idActs').innerHTML = `
+      <a class="btn" href="/feed">Your feed</a>
+      <a class="btn-outline" href="/#get">Get the app</a>`;
+    return;
+  }
+  $('idActs').innerHTML = `
+    <button type="button" class="${rel.iFollow ? 'btn-outline' : 'btn'}" data-act="follow"
+            aria-pressed="${rel.iFollow}">${rel.iFollow ? 'Following ✓' : 'Follow'}</button>
+    <a class="btn-outline" href="/profile">Your profile</a>`;
+}
+
+/**
+ * The design's five-cell strip.
+ *
+ * Mine carries the graph and the lifetime totals. Someone else's carries only
+ * what this viewer may actually read — no follower counts, because there is no
+ * third-party follower graph, and no distance unless we share a squad.
  */
 function paintHeadStats() {
-  const km = runs.reduce((n, r) => n + (Number(r.distance_km) || 0), 0);
-  const cells = [
-    ['FOLLOWERS', num(counts.followers), 'squads'],
-    ['FOLLOWING', num(counts.following), 'squads'],
-    ['SQUADS', String(squads.length), 'squads'],
-    ['RUNS LOGGED', num(runCount), 'overview'],
-    ['DISTANCE', `${km.toFixed(0)} km`, 'overview'],
-  ];
+  const cells = [];
+  if (isMe) {
+    const km = runs.reduce((n, r) => n + (Number(r.distance_km) || 0), 0);
+    cells.push(
+      ['FOLLOWERS', num(counts.followers), 'squads'],
+      ['FOLLOWING', num(counts.following), 'squads'],
+      ['SQUADS', String(squads.length), 'squads'],
+      ['RUNS LOGGED', num(runCount), 'overview'],
+      ['DISTANCE', `${km.toFixed(0)} km`, 'overview'],
+    );
+  } else {
+    const streak = Number(subject?.current_streak_days) || 0;
+    cells.push(['SQUADS SHARED', String(rel.sharedSquads.length), 'squads']);
+    cells.push(['POSTS YOU CAN SEE', num(postCount), 'posts']);
+    if (runsComplete) {
+      const km = runs.reduce((n, r) => n + (Number(r.distance_km) || 0), 0);
+      cells.push(['RUNS LOGGED', num(runCount), 'overview']);
+      cells.push(['DISTANCE', `${km.toFixed(0)} km`, 'overview']);
+    }
+    cells.push(['STREAK', streak > 0 ? `${streak} d` : '—', 'posts']);
+  }
+
   $('headStats').innerHTML = cells.map(([k, v, go]) => `
     <button type="button" class="stat-cell" data-go="${go}">
       <span class="k">${esc(k)}</span>
       <span class="v" style="display:block;">${esc(v)}</span>
     </button>`).join('');
   $('headStats').hidden = false;
+}
+
+/**
+ * Which tabs exist for this subject.
+ *
+ * Overview and Milestones are derived from a full run history, so they are
+ * absent for a runner whose history RLS only shows in part. Settings is mine
+ * alone.
+ */
+function paintTabs() {
+  const allowed = new Set(isMe
+    ? ['overview', 'posts', 'milestones', 'squads', 'settings']
+    : [...(runsComplete ? ['overview', 'milestones'] : []), 'posts', 'squads']);
+  for (const btn of document.querySelectorAll('#tabs button')) {
+    btn.hidden = !allowed.has(btn.dataset.tab);
+  }
+  return allowed.has('overview') ? 'overview' : 'posts';
 }
 
 // ─── Overview ───────────────────────────────────────────────────────────────
@@ -291,7 +463,7 @@ function last12Weeks() {
 }
 
 function paintLoad() {
-  if (runs.length === 0) return;
+  if (runs.length === 0 || !runsComplete) return;
   const weeks = last12Weeks();
   const byWeek = new Map(weeks.map(w => [w, 0]));
   for (const r of runs) {
@@ -309,7 +481,7 @@ function paintLoad() {
     $('loadTrend').textContent = '';
     $('loadStats').innerHTML =
       '<div class="cell" style="grid-column:1/-1;"><div class="k">NOTHING IN THE LAST TWELVE WEEKS</div>'
-      + '<div class="d" style="color:#6A6A61;">Your older runs are still counted everywhere else on this page.</div></div>';
+      + `<div class="d" style="color:#6A6A61;">${isMe ? 'Your' : 'Their'} older runs are still counted everywhere else on this page.</div></div>`;
     $('loadCard').hidden = false;
     return;
   }
@@ -365,7 +537,7 @@ function paintLoad() {
  * is rather than borrowing the app's word for it.
  */
 function paintBests() {
-  if (runs.length === 0) return;
+  if (runs.length === 0 || !runsComplete) return;
 
   const fastestOver = (minKm) => {
     let best = null;
@@ -448,6 +620,7 @@ function paintBests() {
 // ─── Sidebar ────────────────────────────────────────────────────────────────
 
 function paintYear() {
+  if (!runsComplete) return;
   const year = new Date().getFullYear();
   const mine = runs.filter(r => new Date(r.started_at).getFullYear() === year);
   if (mine.length === 0) return;
@@ -468,19 +641,21 @@ function paintYear() {
     ['WEEKS RUN', String(byWeek.size)],
   ];
   $('yearK').textContent = `${year}`;
+  $('yearTitle').textContent = isMe ? 'Your running' : 'Their running';
   $('yearRows').innerHTML = cells.map(([k, v]) => `
     <div class="cell"><div class="k">${esc(k)}</div><div class="v">${esc(v)}</div></div>`).join('');
 
   // Say it plainly when the numbers do not cover everything.
   if (runs.length < runCount) {
     $('yearNote').textContent =
-      `TOTALS COVER YOUR MOST RECENT ${num(runs.length)} OF ${num(runCount)} RUNS`;
+      `TOTALS COVER THE MOST RECENT ${num(runs.length)} OF ${num(runCount)} RUNS`;
     $('yearNote').hidden = false;
   }
   $('yearCard').hidden = false;
 }
 
 function paintRecent() {
+  if (!runsComplete) return;
   const recent = runs.slice(0, 5);
   if (recent.length === 0) return;
   $('recentRows').innerHTML = recent.map(r => {
@@ -497,6 +672,19 @@ function paintRecent() {
   $('recentCard').hidden = false;
 }
 
+/** The app card is a pitch on my own profile and an explanation on someone
+ *  else's, where the missing blocks need a reason rather than a download link. */
+function paintAppCard() {
+  if (isMe) return;
+  $('appTitle').textContent = 'What you cannot see';
+  $('appBody').textContent = runsComplete
+    ? 'Their route traces, splits, badges and coach plan never leave their phone. '
+      + 'This page shows what has synced, and only to the squads you share.'
+    : 'You follow this runner but share no squad, so their run history stays private. '
+      + 'You see the posts they chose to share with followers, and nothing else.';
+  $('appStores').hidden = true;
+}
+
 // ─── Milestones ─────────────────────────────────────────────────────────────
 
 const DISTANCE_FIRSTS = [
@@ -509,15 +697,17 @@ const DISTANCE_FIRSTS = [
 /**
  * Firsts, derived rather than recorded.
  *
- * "First" means first in the rows this page can see, which is every run you
- * have synced — so it is right unless the pull was capped, and the note says so
- * when it was.
+ * "First" means first in the rows this page can see, which is the whole synced
+ * history — the tab does not exist otherwise — so it is right unless the pull
+ * was capped, and the note says so when it was.
  */
 function paintMilestones() {
   const oldestFirst = [...runs].sort(
     (a, b) => new Date(a.started_at) - new Date(b.started_at));
   if (oldestFirst.length === 0) {
-    msg($('mileMsg'), 'Log a run in the app and your firsts show up here.');
+    msg($('mileMsg'), isMe
+      ? 'Log a run in the app and your firsts show up here.'
+      : 'No runs have synced for this runner yet.');
     $('mileCard').hidden = true;
     return;
   }
@@ -571,7 +761,7 @@ function paintMilestones() {
   $('mileCard').hidden = false;
 
   msg($('mileMsg'), runs.length < runCount
-    ? `Firsts are read from your most recent ${num(runs.length)} runs.`
+    ? `Firsts are read from the most recent ${num(runs.length)} runs.`
     : null);
 }
 
@@ -580,14 +770,16 @@ function paintMilestones() {
 async function paintSquads() {
   const host = $('squadRows');
   if (squads.length === 0) {
-    $('squadsHead').textContent = 'SQUADS';
-    host.innerHTML = '<div class="card-empty">You are not in a squad yet. '
-      + 'Join or create one in the app and it will show up here.</div>';
+    $('squadsHead').textContent = isMe ? 'SQUADS' : 'SQUADS YOU SHARE';
+    host.innerHTML = `<div class="card-empty">${isMe
+      ? 'You are not in a squad yet. Join or create one in the app and it will show up here.'
+      : 'You share no squad with this runner. You can see them because you follow them.'}</div>`;
     return;
   }
   const tally = await memberCounts(squads.map(s => s.id));
-  $('squadsHead').textContent =
-    `SQUADS & CLUBS — ${squads.length} JOINED`;
+  $('squadsHead').textContent = isMe
+    ? `SQUADS & CLUBS — ${squads.length} JOINED`
+    : `SQUADS YOU SHARE — ${squads.length}`;
   host.innerHTML = squads.map(s => {
     const n = tally.get(s.id) ?? 0;
     const meta = [
@@ -607,14 +799,17 @@ async function paintSquads() {
 }
 
 /**
- * Followers and Following.
+ * Followers and Following — mine only.
  *
  * The follows table lets me see the edges I am an endpoint of, but a NAME needs
  * public.users, which I may read only for squadmates and for people I follow.
  * So Following always resolves and Followers may not: a stranger who follows me
  * is a row I can count and cannot name. That is the schema working as designed
- * — there is no "who follows X" for anyone — so the unnameable ones are
- * reported as a number instead of being rendered as blank rows.
+ * — there is no "who follows X" for anyone, mine included, which is also why
+ * this card does not exist on someone else's profile.
+ *
+ * Every name that DOES resolve is a link to that runner's profile, which is the
+ * only way into one: there is no directory, and no URL you can construct.
  */
 async function paintPeople() {
   const host = $('peopleRows');
@@ -635,7 +830,7 @@ async function paintPeople() {
   }
 
   const ids = edges.map(e => e.userId);
-  let people = new Map();
+  const people = new Map();
   try {
     const { data } = await sb.from('users')
       .select('id, display_name, avatar_path, home_neighborhood, current_streak_days')
@@ -653,6 +848,7 @@ async function paintPeople() {
   for (const edge of edges) {
     const u = people.get(edge.userId);
     if (!u) { hidden += 1; continue; }
+    const href = profileHref(u.id);
     const url = u.avatar_path ? signed.get(u.avatar_path) : null;
     const streak = Number(u.current_streak_days) || 0;
     const meta = [
@@ -660,13 +856,17 @@ async function paintPeople() {
       streak > 0 ? `${streak}-DAY STREAK` : null,
       edge.since ? `SINCE ${fmtMonth(edge.since).toUpperCase()}` : null,
     ].filter(Boolean).slice(0, 2).join(' · ');
-    rows.push(`<div class="person">
-      <div class="person-av">${url ? `<img src="${esc(url)}" alt="">` : esc(initials(u.display_name))}</div>
+    // No href should be unreachable — the id came from a uuid column — but a
+    // plain div is the right fallback if one ever is.
+    const tag = href ? 'a' : 'div';
+    rows.push(`<${tag} class="person"${href ? ` href="${esc(href)}"` : ''}>
+      <div class="person-av">${faceHtml(u.display_name, url)}</div>
       <div class="person-main">
         <div class="person-name">${esc(u.display_name ?? '—')}</div>
         <div class="person-meta">${esc(meta)}</div>
       </div>
-    </div>`);
+      <span class="person-go">→</span>
+    </${tag}>`);
   }
 
   host.innerHTML = rows.join('') || '<div class="card-empty">Nobody here you can see.</div>';
@@ -714,12 +914,12 @@ function headlineHtml(p) {
 function postHtml(p) {
   const audience = p.visibility === 'public' ? 'PUBLIC'
     : p.visibility === 'followers' ? 'FOLLOWERS' : 'SQUAD';
-  const likes = `${num(p.like_count)} ${p.like_count === 1 ? 'kudos' : 'kudos'}`;
+  const likes = `${num(p.like_count)} kudos`;
   const comments = `${num(p.comment_count)} ${p.comment_count === 1 ? 'comment' : 'comments'}`;
   return `
     <article class="post">
       <div class="post-top">
-        <div class="avatar">${p.avatar_html}</div>
+        <div class="avatar">${subjectFaceHtml}</div>
         <div class="post-who">
           <div class="post-name-row"><span class="post-name">${esc(p.author_name)}</span></div>
           <div class="post-meta">${esc(timeAgo(p.created_at))}${p.pinned ? ' · PINNED' : ''}</div>
@@ -747,7 +947,7 @@ async function loadPosts({ reset }) {
   try {
     let q = sb.from('posts')
       .select(POST_SELECT)
-      .eq('author_id', me.id)
+      .eq('author_id', subjectId)
       .order('created_at', { ascending: false })
       .order('id', { ascending: false })
       .limit(PAGE_SIZE);
@@ -764,12 +964,8 @@ async function loadPosts({ reset }) {
     const urlByPath = await signedUrlsFor(sb, 'post-images',
       rows.map(r => r.image_path).filter(Boolean));
 
-    // One avatar, mine, on every card — resolved once for the whole page.
-    const avatarHtml = $('pAvatar').innerHTML;
-
     const html = rows.map(row => postHtml({
-      author_name: profile?.display_name ?? me.email ?? '—',
-      avatar_html: avatarHtml,
+      author_name: subject?.display_name ?? me.email ?? '—',
       body: row.body,
       image_url: row.image_path ? (urlByPath.get(row.image_path) ?? null) : null,
       run: row.run ?? null,
@@ -789,21 +985,23 @@ async function loadPosts({ reset }) {
 
     const total = $('myPosts').children.length;
     msg($('postsMsg'), total === 0
-      ? 'You have not posted yet. Runs and photos are posted from the app, or from the composer on your feed.'
+      ? (isMe
+        ? 'You have not posted yet. Runs and photos are posted from the app, or from the composer on your feed.'
+        : 'Nothing from this runner that you can see. Posts reach their squads first, and only what they send to followers reaches you.')
       : null);
     if (tab === 'posts') paintCountLine();
   } catch (e) {
-    console.warn('[pacr] my posts failed', e);
-    msg($('postsMsg'), "Couldn't load your posts. Refresh to try again.", 'err');
+    console.warn('[pacr] profile posts failed', e);
+    msg($('postsMsg'), "Couldn't load these posts. Refresh to try again.", 'err');
   } finally {
     postsLoading = false;
   }
 }
 
-// ─── Settings ───────────────────────────────────────────────────────────────
+// ─── Settings (mine only) ───────────────────────────────────────────────────
 
 function paintSettings() {
-  const name = profile?.display_name ?? '—';
+  const name = subject?.display_name ?? '—';
   $('accountRows').innerHTML = `
     <div class="set-row">
       <div class="set-main">
@@ -871,6 +1069,44 @@ async function onRetract() {
   if (loaded.posts) await loadPosts({ reset: true });
 }
 
+/**
+ * Follow / unfollow the runner this page is about.
+ *
+ * Unfollowing a runner you share no squad with costs you the sight of them, so
+ * it asks first. Unfollowing a squadmate does not — their squad posts are still
+ * yours to see, and a confirm on a reversible act is noise.
+ */
+async function onFollowToggle(btn) {
+  if (isMe || !subjectId) return;
+  if (rel.iFollow) {
+    if (rel.sharedSquads.length === 0) {
+      const yes = await openModal({
+        title: `Unfollow ${subject?.display_name ?? 'this runner'}?`,
+        body: '<p>You share no squad, so this is the whole connection: their posts leave your '
+          + 'Following feed and this profile stops showing them.</p><p>You can follow again later.</p>',
+        options: [
+          { label: 'Cancel', value: false },
+          { label: 'Unfollow', value: true, primary: true },
+        ],
+      });
+      if (!yes) return;
+    }
+    btn.disabled = true;
+    const ok = await unfollowUser(sb, me.id, subjectId);
+    btn.disabled = false;
+    if (!ok) return msg($('idMsg'), 'Something went wrong. Try again.', 'err');
+    rel.iFollow = false;
+  } else {
+    btn.disabled = true;
+    const res = await followUser(sb, me.id, subjectId);
+    btn.disabled = false;
+    if (!res.ok) return msg($('idMsg'), reasonMessage(res.reason), 'err');
+    rel.iFollow = true;
+  }
+  msg($('idMsg'), null);
+  paintActions();
+}
+
 // ─── Tabs ───────────────────────────────────────────────────────────────────
 
 function paintCountLine() {
@@ -881,16 +1117,18 @@ function paintCountLine() {
     const n = $('myPosts').children.length;
     el.textContent = postCursor ? `${num(n)}+ POSTS` : `${num(n)} ${n === 1 ? 'POST' : 'POSTS'}`;
   } else if (tab === 'squads') {
-    el.textContent = `${squads.length} ${squads.length === 1 ? 'SQUAD' : 'SQUADS'} · ${num(counts.following)} FOLLOWING`;
+    el.textContent = isMe
+      ? `${squads.length} ${squads.length === 1 ? 'SQUAD' : 'SQUADS'} · ${num(counts.following)} FOLLOWING`
+      : `${squads.length} ${squads.length === 1 ? 'SQUAD' : 'SQUADS'} IN COMMON`;
   } else if (tab === 'milestones') {
-    el.textContent = 'DERIVED FROM YOUR SYNCED RUNS';
+    el.textContent = 'DERIVED FROM SYNCED RUNS';
   } else {
     el.textContent = '';
   }
 }
 
-async function switchTab(next) {
-  if (tab === next) return;
+async function switchTab(next, { force = false } = {}) {
+  if (tab === next && !force) return;
   tab = next;
   for (const b of document.querySelectorAll('#tabs button')) {
     b.setAttribute('aria-selected', String(b.dataset.tab === next));
@@ -907,7 +1145,8 @@ async function switchTab(next) {
     await loadPosts({ reset: true });
   } else if (next === 'squads' && !loaded.squads) {
     loaded.squads = true;
-    await Promise.all([paintSquads(), paintPeople()]);
+    await paintSquads();
+    if (isMe) await paintPeople();
   }
 }
 
@@ -921,10 +1160,19 @@ function wire() {
 
   $('headStats').addEventListener('click', (e) => {
     const cell = e.target.closest('button[data-go]');
-    if (cell) switchTab(cell.dataset.go);
+    // A cell can point at a tab this subject does not have (the streak cell
+    // falls back to posts); only follow it when the tab is actually there.
+    if (!cell) return;
+    const btn = document.querySelector(`#tabs button[data-tab="${cell.dataset.go}"]`);
+    if (btn && !btn.hidden) switchTab(cell.dataset.go);
   });
 
   $('moreBtn').addEventListener('click', () => loadPosts({ reset: false }));
+
+  $('idActs').addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-act="follow"]');
+    if (btn) onFollowToggle(btn);
+  });
 
   $('peopleCard').addEventListener('click', async (e) => {
     const btn = e.target.closest('button[data-people]');
@@ -952,39 +1200,55 @@ async function step(label, fn) {
   try { await fn(); } catch (e) { console.error(`[pacr] profile step "${label}" failed`, e); }
 }
 
+/** RLS said no: the runner exists or does not, and either way this viewer has
+ *  no relationship that makes them visible. One page for both, so the answer
+ *  does not confirm whether a ref names anybody. */
+function showDenied() {
+  $('paneBoot').hidden = true;
+  $('paneDenied').hidden = false;
+}
+
 async function showProfile() {
   $('paneBoot').hidden = true;
+
+  await loadPeopleRows();
+  if (!subject) return showDenied();
+
   $('paneProfile').hidden = false;
-
-  await step('identity', async () => {
-    const { data } = await sb.from('users')
-      .select('display_name, avatar_path, home_neighborhood, current_streak_days, created_at')
-      .eq('id', me.id)
-      .maybeSingle();
-    profile = data ?? null;
-    await paintIdentity();
-  });
-
   wire();
-  paintSettings();
+
+  if (!isMe) await step('relationship', loadRelationship);
+  runsComplete = isMe || rel.sharedSquads.length > 0;
+
+  paintIdentity();
+  paintActions();
+  if (isMe) paintSettings();
 
   // The runs are the page; the counts around them are not allowed to take them
   // down, so each of these is guarded on its own.
   await step('runs', loadRuns);
-  await step('counts', async () => { counts = await followCounts(sb, me.id); });
-  await step('squads', async () => { squads = await loadSquads(); });
+  if (isMe) {
+    await step('counts', async () => { counts = await followCounts(sb, me.id); });
+    await step('squads', async () => { squads = await loadMySquads(); });
+  } else {
+    await step('posts count', loadPostCount);
+    squads = rel.sharedSquads;
+  }
 
+  const first = paintTabs();
   await step('headStats', paintHeadStats);
   await step('load', paintLoad);
   await step('bests', paintBests);
   await step('year', paintYear);
   await step('recent', paintRecent);
-  await step('milestones', paintMilestones);
-  paintCountLine();
+  paintAppCard();
+  if (runsComplete) await step('milestones', paintMilestones);
+  await switchTab(first, { force: true });
 
-  if (runs.length === 0) {
-    msg($('overviewMsg'),
-      'No runs have synced to this account yet. Runs recorded in the app show up here once they sync.');
+  if (runsComplete && runs.length === 0) {
+    msg($('overviewMsg'), isMe
+      ? 'No runs have synced to this account yet. Runs recorded in the app show up here once they sync.'
+      : 'No runs have synced for this runner yet.');
   }
 }
 
@@ -996,18 +1260,32 @@ export async function initProfile() {
   // nobody should be able to press Back into a profile they cannot see.
   const user = sb ? (await sb.auth.getSession()).data?.session?.user : null;
   if (!user) {
-    location.replace(signinHref('/profile'));
+    location.replace(signinHref('/profile' + location.search));
     return;
   }
 
   me = user;
+  const ref = new URLSearchParams(location.search).get('r');
+  const refId = ref ? decodeUserRef(ref) : null;
+  // A ref that does not decode is treated as a profile you cannot see, not as
+  // your own: silently showing someone their own profile from a broken link
+  // would be the wrong answer to "whose page is this?".
+  isMe = !ref || refId === me.id;
+  subjectId = isMe ? me.id : refId;
+
   mountHeaderAuth($('authSlot'), { className: 'btn-quiet', signOutTo: '/' });
+
+  if (!subjectId) {
+    $('paneBoot').hidden = true;
+    return showDenied();
+  }
+
   try {
     await showProfile();
   } catch (e) {
     console.error('[pacr] profile failed to start', e);
     $('paneBoot').hidden = true;
     $('paneProfile').hidden = false;
-    msg($('overviewMsg'), 'Something went wrong loading your profile. Refresh to try again.', 'err');
+    msg($('overviewMsg'), 'Something went wrong loading this profile. Refresh to try again.', 'err');
   }
 }
