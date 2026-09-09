@@ -37,6 +37,55 @@ export async function listFollowingIds(sb, meId) {
   }
 }
 
+/**
+ * How many follow me, and how many I follow.
+ *
+ * Counted server-side rather than by pulling the edges: follows_select_own lets
+ * me see every row I am an endpoint of, and the follower half of that is the
+ * half a profile page wants as a number and cannot always name (users is only
+ * readable for squadmates and for people I follow back).
+ */
+export async function followCounts(sb, meId) {
+  const out = { followers: 0, following: 0 };
+  if (!sb) return out;
+  const one = async (column) => {
+    try {
+      const { count, error } = await sb.from('follows')
+        .select('follower_id', { count: 'exact', head: true })
+        .eq(column, meId);
+      return error ? 0 : (Number(count) || 0);
+    } catch {
+      return 0;
+    }
+  };
+  const [followers, following] = await Promise.all([
+    one('followee_id'), one('follower_id'),
+  ]);
+  return { followers, following };
+}
+
+/**
+ * The edges themselves, newest first: 'following' returns who I follow,
+ * 'followers' returns who follows me. Ids and dates only — resolving a name is
+ * the caller's job, because whether a name resolves is an RLS question.
+ */
+export async function listFollowEdges(sb, meId, view = 'following', limit = 200) {
+  if (!sb) return [];
+  const mine = view === 'followers' ? 'followee_id' : 'follower_id';
+  const theirs = view === 'followers' ? 'follower_id' : 'followee_id';
+  try {
+    const { data, error } = await sb.from('follows')
+      .select(`${theirs}, created_at`)
+      .eq(mine, meId)
+      .order('created_at', { ascending: false })
+      .limit(limit);
+    if (error) return [];
+    return (data ?? []).map(r => ({ userId: r[theirs], since: r.created_at }));
+  } catch {
+    return [];
+  }
+}
+
 export async function followUser(sb, meId, userId) {
   if (!sb) return { ok: false, reason: 'error' };
   try {

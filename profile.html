@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Your profile — PACR</title>
+<meta name="description" content="Your runs, squads and following on PACR." />
+<meta name="robots" content="noindex" />
+<link rel="canonical" href="https://pacr.life/profile" />
+<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+<link rel="icon" type="image/png" sizes="32x32" href="/brand-acid/favicon.png" />
+<link rel="apple-touch-icon" href="/brand-acid/icon-512.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* ─────────────────────────────────────────────────────────────────────────
+     PACR — Profile. Implements "PACR Profile.dc.html" from the Claude Design
+     project (PACR AI Running Coach). Colours, type, spacing and component
+     structure are lifted from that file; the canvas markup's inline styles are
+     collected into classes here so the page can be driven by real data instead
+     of the design's sc-for placeholders. Shared component classes (.post,
+     .side-card, .stat-strip, .chip, .msg, modal) are kept byte-identical to
+     feed.html so the two signed-in pages cannot drift apart visually.
+     ───────────────────────────────────────────────────────────────────────── */
+  html, body { margin:0; padding:0; background:#FFFFFF; color:#0F0F0D;
+               font-family:Manrope, Helvetica, sans-serif; overflow-x:clip; }
+  * { box-sizing:border-box; }
+  a { color:#5A6B00; text-decoration:none; }
+  a:hover { color:#0F0F0D; }
+  ::selection { background:#E8FF3A; color:#0A0A09; }
+  img { -webkit-user-drag:none; max-width:100%; }
+  [hidden] { display:none !important; }
+  @keyframes pacr-pulse { 0%,100% { opacity:1; } 50% { opacity:0.25; } }
+
+  /* ── Header ─────────────────────────────────────────────────────────────── */
+  .site-head { position:sticky; top:0; z-index:30; display:flex; align-items:center;
+    justify-content:space-between; gap:24px; padding:16px 40px;
+    background:rgba(255,255,255,0.85); backdrop-filter:blur(14px); border-bottom:1px solid #E3E3DA; }
+  .brand { display:flex; align-items:center; gap:12px; color:#0F0F0D; }
+  .brand img { width:34px; height:34px; border-radius:8px; display:block; }
+  .brand span { font-family:Outfit, sans-serif; font-weight:700; font-size:20px; letter-spacing:0.14em; }
+  .site-nav { display:flex; align-items:center; gap:34px; font-weight:600; font-size:12px;
+    letter-spacing:0.14em; text-transform:uppercase; color:#5C5C54; }
+  .site-nav a { color:inherit; }
+  .site-nav a:hover { color:#0F0F0D; }
+  .site-nav a.on { color:#0F0F0D; border-bottom:2px solid #E8FF3A; padding-bottom:3px; }
+  .head-right { display:flex; align-items:center; gap:16px; }
+  .avatar-me { width:34px; height:34px; border-radius:50%; background:#E8FF3A; color:#0A0A09;
+    font-weight:700; font-size:12px; display:flex; align-items:center; justify-content:center; flex:none;
+    overflow:hidden; }
+  .avatar-me img { width:100%; height:100%; object-fit:cover; display:block; }
+  @media (max-width:900px) { .site-nav { display:none; } .site-head { padding:16px 22px; } }
+
+  /* ── Cover band ─────────────────────────────────────────────────────────────
+     The design's cover is a dashed 1600×400 drop target ("drop a finish-line
+     shot"). There is no cover photo anywhere in this product — not on the user
+     row, not in a bucket — so the band keeps the design's diagonal acid stripes
+     and drops the upload affordance rather than offering one that goes nowhere. */
+  .cover { position:relative; height:200px; background:#F2F2EC; border-bottom:1px solid #E3E3DA;
+    overflow:hidden; }
+  .cover::after { content:''; position:absolute; inset:0;
+    background:repeating-linear-gradient(115deg, rgba(232,255,58,0.18) 0 14px, transparent 14px 28px); }
+  @media (max-width:760px) { .cover { height:132px; } }
+
+  /* ── Identity band ──────────────────────────────────────────────────────── */
+  .idband { border-bottom:1px solid #E3E3DA; }
+  .idband-in { max-width:1280px; margin:0 auto; padding:0 40px 30px;
+    display:flex; align-items:flex-end; gap:32px; flex-wrap:wrap; }
+  .id-photo { position:relative; margin-top:-64px; flex:none; width:148px; height:148px;
+    border-radius:50%; background:#E8FF3A; border:6px solid #FFFFFF; overflow:hidden;
+    display:flex; align-items:center; justify-content:center;
+    font-family:Outfit, sans-serif; font-weight:700; font-size:44px; color:#0A0A09; }
+  .id-photo img { width:100%; height:100%; object-fit:cover; display:block; }
+  .id-main { flex:1; min-width:280px; padding-top:24px; }
+  .id-name-row { display:flex; align-items:baseline; gap:14px; flex-wrap:wrap; }
+  .id-name { font-family:Outfit, sans-serif; font-weight:700; font-size:clamp(32px,4vw,52px);
+    line-height:0.95; letter-spacing:-0.03em; text-transform:uppercase; margin:0; }
+  .id-meta { display:flex; gap:22px; flex-wrap:wrap; margin-top:16px; font-weight:600; font-size:11px;
+    letter-spacing:0.12em; text-transform:uppercase; color:#6A6A61; }
+  .id-meta .live { color:#5A6B00; }
+  .id-acts { display:flex; align-items:center; gap:10px; padding-top:24px; flex-wrap:wrap; }
+  @media (max-width:760px) {
+    .idband-in { padding:0 22px 24px; gap:20px; }
+    .id-photo { width:104px; height:104px; font-size:32px; margin-top:-46px; border-width:5px; }
+    .id-main { min-width:0; padding-top:16px; }
+    .id-acts { padding-top:4px; }
+  }
+
+  .stat-strip { display:flex; gap:1px; background:#E3E3DA; border:1px solid #E3E3DA; flex-wrap:wrap;
+    max-width:1280px; margin:0 auto 30px; }
+  .stat-cell { background:#FFFFFF; padding:18px 26px; flex:1; min-width:150px; text-align:left;
+    border:0; font-family:Manrope, sans-serif; cursor:pointer; }
+  .stat-cell:hover { background:#F7F7F3; }
+  .stat-cell .k { font-weight:600; font-size:10px; letter-spacing:0.14em; color:#6A6A61; }
+  .stat-cell .v { font-family:Outfit, sans-serif; font-weight:700; font-size:28px; margin-top:8px;
+    font-variant-numeric:tabular-nums; }
+  .strip-wrap { padding:0 40px; }
+  @media (max-width:760px) { .strip-wrap { padding:0 22px; } }
+  @media (max-width:620px) {
+    .stat-cell { min-width:0; flex:1 1 33%; padding:14px 12px; }
+    .stat-cell .v { font-size:20px; }
+  }
+
+  /* ── Tab rail ───────────────────────────────────────────────────────────── */
+  .tabrail { position:sticky; top:67px; z-index:20; background:rgba(255,255,255,0.94);
+    backdrop-filter:blur(10px); border-bottom:1px solid #E3E3DA; }
+  .tabrail-in { max-width:1280px; margin:0 auto; padding:0 40px; display:flex; align-items:center;
+    justify-content:space-between; gap:24px; flex-wrap:wrap; padding-top:6px; }
+  .tabs { display:flex; gap:26px; flex-wrap:wrap; }
+  .tabs button { display:flex; flex-direction:column; gap:11px; cursor:pointer; background:none;
+    border:0; padding:0; font-family:Manrope, sans-serif; font-weight:600; font-size:11px;
+    letter-spacing:0.16em; text-transform:uppercase; color:#6A6A61; }
+  .tabs button:hover { color:#0F0F0D; }
+  .tabs button[aria-selected="true"] { color:#0F0F0D; }
+  .tabs button .bar { display:block; height:3px; background:#E9E9E1; }
+  .tabs button[aria-selected="true"] .bar { background:#E8FF3A; }
+  .countline { font-weight:600; font-size:10px; letter-spacing:0.14em; color:#6A6A61; padding-bottom:14px; }
+  @media (max-width:760px) { .tabrail-in { padding:6px 22px 0; gap:14px; } .tabs { gap:18px; } }
+
+  /* ── Layout ─────────────────────────────────────────────────────────────── */
+  .wrap { max-width:1280px; margin:0 auto; padding:34px 40px 96px;
+    display:grid; grid-template-columns:minmax(0,1.55fr) minmax(0,0.85fr); gap:40px; align-items:start; }
+  .col-main { display:flex; flex-direction:column; gap:24px; }
+  .col-side { display:flex; flex-direction:column; gap:24px; position:sticky; top:150px; }
+  @media (max-width:1000px) {
+    .wrap { grid-template-columns:minmax(0,1fr); padding:28px 22px 64px; }
+    .col-side { position:static; }
+  }
+
+  /* ── Cards ──────────────────────────────────────────────────────────────── */
+  .card { border:1px solid #E3E3DA; background:#FFFFFF; }
+  .card-head { padding:18px 22px; border-bottom:1px solid #E3E3DA; display:flex; align-items:baseline;
+    justify-content:space-between; gap:16px; flex-wrap:wrap;
+    font-weight:600; font-size:10px; letter-spacing:0.14em; color:#6A6A61; }
+  .card-head .accent { color:#5A6B00; }
+  .card-body { padding:24px 22px; }
+  .card-note { padding:14px 22px; border-top:1px solid #E3E3DA; font-weight:600; font-size:10px;
+    letter-spacing:0.14em; color:#6A6A61; }
+  .card-empty { padding:22px; font-size:14px; line-height:1.6; color:#8B8B80; }
+
+  /* Twelve-week load, the design's bar block. */
+  .bars { display:flex; align-items:flex-end; gap:7px; height:120px; }
+  .bars span { display:block; flex:1 1 0; min-width:5px; background:#DFDFD5; }
+  .bars span.mid { background:#C9D96A; }
+  .bars span.now { background:#E8FF3A; border-top:1px solid #A8BC00; }
+  .bars-axis { display:flex; justify-content:space-between; margin-top:12px; font-weight:600;
+    font-size:10px; letter-spacing:0.1em; color:#6A6A61; }
+  .quad { display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:1px; background:#E3E3DA;
+    border-top:1px solid #E3E3DA; }
+  .quad .cell { background:#FFFFFF; padding:18px 20px; }
+  .quad .k { font-weight:600; font-size:9px; letter-spacing:0.14em; color:#6A6A61; }
+  .quad .v { font-family:Outfit, sans-serif; font-weight:700; font-size:22px; margin-top:6px;
+    font-variant-numeric:tabular-nums; }
+  .quad .d { font-weight:600; font-size:10px; letter-spacing:0.08em; color:#5A6B00; margin-top:5px; }
+  @media (max-width:620px) { .quad { grid-template-columns:repeat(2, minmax(0,1fr)); } }
+
+  /* Bests table. */
+  .best-row { display:flex; align-items:center; gap:18px; padding:15px 22px;
+    border-bottom:1px solid #EFEFE8; background:#FFFFFF; flex-wrap:wrap; }
+  .best-row.top { background:rgba(232,255,58,0.28); }
+  .best-k { font-family:Outfit, sans-serif; font-weight:700; font-size:15px; text-transform:uppercase;
+    width:150px; flex:none; }
+  .best-v { font-family:Outfit, sans-serif; font-weight:700; font-size:20px; width:110px; flex:none;
+    font-variant-numeric:tabular-nums; }
+  .best-w { flex:1; min-width:0; font-weight:600; font-size:11px; letter-spacing:0.1em; color:#6A6A61;
+    text-transform:uppercase; }
+  @media (max-width:620px) {
+    .best-k { width:100%; font-size:13px; }
+    .best-v { width:auto; }
+    .best-w { flex:1 1 100%; }
+  }
+
+  /* Milestones. */
+  .mile-row { display:flex; gap:20px; padding:18px 22px; border-bottom:1px solid #EFEFE8; flex-wrap:wrap; }
+  .mile-date { font-weight:600; font-size:10px; letter-spacing:0.12em; color:#6A6A61; width:96px;
+    flex:none; padding-top:4px; text-transform:uppercase; }
+  .mile-main { flex:1; min-width:180px; }
+  .mile-title { font-family:Outfit, sans-serif; font-weight:700; font-size:18px; text-transform:uppercase; }
+  .mile-detail { font-size:14px; line-height:1.6; color:#5C5C54; margin-top:6px; }
+  .mile-val { font-weight:600; font-size:11px; letter-spacing:0.08em; color:#5A6B00; flex:none;
+    font-variant-numeric:tabular-nums; }
+
+  /* Squads + people. */
+  .squad-row { display:flex; align-items:center; gap:18px; padding:20px 22px;
+    border-bottom:1px solid #EFEFE8; flex-wrap:wrap; }
+  .squad-chip { width:46px; height:46px; background:#E8FF3A; color:#0A0A09; font-family:Outfit, sans-serif;
+    font-weight:700; font-size:14px; display:flex; align-items:center; justify-content:center; flex:none; }
+  .squad-chip.guest { background:#EDEDE5; }
+  .squad-main { flex:1; min-width:180px; }
+  .squad-name { font-family:Outfit, sans-serif; font-weight:700; font-size:19px; text-transform:uppercase; }
+  .squad-meta { font-weight:600; font-size:10px; letter-spacing:0.1em; color:#6A6A61; margin-top:5px;
+    text-transform:uppercase; }
+  .squad-role { font-weight:600; font-size:11px; letter-spacing:0.1em; color:#5A6B00; text-transform:uppercase; }
+
+  /* Hairlines come from the cells, not from a 1px gap over a grey ground: an
+     auto-fill grid's LAST row is usually short, and a grey ground shows through
+     the empty tracks as phantom tiles. The negative margins push the trailing
+     right and bottom borders under the card's own border, which is the same
+     colour, so no doubled line survives either. */
+  .people { display:grid; grid-template-columns:repeat(auto-fill, minmax(240px,1fr));
+    background:#FFFFFF; margin:0 -1px -1px 0; }
+  .person { background:#FFFFFF; padding:18px 20px; display:flex; align-items:center; gap:14px;
+    border-right:1px solid #E3E3DA; border-bottom:1px solid #E3E3DA; }
+  .people .card-empty { grid-column:1/-1; }
+  .person-av { width:38px; height:38px; border-radius:50%; background:#DFDFD5; color:#3F4A00;
+    font-weight:700; font-size:12px; display:flex; align-items:center; justify-content:center; flex:none;
+    overflow:hidden; }
+  .person-av img { width:100%; height:100%; object-fit:cover; display:block; }
+  .person-main { flex:1; min-width:0; }
+  .person-name { font-size:14px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .person-meta { font-weight:600; font-size:10px; letter-spacing:0.1em; color:#6A6A61; margin-top:3px;
+    text-transform:uppercase; }
+
+  /* Settings rows. */
+  .set-row { display:flex; align-items:center; gap:20px; padding:18px 22px;
+    border-bottom:1px solid #EFEFE8; flex-wrap:wrap; }
+  .set-main { flex:1; min-width:220px; }
+  .set-title { font-size:15px; font-weight:600; }
+  .set-help { font-size:13px; line-height:1.55; color:#6A6A61; margin-top:4px; max-width:56ch; }
+
+  /* ── Post card (identical to feed.html) ─────────────────────────────────── */
+  .post { border:1px solid #E3E3DA; background:#FFFFFF; }
+  .post-top { display:flex; align-items:center; gap:14px; padding:18px 22px; border-bottom:1px solid #E3E3DA; }
+  .avatar { width:38px; height:38px; border-radius:50%; background:#C8C8BD; color:#3F4A00;
+    font-weight:700; font-size:12px; display:flex; align-items:center; justify-content:center; flex:none;
+    overflow:hidden; }
+  .avatar img { width:100%; height:100%; object-fit:cover; display:block; }
+  .post-who { flex:1; min-width:0; }
+  .post-name-row { display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; }
+  .post-name { font-size:16px; font-weight:600; }
+  .post-club { font-weight:600; font-size:10px; letter-spacing:0.12em; text-transform:uppercase;
+    color:#5A6B00; border-bottom:2px solid #E8FF3A; }
+  .post-meta { font-weight:600; font-size:10px; letter-spacing:0.1em; color:#6A6A61; margin-top:4px; }
+  .post-tag { font-weight:600; font-size:10px; letter-spacing:0.14em; color:#6A6A61; white-space:nowrap; }
+  .post-lede { padding:22px 22px 0; }
+  .post-headline { font-family:Outfit, sans-serif; font-weight:700; font-size:23px;
+    text-transform:uppercase; line-height:1.05; }
+  .post-body { font-size:15px; line-height:1.65; color:#5C5C54; margin:12px 0 0; max-width:62ch;
+    white-space:pre-wrap; overflow-wrap:anywhere; }
+  .mention { color:#5A6B00; font-weight:600; }
+  .post-stats { display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:1px; background:#E3E3DA;
+    border-top:1px solid #E3E3DA; border-bottom:1px solid #E3E3DA; margin-top:22px; }
+  .post-stats .cell { background:#FFFFFF; padding:16px 20px; }
+  .post-stats .k { font-weight:600; font-size:9px; letter-spacing:0.14em; color:#6A6A61; }
+  .post-stats .v { font-family:Outfit, sans-serif; font-weight:700; font-size:19px; margin-top:6px;
+    font-variant-numeric:tabular-nums; }
+  @media (max-width:620px) { .post-stats { grid-template-columns:repeat(2, minmax(0,1fr)); } }
+  .post-media { position:relative; width:100%; height:min(560px, 52vh);
+    display:flex; align-items:center; justify-content:center;
+    background:#EAEAE2; border-top:1px solid #E3E3DA; overflow:hidden; }
+  .post-media img { display:block; max-width:100%; max-height:100%; width:auto; height:auto; object-fit:contain; }
+  @media (max-width:620px) { .post-media { height:min(420px, 44vh); } }
+  .post-foot { display:flex; align-items:center; justify-content:space-between; gap:16px;
+    flex-wrap:wrap; border-top:1px solid #E3E3DA; padding:14px 22px; }
+  .post-foot .counts { font-weight:600; font-size:11px; letter-spacing:0.1em; color:#5C5C54; }
+  .post-foot a { font-weight:600; font-size:11px; letter-spacing:0.14em; text-transform:uppercase; color:#6A6A61; }
+  .post-foot a:hover { color:#0F0F0D; }
+
+  /* ── Sidebar cards (identical to feed.html) ─────────────────────────────── */
+  .side-card { border:1px solid #E3E3DA; background:#FFFFFF; }
+  .side-head { padding:18px 20px; border-bottom:1px solid #E3E3DA; }
+  .side-k { font-weight:600; font-size:10px; letter-spacing:0.14em; color:#6A6A61; }
+  .side-title { font-family:Outfit, sans-serif; font-weight:700; font-size:20px;
+    text-transform:uppercase; margin-top:8px; }
+  .side-foot { display:block; padding:14px 20px; border-top:1px solid #E3E3DA; font-weight:600;
+    font-size:10px; letter-spacing:0.14em; color:#6A6A61; }
+  .side-foot:hover { color:#5A6B00; }
+  .side-note { padding:14px 20px; font-weight:600; font-size:10px; letter-spacing:0.14em; color:#6A6A61; }
+  .side-empty { padding:18px 20px; font-size:14px; line-height:1.55; color:#8B8B80; }
+  .side-grid { display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:1px; background:#E3E3DA; }
+  .side-grid .cell { background:#FFFFFF; padding:16px 20px; }
+  .side-grid .k { font-weight:600; font-size:9px; letter-spacing:0.14em; color:#6A6A61; }
+  .side-grid .v { font-family:Outfit, sans-serif; font-weight:700; font-size:21px; margin-top:6px;
+    font-variant-numeric:tabular-nums; }
+  .run-row { background:#FFFFFF; padding:15px 20px; display:flex; align-items:center;
+    justify-content:space-between; gap:14px; border-bottom:1px solid #EFEFE8; }
+  .run-row:last-child { border-bottom:0; }
+  .run-name { display:block; font-size:14px; font-weight:600; font-variant-numeric:tabular-nums; }
+  .run-meta { display:block; font-weight:600; font-size:10px; letter-spacing:0.1em; color:#6A6A61; margin-top:3px;
+    text-transform:uppercase; }
+  .run-val { font-weight:600; font-size:11px; color:#5A6B00; white-space:nowrap; font-variant-numeric:tabular-nums; }
+  .stores { display:flex; gap:12px; flex-wrap:wrap; padding:18px 20px; align-items:center; }
+  .stores img { height:40px; width:auto; display:block; }
+
+  /* ── Buttons and misc (identical to feed.html) ──────────────────────────── */
+  .btn { font-weight:600; font-size:12px; letter-spacing:0.14em; text-transform:uppercase;
+    background:#E8FF3A; color:#0A0A09; border:1px solid #E8FF3A; padding:13px 24px; cursor:pointer; }
+  .btn:hover { background:#0A0A09; border-color:#0A0A09; color:#E8FF3A; }
+  .btn[disabled] { opacity:0.45; cursor:default; }
+  .btn-outline { font-weight:600; font-size:12px; letter-spacing:0.14em; text-transform:uppercase;
+    border:1px solid #C8C8BD; background:none; color:#0F0F0D; padding:13px 24px; cursor:pointer; }
+  .btn-outline:hover { border-color:#5A6B00; color:#5A6B00; }
+  .btn-quiet { font-weight:600; font-size:12px; letter-spacing:0.14em; text-transform:uppercase;
+    color:#6A6A61; background:none; border:0; padding:13px 8px; cursor:pointer; }
+  .btn-quiet:hover { color:#0F0F0D; }
+  .chip { font-weight:600; font-size:11px; letter-spacing:0.12em; text-transform:uppercase;
+    border:1px solid #C8C8BD; background:#FFFFFF; color:#5C5C54; padding:9px 15px; cursor:pointer;
+    transition:all .16s ease; }
+  .chip:hover { border-color:#5A6B00; color:#5A6B00; }
+  .chip[aria-pressed="true"] { border-color:#0F0F0D; background:#E8FF3A; color:#0A0A09; }
+  .loadmore { border:1px dashed #C8C8BD; padding:26px; text-align:center; font-weight:600;
+    font-size:11px; letter-spacing:0.16em; text-transform:uppercase; color:#6A6A61; cursor:pointer;
+    background:none; width:100%; }
+  .loadmore:hover { border-color:#5A6B00; color:#5A6B00; }
+  .msg { font-size:14px; line-height:1.5; margin:14px 0 0; max-width:52ch; color:#5C5C54; }
+  .msg.err { color:#A03A1E; }
+  .msg.ok  { color:#5A6B00; }
+  .eyebrow { font-weight:600; font-size:11px; letter-spacing:0.2em; text-transform:uppercase;
+    color:#5A6B00; margin-bottom:16px; }
+  .skel { border:1px solid #E3E3DA; background:#FFFFFF; padding:24px 26px; }
+  .skel div { background:#F2F2EC; height:12px; animation:pacr-pulse 1.3s ease-in-out infinite; }
+
+  .site-foot { border-top:1px solid #E3E3DA; background:#F7F7F3; }
+  .site-foot-in { max-width:1280px; margin:0 auto; padding:44px 40px; display:flex; align-items:center;
+    justify-content:space-between; gap:24px; flex-wrap:wrap; font-weight:600; font-size:11px;
+    letter-spacing:0.14em; text-transform:uppercase; color:#6A6A61; }
+  .site-foot-in a { color:#6A6A61; }
+  .site-foot-in a:hover { color:#5A6B00; }
+
+  /* ── Modal ──────────────────────────────────────────────────────────────── */
+  #modal { position:fixed; inset:0; z-index:60; display:flex; align-items:center;
+    justify-content:center; padding:22px; }
+  .modal-scrim { position:absolute; inset:0; background:rgba(10,10,9,0.55); }
+  .modal-card { position:relative; background:#FFFFFF; border:1px solid #0F0F0D; max-width:440px;
+    width:100%; padding:28px 30px; max-height:86vh; overflow-y:auto; }
+  .modal-title { font-family:Outfit, sans-serif; font-weight:700; font-size:22px;
+    text-transform:uppercase; letter-spacing:-0.01em; margin:0 0 14px; }
+  .modal-body { font-size:15px; line-height:1.6; color:#5C5C54; }
+  .modal-body p { margin:0 0 12px; }
+  .modal-acts { display:flex; flex-direction:column; align-items:flex-start; gap:14px; margin-top:22px; }
+
+  :where(a,button,input,textarea,summary):focus-visible { outline:2px solid #5A6B00; outline-offset:2px; }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation:none !important; transition:none !important; } }
+</style>
+</head>
+<body>
+
+<header class="site-head">
+  <a class="brand" href="/" aria-label="PACR home">
+    <img src="assets/pacr-mark.png" alt="" width="34" height="34">
+    <span>PACR</span>
+  </a>
+  <nav class="site-nav" aria-label="Primary">
+    <a href="/#coach">How it works</a>
+    <a href="/feed">Feed</a>
+    <a href="/#clubs">Clubs</a>
+    <a href="/profile" class="on">Profile</a>
+  </nav>
+  <div class="head-right">
+    <div id="authSlot"></div>
+    <div class="avatar-me" id="meAvatar" hidden></div>
+  </div>
+</header>
+
+<!-- Resolving the session. A signed-out visitor is redirected to /signin from
+     here, so the profile itself never renders without one. -->
+<section id="paneBoot" style="max-width:1280px; margin:0 auto; padding:64px 40px;">
+  <div class="eyebrow">Profile</div>
+  <div class="skel"><div style="width:40%"></div></div>
+  <noscript>
+    <p class="msg err" style="margin-top:22px;">Your profile needs JavaScript to load.</p>
+    <p class="msg"><a href="/signin">Go to sign in</a> · <a href="/">Back to pacr.life</a></p>
+  </noscript>
+</section>
+
+<div id="paneProfile" hidden>
+  <div class="cover" aria-hidden="true"></div>
+
+  <div class="idband">
+    <div class="idband-in">
+      <div class="id-photo" id="pAvatar"></div>
+      <div class="id-main">
+        <div class="id-name-row">
+          <h1 class="id-name" id="pName">—</h1>
+        </div>
+        <div class="id-meta" id="pMeta"></div>
+      </div>
+      <div class="id-acts">
+        <a class="btn" href="/feed">Your feed</a>
+        <a class="btn-outline" href="/#get">Get the app</a>
+      </div>
+    </div>
+    <div class="strip-wrap">
+      <div class="stat-strip" id="headStats" hidden></div>
+    </div>
+  </div>
+
+  <div class="tabrail">
+    <div class="tabrail-in">
+      <div class="tabs" id="tabs" role="tablist" aria-label="Profile">
+        <button type="button" role="tab" data-tab="overview" aria-selected="true">
+          <span>Overview</span><span class="bar"></span>
+        </button>
+        <button type="button" role="tab" data-tab="posts" aria-selected="false">
+          <span>Posts</span><span class="bar"></span>
+        </button>
+        <button type="button" role="tab" data-tab="milestones" aria-selected="false">
+          <span>Milestones</span><span class="bar"></span>
+        </button>
+        <button type="button" role="tab" data-tab="squads" aria-selected="false">
+          <span>Squads</span><span class="bar"></span>
+        </button>
+        <button type="button" role="tab" data-tab="settings" aria-selected="false">
+          <span>Settings</span><span class="bar"></span>
+        </button>
+      </div>
+      <div class="countline" id="countLine"></div>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <div class="col-main">
+
+      <div id="paneOverview" role="tabpanel">
+        <div class="card" id="loadCard" hidden style="margin-bottom:24px;">
+          <div class="card-head">
+            <span id="loadHead">TWELVE-WEEK LOAD — KILOMETRES PER WEEK</span>
+            <span class="accent" id="loadTrend"></span>
+          </div>
+          <div class="card-body">
+            <div class="bars" id="loadBars" role="img" aria-label="Weekly distance, last twelve weeks"></div>
+            <div class="bars-axis"><span>12 WEEKS AGO</span><span>THIS WEEK</span></div>
+          </div>
+          <div class="quad" id="loadStats"></div>
+        </div>
+
+        <div class="card" id="bestsCard" hidden>
+          <div class="card-head"><span>BEST RUNS — WHOLE RUNS YOU LOGGED</span></div>
+          <div id="bestsRows"></div>
+          <div class="card-note">
+            SPLIT RECORDS — FASTEST 1 K, 5 K, 10 K INSIDE A RUN — ARE COMPUTED ON YOUR PHONE AND LIVE IN THE APP
+          </div>
+        </div>
+
+        <p class="msg" id="overviewMsg" hidden></p>
+      </div>
+
+      <div id="panePosts" role="tabpanel" hidden>
+        <div id="myPosts" style="display:flex; flex-direction:column; gap:24px;"></div>
+        <p class="msg" id="postsMsg" hidden></p>
+        <button class="loadmore" id="moreBtn" type="button" hidden style="margin-top:24px;">Load earlier posts</button>
+      </div>
+
+      <div id="paneMilestones" role="tabpanel" hidden>
+        <div class="card" id="mileCard">
+          <div class="card-head"><span>MILESTONES — FIRSTS FROM YOUR LOGGED RUNS</span></div>
+          <div id="mileRows"></div>
+          <div class="card-note">BADGES ARE EARNED AND KEPT IN THE APP</div>
+        </div>
+        <p class="msg" id="mileMsg" hidden></p>
+      </div>
+
+      <div id="paneSquads" role="tabpanel" hidden>
+        <div class="card" id="squadsCard" style="margin-bottom:24px;">
+          <div class="card-head"><span id="squadsHead">SQUADS</span></div>
+          <div id="squadRows"></div>
+        </div>
+
+        <div class="card" id="peopleCard">
+          <div class="card-head">
+            <span id="peopleHead">PEOPLE</span>
+            <span style="display:flex; gap:8px;">
+              <button type="button" class="chip" data-people="following" aria-pressed="true">Following</button>
+              <button type="button" class="chip" data-people="followers" aria-pressed="false">Followers</button>
+            </span>
+          </div>
+          <div class="people" id="peopleRows"></div>
+          <div class="card-note" id="peopleNote" hidden></div>
+        </div>
+      </div>
+
+      <div id="paneSettings" role="tabpanel" hidden>
+        <div class="card" style="margin-bottom:24px;">
+          <div class="card-head"><span>YOUR ACCOUNT</span></div>
+          <div id="accountRows"></div>
+        </div>
+
+        <div class="card" style="margin-bottom:24px;">
+          <div class="card-head"><span>PRIVACY</span></div>
+          <div id="privacyBox"></div>
+          <p class="msg" id="privacyMsg" hidden style="margin:0; padding:0 22px 18px;"></p>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><span>YOUR DATA</span></div>
+          <div id="dataRows"></div>
+        </div>
+      </div>
+    </div>
+
+    <aside class="col-side">
+      <div class="side-card" id="yearCard" hidden>
+        <div class="side-head">
+          <div class="side-k" id="yearK">THIS YEAR</div>
+          <div class="side-title">Your running</div>
+        </div>
+        <div class="side-grid" id="yearRows"></div>
+        <div class="side-note" id="yearNote" hidden></div>
+      </div>
+
+      <div class="side-card" id="recentCard" hidden>
+        <div class="side-head">
+          <div class="side-k">RECENT RUNS</div>
+          <div class="side-title">Last five</div>
+        </div>
+        <div id="recentRows"></div>
+      </div>
+
+      <div class="side-card">
+        <div class="side-head">
+          <div class="side-k">COACH, PLAN AND BADGES</div>
+          <div class="side-title">In the app</div>
+        </div>
+        <div class="side-empty">
+          Your daily prescription, voice coaching, records and badges are computed on your
+          phone from the full run, splits included. The website shows what you have shared.
+        </div>
+        <div class="stores">
+          <a href="/#get"><img src="assets/appstore.svg" alt="Download on the App Store" height="40"></a>
+          <a href="/#get"><img src="assets/playsore.png" alt="Get it on Google Play" height="40"></a>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <footer class="site-foot">
+    <div class="site-foot-in">
+      <span>© 2026 PACR — Your profile shows only what you publish.</span>
+      <div style="display:flex; gap:26px; flex-wrap:wrap;">
+        <a href="/community-rules">Community rules</a>
+        <a href="/feed">Feed</a>
+        <a href="/privacy">Privacy</a>
+        <a href="/support">Support</a>
+      </div>
+    </div>
+  </footer>
+</div>
+
+<div id="modal" hidden></div>
+
+<script type="module">
+  import { initProfile } from '/js/profile.js';
+  initProfile();
+</script>
+</body>
+</html>
