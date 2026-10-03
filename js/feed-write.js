@@ -35,15 +35,26 @@ const POST_IMAGE_BUCKET = 'post-images';
  * client — embedding run_summaries here lights up real stats on existing posts
  * retroactively.
  */
-export const POST_SELECT =
-  'id, circle_id, author_id, kind, body, image_path, pinned, hidden_at, created_at, run_id, visibility, ' +
-  // Joined, not filtered on posts.circle_id: a post can name several squads and
-  // circle_id holds only the first, so filtering on it would hide the post in
-  // every other squad it was sent to. `!inner` makes it a real join.
-  'post_targets!inner(circle_id), ' +
+const POST_COLUMNS =
+  'id, circle_id, author_id, kind, body, image_path, pinned, hidden_at, created_at, run_id, visibility, ';
+const POST_EMBEDS =
   'author:users!posts_author_id_fkey(display_name), ' +
   'run:run_summaries!posts_run_id_fkey(distance_km, duration_sec, pace_sec_per_km, started_at, neighborhood), ' +
   'post_likes(count), post_comments(count)';
+
+// post_targets rows are readable only for the viewer's own squads (pacr
+// migration 20261003120000), so a post reached through a follow — someone
+// else's profile, say — has none. A plain embed keeps it; `!inner` would drop
+// it.
+export const POST_SELECT =
+  POST_COLUMNS + 'post_targets(circle_id, pinned, hidden_at), ' + POST_EMBEDS;
+
+// The squad feed filters through post_targets, not posts.circle_id: a post can
+// name several squads and circle_id holds only the first. `!inner` is what
+// lets .eq('post_targets.…') filter the parent rows. Pin and hide are per
+// squad, so read them from row.post_targets[0] — the one squad filtered to.
+export const SQUAD_POST_SELECT =
+  POST_COLUMNS + 'post_targets!inner(circle_id, pinned, hidden_at), ' + POST_EMBEDS;
 
 export const MAX_BODY = 2000;
 export const MAX_COMMENT = 1000;
@@ -126,41 +137,31 @@ export async function createPost(sb, { targets, visibility, body, blob, kind, ru
       }
     }
 
-    const { data, error } = await sb.from('posts')
-      .insert({
-        author_id: user.id,
-        circle_id: circleIds[0],
-        kind: kind ?? (imagePath ? 'photo' : 'text'),
-        body: text,
-        image_path: imagePath,
-        run_id: runId ?? null,
-        visibility,
-      })
-      .select(POST_SELECT)
-      .single();
+    // One transaction for the post and every squad it goes to (create_post,
+    // pacr migration 20261003120000): no half-made post to roll back, and the
+    // new-post push reaches every squad. It runs as the caller, so the same
+    // insert policies decide.
+    const { data: postId, error } = await sb.rpc('create_post', {
+      p_kind: kind ?? (imagePath ? 'photo' : 'text'),
+      p_visibility: visibility,
+      p_targets: circleIds,
+      p_body: text,
+      p_image_path: imagePath,
+      p_run_id: runId ?? null,
+    });
 
-    if (error || !data) {
+    if (error || !postId) {
       const reason = await classifyPostInsertFailure(sb, circleIds[0], error?.message ?? '');
       console.warn('[pacr] post insert failed', reason, error?.message);
       if (imagePath) { try { await sb.storage.from(POST_IMAGE_BUCKET).remove([imagePath]); } catch {} }
       return { ok: false, reason };
     }
 
-    // The remaining targets. The insert trigger already filed circle_id, so
-    // ignoreDuplicates rather than letting the first one collide.
-    const rest = circleIds.map(id => ({ post_id: data.id, circle_id: id }));
-    const { error: tErr } = await sb.from('post_targets')
-      .upsert(rest, { onConflict: 'post_id,circle_id', ignoreDuplicates: true });
-    if (tErr) {
-      // A post that reached only some of its squads is worse than none: roll it
-      // back rather than leave the author believing it landed everywhere.
-      console.warn('[pacr] post targets failed', tErr.message);
-      try { await sb.from('posts').delete().eq('id', data.id); } catch {}
-      if (imagePath) { try { await sb.storage.from(POST_IMAGE_BUCKET).remove([imagePath]); } catch {} }
-      return { ok: false, reason: 'error' };
-    }
-
-    return { ok: true, row: data };
+    // The post exists from here on — a missed read-back must not report a
+    // failure (and must not remove the image the post now points at).
+    const { data } = await sb.from('posts')
+      .select(POST_SELECT).eq('id', postId).maybeSingle();
+    return { ok: true, row: data ?? null };
   } catch (e) {
     console.warn('[pacr] post failed', e);
     return { ok: false, reason: 'error' };
@@ -193,9 +194,24 @@ export async function downscaleImage(file, maxEdge = 1600) {
   return blob;
 }
 
-/** Delete a post (author deletes own, owner moderates any — RLS decides). */
-export async function deletePost(sb, postId) {
+/**
+ * Delete a post (author), or take it out of one squad (owner, with circleId).
+ * An owner only governs their own squad: the author may have shared the post
+ * with other squads, followers or the public, and it stays there. The RPC
+ * deletes it outright only when that squad was the last place it lived.
+ */
+export async function deletePost(sb, postId, circleId = null) {
   if (!sb) return false;
+  if (circleId) {
+    try {
+      const { error } = await sb.rpc('remove_post_from_circle', {
+        p_post_id: postId, p_circle_id: circleId,
+      });
+      return !error;
+    } catch {
+      return false;
+    }
+  }
   try {
     // The Storage object is cleaned by the posts-DELETE webhook, not here.
     const { data, error } = await sb.from('posts')
@@ -227,12 +243,12 @@ export async function toggleLike(sb, postId, like) {
   }
 }
 
-/** Owner-only pin/unpin via the set_post_pinned RPC. */
-export async function setPinned(sb, postId, pinned) {
+/** Owner-only pin/unpin, in one squad, via the set_post_pinned RPC. */
+export async function setPinned(sb, postId, pinned, circleId) {
   if (!sb) return false;
   try {
     const { error } = await sb.rpc('set_post_pinned', {
-      p_post_id: postId, p_pinned: pinned,
+      p_post_id: postId, p_pinned: pinned, p_circle_id: circleId,
     });
     return !error;
   } catch {

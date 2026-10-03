@@ -35,7 +35,7 @@ import {
 } from './mentions.js';
 import { findBlockedTerm, BLOCKED_CONTENT_MESSAGE } from './content-filter.js';
 import {
-  POST_SELECT, MAX_BODY, MAX_COMMENT,
+  SQUAD_POST_SELECT, MAX_BODY, MAX_COMMENT,
   createPost, downscaleImage,
   toggleLike, setPinned, deletePost,
   listComments, addComment, deleteComment, listMembers,
@@ -306,10 +306,12 @@ function footHtml(p, { comments = true } = {}) {
 }
 
 function menuHtml(p) {
-  const isOwner = activeSquad?.role === 'owner';
+  // Owner powers are per squad, so they only exist on a squad-feed card.
+  const isOwner = p.scope === 'squad' && activeSquad?.role === 'owner';
   const items = [];
   if (isOwner) items.push(`<button type="button" data-act="pin">${p.pinned ? 'Unpin' : 'Pin to top'}</button>`);
-  if (p.is_mine || isOwner) items.push('<button type="button" data-act="delete">Delete post</button>');
+  if (p.is_mine) items.push('<button type="button" data-act="delete">Delete post</button>');
+  else if (isOwner) items.push('<button type="button" data-act="delete">Remove from squad</button>');
   if (!p.is_mine) {
     items.push(`<button type="button" data-act="mute">Mute ${esc(p.author_name)}</button>`);
     items.push('<button type="button" data-act="report">Report post</button>');
@@ -414,7 +416,8 @@ async function hydrate(rows) {
       body: row.body,
       image_url: row.image_path ? (urlByPath.get(row.image_path) ?? null) : null,
       run: row.run ?? null,
-      pinned: !!row.pinned,
+      // Per squad: the squad query filters post_targets to the active squad.
+      pinned: !!row.post_targets?.[0]?.pinned,
       visibility: row.visibility ?? 'circle',
       created_at: row.created_at,
       like_count: Number(row.post_likes?.[0]?.count) || 0,
@@ -580,16 +583,16 @@ async function loadPage({ reset }) {
   // cursor never has to reason about them — same split as the app.
   if (reset) {
     const { data: pinned } = await sb
-      .from('posts').select(POST_SELECT)
-      .eq('post_targets.circle_id', activeSquad.id).eq('pinned', true)
+      .from('posts').select(SQUAD_POST_SELECT)
+      .eq('post_targets.circle_id', activeSquad.id).eq('post_targets.pinned', true)
       .order('created_at', { ascending: false })
       .limit(PINNED_LIMIT);
     if (pinned?.length) html += await hydrate(pinned);
   }
 
   let q = sb
-    .from('posts').select(POST_SELECT)
-    .eq('post_targets.circle_id', activeSquad.id).eq('pinned', false)
+    .from('posts').select(SQUAD_POST_SELECT)
+    .eq('post_targets.circle_id', activeSquad.id).eq('post_targets.pinned', false)
     .order('created_at', { ascending: false })
     .order('id', { ascending: false })
     .limit(PAGE_SIZE);
@@ -824,13 +827,22 @@ async function onBlock(postId) {
 }
 
 async function onDelete(postId) {
-  const yes = await openModal({
-    title: 'Delete this post?',
-    body: '<p>This cannot be undone.</p>',
-    options: [{ label: 'Cancel', value: false }, { label: 'Delete', value: true, primary: true }],
-  });
+  const p = postState.get(postId);
+  // An owner acting on someone else's post takes it out of THIS squad only.
+  const removeFrom = p && !p.is_mine ? activeSquad?.id ?? null : null;
+  const yes = await openModal(removeFrom
+    ? {
+        title: 'Remove this post from the squad?',
+        body: '<p>If the author shared it anywhere else, it stays there.</p>',
+        options: [{ label: 'Cancel', value: false }, { label: 'Remove', value: true, primary: true }],
+      }
+    : {
+        title: 'Delete this post?',
+        body: '<p>This cannot be undone.</p>',
+        options: [{ label: 'Cancel', value: false }, { label: 'Delete', value: true, primary: true }],
+      });
   if (!yes) return;
-  if (await deletePost(sb, postId)) {
+  if (await deletePost(sb, postId, removeFrom)) {
     document.querySelector(`article.post[data-id="${CSS.escape(postId)}"]`)?.remove();
     postState.delete(postId);
   } else {
@@ -841,7 +853,7 @@ async function onDelete(postId) {
 async function onPin(postId) {
   const p = postState.get(postId);
   if (!p) return;
-  if (await setPinned(sb, postId, !p.pinned)) await loadPage({ reset: true });
+  if (await setPinned(sb, postId, !p.pinned, activeSquad.id)) await loadPage({ reset: true });
   else msg($('feedMsg'), "Couldn't change the pin.", 'err');
 }
 
@@ -997,7 +1009,7 @@ async function onPost() {
   $('cBody').value = '';
   await onPickPhoto(null);
   $('cPhoto').value = '';
-  if (targets.includes(activeSquad.id)) {
+  if (targets.includes(activeSquad.id) && res.row) {
     $('posts').insertAdjacentHTML('afterbegin', await hydrate([res.row]));
     msg($('feedMsg'), '');
   }
