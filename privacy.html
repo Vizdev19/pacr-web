@@ -415,10 +415,36 @@
 
               <h3>What we send</h3>
               <ul>
-                <li><strong>GPS routes</strong>: stay on your device only. Never uploaded to our servers.</li>
+                <li><strong>GPS routes</strong>: stay on your device. The one exception is a run you
+                    choose to share live — see below — which is off by default and has to be turned on
+                    each time.</li>
                 <li><strong>Coarse location</strong> (rounded to ~1 km grid): sent to a weather and air-quality data provider to fetch a forecast for your area. No personal identifier is attached.</li>
                 <li><strong>Distance to running spots</strong>: computed entirely on-device.</li>
               </ul>
+              <h3>Live run sharing</h3>
+              <p>
+                You can share a single run as a link — so one person can see where you are while
+                you run. It is off by default and has to be switched on before each run; nothing is
+                ever shared automatically.
+              </p>
+              <ul>
+                <li><strong>What is stored</strong>: while a shared run is in progress we store your
+                    position and the route so far, rounded to about one metre, along with your
+                    distance, time and display name.</li>
+                <li><strong>Who can see it</strong>: anyone holding the link. The link contains a
+                    random secret, is not listed anywhere, and is excluded from search engines — but
+                    it is a link, so treat it like a key and send it only to people you trust.</li>
+                <li><strong>How long</strong>: the link stays available after the run as a record of
+                    it, until you turn it off.</li>
+                <li><strong>Turning it off</strong>: stopping the share kills the link immediately and
+                    deletes the stored route behind it. Each run gets its own link, so turning one off
+                    never affects another.</li>
+              </ul>
+              <p>
+                Live sharing is a convenience, not a safety service. It updates only while your phone
+                has a connection, it notifies nobody, and it must not be relied on in an emergency.
+              </p>
+
               <p>
                 You can revoke location permission at any time via your device settings. Pacr
                 remains usable without location, but run tracking, weather, and AQI features

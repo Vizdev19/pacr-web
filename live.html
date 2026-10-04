@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Live run — PACR</title>
+<meta name="description" content="Follow a run in progress." />
+
+<!-- This page's URL contains the capability that grants access to it. Without
+     this, every map tile request would hand the tile provider the full URL,
+     token included, in the Referer header. Do not remove. -->
+<meta name="referrer" content="no-referrer" />
+<meta name="robots" content="noindex, nofollow" />
+
+<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+<link rel="icon" type="image/png" sizes="32x32" href="/brand-acid/favicon.png" />
+<link rel="apple-touch-icon" href="/brand-acid/icon-512.png" />
+<meta name="theme-color" content="#0A0B08" />
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@1,900&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600;700&display=swap" media="print" onload="this.media='all'" />
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@1,900&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600;700&display=swap" /></noscript>
+
+<link rel="stylesheet" href="/brand-acid/tokens.css" />
+<link rel="stylesheet" href="/styles.css" />
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"
+      integrity="sha512-h9FcoyWjHcOcmEVkxOfTLnmZFWIH0iZhZT1H2TbOq55xssQGEJHEaIm+PgoUaZbRvQTNTluNOEfb1ZRy6D3BOw=="
+      crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+<style>
+  /* ─────────────────────────────────────────────────────────────────────────
+     PACR — Live run. A page for one person, usually on a phone, usually
+     slightly worried. Everything here serves one question: is the runner OK?
+
+     So the status line is the hero, not the map, and staleness is stated in
+     words rather than implied by a motionless dot. The acid accent is reserved
+     for "live"; --flare carries every degraded state.
+     ───────────────────────────────────────────────────────────────────────── */
+  html, body { margin:0; padding:0; background:var(--pitch); color:var(--paper);
+               font-family:var(--font-body); }
+  * { box-sizing:border-box; }
+  [hidden] { display:none !important; }
+
+  .wrap { max-width:720px; margin:0 auto; padding:0 16px 48px; }
+
+  /* Header — wordmark only. A watcher arriving from a text message needs to
+     see whose product this is; they do not need a marketing nav. */
+  .lv-head { padding:18px 16px 14px; max-width:720px; margin:0 auto; }
+  .lv-head img { display:block; height:28px; width:auto; }
+
+  /* ── Status band ───────────────────────────────────────────────────────── */
+  .lv-status { border:1px solid var(--hairline); background:var(--deep);
+               padding:22px 20px; }
+  .lv-flag { display:flex; align-items:center; gap:9px; margin-bottom:14px; }
+  .lv-dot { width:9px; height:9px; flex:none; background:var(--dim); }
+  .lv-dot.on { background:var(--acid); animation:lv-pulse 2s ease-in-out infinite; }
+  .lv-dot.warn { background:var(--flare); }
+  @keyframes lv-pulse { 0%,100% { opacity:1 } 50% { opacity:.25 } }
+  .lv-flag-text { font-family:var(--font-mono); font-size:11px; font-weight:600;
+                  letter-spacing:.16em; text-transform:uppercase; color:var(--dim); }
+  .lv-headline { font-family:var(--font-display); font-style:italic; font-weight:900;
+                 text-transform:uppercase; letter-spacing:.01em; line-height:.95;
+                 font-size:clamp(34px, 11vw, 60px); margin:0; }
+  .lv-headline.warn { color:var(--flare); }
+  .lv-sub { font-size:15px; color:var(--dim); margin:12px 0 0; line-height:1.5; }
+  .lv-title { font-family:var(--font-mono); font-size:12px; font-weight:600;
+              letter-spacing:.12em; text-transform:uppercase; color:var(--acid);
+              margin:14px 0 0; }
+
+  /* ── Stats ─────────────────────────────────────────────────────────────── */
+  .lv-stats { display:grid; grid-template-columns:repeat(3,1fr);
+              border:1px solid var(--hairline); border-top:0; background:var(--deep); }
+  .lv-stat { padding:16px 14px; border-right:1px solid var(--hairline); }
+  .lv-stat:last-child { border-right:0; }
+  .lv-stat-k { font-family:var(--font-mono); font-size:10px; font-weight:600;
+               letter-spacing:.16em; color:var(--dim); text-transform:uppercase; }
+  .lv-stat-v { font-family:var(--font-mono); font-size:26px; font-weight:700;
+               margin-top:6px; letter-spacing:-.01em; }
+  .lv-stat-u { font-size:12px; font-weight:600; color:var(--dim); margin-left:3px; }
+
+  /* ── Map ───────────────────────────────────────────────────────────────── */
+  #map { height:min(58vh, 460px); margin-top:18px; background:var(--deep);
+         border:1px solid var(--hairline); }
+  .leaflet-container { background:var(--deep); font-family:var(--font-mono); }
+  /* OSM's attribution is required by its licence; keep it legible. */
+  .leaflet-control-attribution { background:rgba(10,11,8,.82) !important;
+    color:var(--dim) !important; font-size:10px !important; }
+  .leaflet-control-attribution a { color:var(--dim) !important; }
+  .lv-pin { width:16px; height:16px; border-radius:50%; background:var(--acid);
+            border:3px solid var(--pitch); box-shadow:0 0 0 2px rgba(232,255,58,.35); }
+  .lv-pin.warn { background:var(--flare); box-shadow:0 0 0 2px rgba(255,68,34,.35); }
+
+  /* ── Footer note ───────────────────────────────────────────────────────── */
+  .lv-note { margin-top:20px; padding:16px 18px; border:1px solid var(--hairline);
+             font-size:13px; color:var(--dim); line-height:1.6; }
+  .lv-note b { color:var(--paper); font-weight:600; }
+
+  @media (max-width:420px) {
+    .lv-stat-v { font-size:22px; }
+    .lv-status { padding:18px 16px; }
+  }
+</style>
+</head>
+<body>
+
+<header class="lv-head">
+  <a href="/" aria-label="PACR home">
+    <img src="/brand-acid/wordmark.svg" alt="PACR" width="140" height="42" />
+  </a>
+</header>
+
+<main class="wrap" id="main">
+  <!-- Baseline markup, replaced on a successful fetch. With JS off or the CDN
+       blocked this is what a watcher sees, and it says something true. -->
+  <section class="lv-status">
+    <div class="lv-flag">
+      <span class="lv-dot" id="dot"></span>
+      <span class="lv-flag-text" id="flag">Loading</span>
+    </div>
+    <h1 class="lv-headline" id="headline">Opening the link</h1>
+    <p class="lv-sub" id="sub">One moment.</p>
+    <p class="lv-title" id="runTitle" hidden></p>
+  </section>
+
+  <section class="lv-stats" id="stats" hidden>
+    <div class="lv-stat">
+      <div class="lv-stat-k">Distance</div>
+      <div class="lv-stat-v"><span id="dist">—</span><span class="lv-stat-u">km</span></div>
+    </div>
+    <div class="lv-stat">
+      <div class="lv-stat-k">Time</div>
+      <div class="lv-stat-v" id="time">—</div>
+    </div>
+    <div class="lv-stat">
+      <div class="lv-stat-k">Pace</div>
+      <div class="lv-stat-v"><span id="pace">—</span><span class="lv-stat-u">/km</span></div>
+    </div>
+  </section>
+
+  <div id="map" hidden></div>
+
+  <p class="lv-note" id="note" hidden></p>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"
+        integrity="sha512-puJW3E/qXDqYp9IfhAI54BJEaWIfloJ7JWs7OeD5i6ruC9JZL1gERT1wjtwXFlh7CjE7ZJ+/vcRZRkIYIb6p4g=="
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script type="module" src="/js/live.js"></script>
+
+</body>
+</html>
