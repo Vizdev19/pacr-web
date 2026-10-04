@@ -1,0 +1,17 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": [
+          "ZFRNX7TP65.life.pacr.app"
+        ],
+        "components": [
+          {
+            "/": "/s/*",
+            "comment": "Squad share and invite links open in the app"
+          }
+        ]
+      }
+    ]
+  }
+}
