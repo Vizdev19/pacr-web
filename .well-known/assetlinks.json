@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "life.pacr.app",
+      "sha256_cert_fingerprints": [
+        "07:D9:C5:C7:05:F7:9D:04:DD:47:42:9A:88:FC:25:3C:8F:AB:F8:44:70:D3:5D:D5:44:28:98:2F:09:8F:02:D7"
+      ]
+    }
+  }
+]
