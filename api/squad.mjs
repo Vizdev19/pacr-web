@@ -276,7 +276,7 @@ function render({ club, slug, invite }) {
   ${body}
   <section class="cta">
     <p>${ctaNote}</p>
-    ${gone ? '' : `<a class="open" href="${esc(deep)}">Open in PACR</a>`}
+    ${gone ? '' : `<a class="open" id="open" href="${esc(deep)}" data-path="${esc(deep.slice('pacr://'.length))}">Open in PACR</a>`}
     <div class="stores">
       <a href="${APP_STORE}">Get it on the App Store</a>
       <a href="${PLAY_STORE}">Get it on Google Play</a>
@@ -296,6 +296,18 @@ function render({ club, slug, invite }) {
 </footer>
 
 <script>
+  // Android: an intent:// link opens PACR when it's installed and falls back
+  // to the Play Store when it isn't — a bare pacr:// link does nothing there.
+  // (With an app build that verifies pacr.life App Links, Android skips this
+  // page entirely; this covers older builds and in-app browsers.)
+  (function () {
+    var a = document.getElementById('open');
+    if (!a || !/Android/i.test(navigator.userAgent)) return;
+    a.href = 'intent://' + a.getAttribute('data-path')
+      + '#Intent;scheme=pacr;package=life.pacr.app;S.browser_fallback_url='
+      + encodeURIComponent('${PLAY_STORE}') + ';end';
+  })();
+
   // Run times in the visitor's own zone; the server only knows UTC.
   for (const t of document.querySelectorAll('time[datetime]')) {
     const d = new Date(t.getAttribute('datetime'));
