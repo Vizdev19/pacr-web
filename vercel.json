@@ -4,7 +4,9 @@
   "trailingSlash": false,
   "rewrites": [
     { "source": "/s/:slug/photo", "destination": "/api/squad?slug=:slug&photo=1" },
-    { "source": "/s/:slug", "destination": "/api/squad?slug=:slug" }
+    { "source": "/s/:slug", "destination": "/api/squad?slug=:slug" },
+    { "source": "/u/:handle/photo", "destination": "/api/profile?handle=:handle&photo=1" },
+    { "source": "/u/:handle", "destination": "/api/profile?handle=:handle" }
   ],
   "headers": [
     {

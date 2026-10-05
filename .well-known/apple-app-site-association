@@ -9,6 +9,10 @@
           {
             "/": "/s/*",
             "comment": "Squad share and invite links open in the app"
+          },
+          {
+            "/": "/u/*",
+            "comment": "Profile links open the runner in the app"
           }
         ]
       }
