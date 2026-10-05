@@ -11,6 +11,11 @@
 //   /s/<slug>                  a public club's page, "Open in PACR"
 //   /s/<slug>?invite=<code>    an organiser's invite: the app joins on open,
 //                              even for a hidden (invite-only) squad
+//   /s/<slug>?run=<ref>        one group run (the app's tap-to-share on a
+//                              run): listed first and named in the preview.
+//                              ref = the run's id as 22 base64url chars,
+//                              as /p/<ref> (api/post.mjs). Combines with
+//                              invite= for an invite-only squad's runs.
 //   /s/<slug>/photo            the club's picture, proxied (see below)
 //
 // Data comes from get_club_page (migration 20261008120000 in the app repo) as
@@ -38,6 +43,15 @@ const SUPABASE_ANON_KEY =
 
 const SLUG_RE = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 const CODE_RE = /^[a-z0-9]{4,16}$/;
+const REF_RE = /^[A-Za-z0-9_-]{22}$/;
+
+/** 22-char ref → uuid, or null. Same as decodeUserRef in js/ids.js. */
+function decodeRef(ref) {
+  if (!REF_RE.test(ref)) return null;
+  const hex = Buffer.from(ref.replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('hex');
+  if (hex.length !== 32) return null;
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
 const APP_STORE = 'https://apps.apple.com/in/app/pacr-run-training-splits/id6804190286';
 const PLAY_STORE = 'https://play.google.com/store/apps/details?id=life.pacr.app';
 const APP_STORE_ID = '6804190286';
@@ -115,21 +129,32 @@ function utcWhen(iso) {
 const pace = sec => (sec ? `${Math.floor(sec / 60)}:${String(Math.round(sec % 60)).padStart(2, '0')}` : '—');
 const km1 = n => (Number.isInteger(n) ? String(n) : Number(n).toFixed(1));
 
-function render({ club, slug, invite }) {
-  const shareUrl = `${SITE}/s/${slug}${invite ? `?invite=${invite}` : ''}`;
-  const deep = `pacr://s/${slug}${invite ? `?invite=${invite}` : ''}`;
+function render({ club, slug, invite, runRef = null, runId = null }) {
+  const query = [invite ? `invite=${invite}` : null, runRef ? `run=${runRef}` : null].filter(Boolean).join('&');
+  const shareUrl = `${SITE}/s/${slug}${query ? `?${query}` : ''}`;
+  const deep = `pacr://s/${slug}${query ? `?${query}` : ''}`;
   const name = club?.name ?? null;
-  const title = club
-    ? (invite ? `Join ${name} on PACR` : `${name} — a squad on PACR`)
-    : invite ? 'You’re invited to a squad on PACR' : 'Squad not found — PACR';
+  // The shared run, if it is still on the calendar (runs drop off an hour
+  // after they start); the page then reads as the squad's, as before.
+  const picked = runId ? (club?.runs ?? []).find(r => r.id === runId) ?? null : null;
+  const title = picked
+    ? `${picked.title} with ${name} — PACR`
+    : club
+      ? (invite ? `Join ${name} on PACR` : `${name} — a squad on PACR`)
+      : invite ? 'You’re invited to a squad on PACR' : 'Squad not found — PACR';
   const policy = club?.join_policy === 'request' ? 'Approval needed' : 'Open';
-  const descr = club
+  const descr = picked
+    ? [utcWhen(picked.event_at), picked.meeting_point, picked.distance_km ? `${km1(Number(picked.distance_km))} km` : null,
+      `${Number(picked.going_count) || 0} going`].filter(Boolean).join(' · ')
+    : club
     ? [club.description, `${club.member_count} ${club.member_count === 1 ? 'runner' : 'runners'}`, club.location]
       .filter(Boolean).join(' · ')
     : invite ? 'Open this link on your phone to join the squad in the PACR app.'
     : 'This squad isn’t public. Ask a member for an invite link.';
   const ogImage = club?.avatar_path ? `${SITE}/s/${slug}/photo` : `${SITE}/og-image.png`;
-  const runs = (club?.runs ?? []).slice(0, 6);
+  const runs = picked
+    ? [picked, ...(club?.runs ?? []).filter(r => r !== picked)].slice(0, 6)
+    : (club?.runs ?? []).slice(0, 6);
 
   const tile = club?.avatar_path
     ? `<img src="/s/${esc(slug)}/photo" alt="" width="88" height="88">`
@@ -140,7 +165,7 @@ function render({ club, slug, invite }) {
     const bits = [r.meeting_point, r.distance_km ? `${km1(Number(r.distance_km))} km` : null, r.pace_label]
       .filter(Boolean).map(esc).join(' · ');
     return `
-      <li class="run">
+      <li class="run${r === picked ? ' picked' : ''}">
         <div class="date" data-at="${esc(r.event_at)}"><span>${DOW[d.getUTCDay()].toUpperCase()}</span><b>${d.getUTCDate()}</b></div>
         <div class="run-main">
           <div class="run-title">${esc(r.title)}${r.repeat_weekly ? ' <span class="weekly">Weekly</span>' : ''}</div>
@@ -236,6 +261,7 @@ function render({ club, slug, invite }) {
   .date { flex:none; width:52px; height:56px; border-radius:14px; background:#F2F2EC; display:flex; flex-direction:column; align-items:center; justify-content:center; }
   .date span { font-weight:700; font-size:10px; letter-spacing:0.12em; color:#8B8B80; }
   .date b { font-family:Outfit, sans-serif; font-size:21px; }
+  .run.picked { border:2px solid #0F0F0D; background:#F7FFD1; }
   .run-main { flex:1; min-width:0; }
   .run-title { font-weight:700; font-size:16px; }
   .weekly { margin-left:6px; padding:2px 8px; border-radius:999px; background:#E8FF3A; font-size:11px; }
@@ -332,6 +358,9 @@ export default async function handler(req, res) {
   const rawInvite = String(req.query?.invite ?? url.searchParams.get('invite') ?? '').toLowerCase();
   const invite = CODE_RE.test(rawInvite) ? rawInvite : null;
   const wantsPhoto = (req.query?.photo ?? url.searchParams.get('photo')) === '1';
+  const rawRun = String(req.query?.run ?? url.searchParams.get('run') ?? '');
+  const runId = decodeRef(rawRun);
+  const runRef = runId ? rawRun : null;
 
   if (!SLUG_RE.test(slug) || slug.length > 48) {
     return notFound(res, 'text/html; charset=utf-8', render({ club: null, slug: 'squad', invite: null }));
@@ -352,5 +381,5 @@ export default async function handler(req, res) {
   // shared caches; a public club page can sit at the edge for a few minutes.
   res.setHeader('Cache-Control', invite ? 'private, no-store' : 'public, s-maxage=300, stale-while-revalidate=600');
   res.setHeader('Referrer-Policy', 'no-referrer');
-  res.end(render({ club, slug, invite }));
+  res.end(render({ club, slug, invite, runRef, runId }));
 }
