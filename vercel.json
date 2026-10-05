@@ -6,7 +6,10 @@
     { "source": "/s/:slug/photo", "destination": "/api/squad?slug=:slug&photo=1" },
     { "source": "/s/:slug", "destination": "/api/squad?slug=:slug" },
     { "source": "/u/:handle/photo", "destination": "/api/profile?handle=:handle&photo=1" },
-    { "source": "/u/:handle", "destination": "/api/profile?handle=:handle" }
+    { "source": "/u/:handle", "destination": "/api/profile?handle=:handle" },
+    { "source": "/p/:ref/photo", "destination": "/api/post?ref=:ref&part=photo" },
+    { "source": "/p/:ref/avatar", "destination": "/api/post?ref=:ref&part=avatar" },
+    { "source": "/p/:ref", "destination": "/api/post?ref=:ref" }
   ],
   "headers": [
     {

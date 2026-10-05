@@ -13,6 +13,10 @@
           {
             "/": "/u/*",
             "comment": "Profile links open the runner in the app"
+          },
+          {
+            "/": "/p/*",
+            "comment": "Post share links open the post in the app"
           }
         ]
       }
