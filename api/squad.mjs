@@ -178,7 +178,7 @@ function render({ club, slug, invite, runRef = null, runId = null }) {
       <li class="run${r === picked ? ' picked' : ''}">
         <div class="date" data-at="${esc(r.event_at)}"><span>${DOW[d.getUTCDay()].toUpperCase()}</span><b>${d.getUTCDate()}</b></div>
         <div class="run-main">
-          <div class="run-title">${esc(r.title)}${r.repeat_weekly ? ' <span class="weekly">Weekly</span>' : ''}</div>
+          <div class="run-title">${esc(r.title)}${r.repeat_weekly ? ' <span class="weekly">Weekly</span>' : ''}${r.women_only && !club?.women_only ? ' <span class="weekly">Women-only</span>' : ''}</div>
           <div class="run-meta"><time datetime="${esc(r.event_at)}">${esc(utcWhen(r.event_at))}</time>${bits ? ` · ${bits}` : ''}</div>
         </div>
         <div class="going">${Number(r.going_count) || 0} going</div>
@@ -196,7 +196,7 @@ function render({ club, slug, invite, runRef = null, runId = null }) {
       <div class="tile">${tile}</div>
       <div>
         <h1>${esc(name)}</h1>
-        <p class="meta"><span class="chip">${policy}</span>${[club.location].filter(Boolean).map(esc).join('')}</p>
+        <p class="meta"><span class="chip">${policy}</span>${club.women_only ? '<span class="chip">Women-only</span>' : ''}${[club.location].filter(Boolean).map(esc).join('')}</p>
       </div>
     </div>
     ${club.description ? `<p class="about">${esc(club.description)}</p>` : ''}
@@ -217,6 +217,8 @@ function render({ club, slug, invite, runRef = null, runId = null }) {
     ? 'PACR is a running coach with squads, group runs and weekly goals.'
     : !club || invite
     ? 'PACR adds you to the squad as soon as it opens.'
+    : club.women_only
+      ? 'A squad for women. Join from the app — it checks the gender in your profile.'
     : club.join_policy === 'request'
       ? 'Ask to join from the app — the organiser approves each new member.'
       : 'Join from the app in one tap. It’s free.';
