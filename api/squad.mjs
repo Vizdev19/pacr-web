@@ -185,6 +185,9 @@ function render({ club, slug, invite, runRef = null, runId = null }) {
       </li>`;
   }).join('');
 
+  // The organisers' own rules (20261016120000); new members agree to them in the app.
+  const squadRules = (Array.isArray(club?.rules) ? club.rules : []).filter(r => typeof r === 'string' && r.trim());
+
   const gone = !club && !invite;
   const body = gone ? `
     <p class="eyebrow">Squad link</p>
@@ -206,6 +209,7 @@ function render({ club, slug, invite, runRef = null, runId = null }) {
       <div class="stat"><b>${pace(Number(club.avg_pace_sec))}</b><span>Avg pace /km</span></div>
     </div>
     ${runs.length ? `<h2>Upcoming runs</h2><ul class="runs">${runRows}</ul>` : ''}
+    ${squadRules.length ? `<h2>Squad rules</h2><ol class="rules">${squadRules.map(r => `<li>${esc(r)}</li>`).join('')}</ol>` : ''}
     <p class="small">Organised by ${esc(club.organiser_name ?? 'its organiser')} · since ${MON[new Date(club.created_at).getUTCMonth()]} ${new Date(club.created_at).getUTCFullYear()}</p>
   ` : `
     <p class="eyebrow">You’re invited</p>
@@ -281,6 +285,7 @@ function render({ club, slug, invite, runRef = null, runId = null }) {
   .run-meta a.where { color:inherit; font-weight:600; text-decoration:underline; text-underline-offset:2px; }
   .going { flex:none; font-weight:700; font-size:13px; color:#5C5C54; }
   .small { margin:28px 0 0; font-size:13px; color:#8B8B80; }
+  .rules { margin:0; padding:0 0 0 20px; display:flex; flex-direction:column; gap:8px; font-size:15px; line-height:1.45; }
   .cta { margin-top:44px; padding:28px; border-radius:28px; background:#0F0F0D; color:#FFFFFF; }
   .cta p { margin:0; font-size:15px; line-height:1.5; color:#D9D9CF; }
   .open { margin-top:18px; display:flex; align-items:center; justify-content:center; height:56px; border-radius:999px;
