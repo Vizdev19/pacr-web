@@ -63,6 +63,10 @@ const HEADERS = {
   'Content-Type': 'application/json',
 };
 
+const directionsUrl = (lat, lng, placeId) =>
+  `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`
+  + (typeof placeId === 'string' && /^[A-Za-z0-9_-]+$/.test(placeId) ? `&destination_place_id=${placeId}` : '');
+
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => (
   { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
@@ -162,8 +166,14 @@ function render({ club, slug, invite, runRef = null, runId = null }) {
 
   const runRows = runs.map(r => {
     const d = new Date(r.event_at);
-    const bits = [r.meeting_point, r.distance_km ? `${km1(Number(r.distance_km))} km` : null, r.pace_label]
-      .filter(Boolean).map(esc).join(' · ');
+    // A meeting place with a pin links to Google Maps directions (20261014120000).
+    const lat = Number(r.meeting_lat), lng = Number(r.meeting_lng);
+    const pinned = r.meeting_point && r.meeting_lat != null && Number.isFinite(lat) && Number.isFinite(lng);
+    const where = !r.meeting_point ? null : pinned
+      ? `<a class="where" href="${esc(directionsUrl(lat, lng, r.google_place_id))}" target="_blank" rel="noopener">${esc(r.meeting_point)} ↗</a>`
+      : esc(r.meeting_point);
+    const bits = [where, ...[r.distance_km ? `${km1(Number(r.distance_km))} km` : null, r.pace_label].filter(Boolean).map(esc)]
+      .filter(Boolean).join(' · ');
     return `
       <li class="run${r === picked ? ' picked' : ''}">
         <div class="date" data-at="${esc(r.event_at)}"><span>${DOW[d.getUTCDay()].toUpperCase()}</span><b>${d.getUTCDate()}</b></div>
@@ -266,6 +276,7 @@ function render({ club, slug, invite, runRef = null, runId = null }) {
   .run-title { font-weight:700; font-size:16px; }
   .weekly { margin-left:6px; padding:2px 8px; border-radius:999px; background:#E8FF3A; font-size:11px; }
   .run-meta { margin-top:3px; font-size:13px; color:#5C5C54; }
+  .run-meta a.where { color:inherit; font-weight:600; text-decoration:underline; text-underline-offset:2px; }
   .going { flex:none; font-weight:700; font-size:13px; color:#5C5C54; }
   .small { margin:28px 0 0; font-size:13px; color:#8B8B80; }
   .cta { margin-top:44px; padding:28px; border-radius:28px; background:#0F0F0D; color:#FFFFFF; }
