@@ -44,7 +44,6 @@
 
   .nav-a:hover { color:#0F0F0D; }
   button.nav-a { background:none; border:0; padding:0; cursor:pointer; font:inherit; color:inherit; letter-spacing:inherit; text-transform:inherit; }
-  .btn-acid:hover { background:#0F0F0D; color:#FFFFFF; }
   .btn-acid2:hover { background:#0A0A09; color:#E8FF3A; }
   .btn-ghost:hover { border-color:#5A6B00; color:#5A6B00; }
   .eyebrow::before { content:''; display:block; width:24px; height:2px; background:#A8BC00; }
@@ -200,7 +199,14 @@
          so it survives JS off, a blocked CDN and an unconfigured key. auth.js
          swaps it for Sign out once it knows there is a session. -->
     <div id="authSlot"><a class="nav-a" data-auth="in" href="/signin">Sign in</a></div>
-    <a class="btn-acid" href="/#get">Get PACR</a>
+    <div class="store-badges">
+      <a class="store-badge" href="https://apps.apple.com/in/app/pacr-run-training-splits/id6804190286" aria-label="Download PACR on the App Store">
+        <img src="/assets/appstore.svg" alt="Download on the App Store" width="108" height="36">
+      </a>
+      <a class="store-badge" href="https://play.google.com/store/apps/details?id=life.pacr.app" aria-label="Get PACR on Google Play">
+        <img src="/assets/playsore.png" alt="Get it on Google Play" width="121" height="36">
+      </a>
+    </div>
   </div>
 </header>
 

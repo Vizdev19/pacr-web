@@ -17,7 +17,8 @@
    file is fixing.
 
    Two variations are intentional and are the only ones allowed:
-     • .btn-acid ("Get PACR") — marketing pages, where the CTA is the point.
+     • .store-badges (App Store + Google Play) — marketing pages, where the
+       download is the point.
      • .avatar-me — /feed and /profile, the two pages whose JS knows who you are.
 
    The three legal pages (/privacy, /support, /community-rules) are a different
@@ -66,13 +67,10 @@ button.nav-a {
   font: inherit; color: inherit; letter-spacing: inherit; text-transform: inherit;
 }
 
-.btn-acid {
-  font-family: Manrope, sans-serif; font-weight: 600; font-size: 12px;
-  letter-spacing: 0.14em; text-transform: uppercase;
-  background: #E8FF3A; color: #0A0A09; padding: 12px 20px; border-radius: 2px;
-  transition: all .18s ease; white-space: nowrap; text-decoration: none;
-}
-.btn-acid:hover { background: #0F0F0D; color: #FFFFFF; }
+.store-badges { display: flex; align-items: center; gap: 8px; }
+.store-badge { display: block; border-radius: 6px; transition: opacity .18s ease; }
+.store-badge:hover { opacity: 0.8; }
+.store-badge img { height: 36px; width: auto; display: block; }
 
 .avatar-me {
   width: 34px; height: 34px; border-radius: 50%;
@@ -89,6 +87,15 @@ button.nav-a {
 @media (max-width: 900px) {
   .site-nav { display: none; }
   .site-head { padding: 16px 22px; }
+}
+/* Sign in plus two badges is wider than a phone: drop the wordmark (the mark
+   stays) and shrink the badges so the row never scrolls sideways. */
+@media (max-width: 520px) {
+  .site-head { padding: 12px 16px; gap: 12px; }
+  .brand span { display: none; }
+  .head-right { gap: 14px; }
+  .store-badges { gap: 6px; }
+  .store-badge img { height: 30px; }
 }
 
 :where(.site-head a, .site-head button):focus-visible { outline: 2px solid #5A6B00; outline-offset: 2px; }
