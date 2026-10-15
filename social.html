@@ -54,6 +54,7 @@
   }
 
   .id { display: flex; flex-direction: column; align-items: center; gap: 16px; text-align: center; }
+  .id .avatar { display: block; line-height: 0; }
   .id img {
     width: clamp(88px, 26vw, 112px);
     height: clamp(88px, 26vw, 112px);
@@ -117,8 +118,8 @@
 <div class="page">
   <main class="shell">
     <div class="id">
-      <img src="/assets/pacr-avatar.png" alt="pacr running" width="112" height="112" />
-      <h1>pacr running</h1>
+      <a class="avatar" href="/" aria-label="pacr.life home"><img src="/assets/pacr-avatar.png" alt="pacr running" width="112" height="112" /></a>
+      <h1><a href="/">pacr running</a></h1>
       <p>India's own running app</p>
     </div>
 
