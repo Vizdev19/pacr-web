@@ -2,6 +2,9 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "cleanUrls": true,
   "trailingSlash": false,
+  "redirects": [
+    { "source": "/social", "destination": "/downloads", "permanent": true }
+  ],
   "rewrites": [
     { "source": "/s/:slug/photo", "destination": "/api/squad?slug=:slug&photo=1" },
     { "source": "/s/:slug", "destination": "/api/squad?slug=:slug" },
