@@ -3,8 +3,8 @@
   "cleanUrls": true,
   "trailingSlash": false,
   "redirects": [
-    { "source": "/social", "destination": "/download", "permanent": true },
-    { "source": "/downloads", "destination": "/download", "permanent": true }
+    { "source": "/social", "destination": "/download?via=social", "permanent": true },
+    { "source": "/downloads", "destination": "/download?via=downloads", "permanent": true }
   ],
   "rewrites": [
     { "source": "/s/:slug/photo", "destination": "/api/squad?slug=:slug&photo=1" },

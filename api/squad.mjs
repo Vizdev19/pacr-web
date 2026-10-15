@@ -297,6 +297,7 @@ function render({ club, slug, invite, runRef = null, runId = null }) {
   @media (hover:hover) and (pointer:fine) { .desk { display:block; } }
   @media (max-width:560px) { h1 { font-size:32px; } main { padding-top:40px; } .stat b { font-size:22px; } }
 </style>
+<script src="/js/posthog.js"></script>
 </head>
 <body>
 <header class="site-head">

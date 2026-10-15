@@ -231,6 +231,7 @@ function render({ post, ref }) {
   @media (hover:hover) and (pointer:fine) { .desk { display:block; } }
   @media (max-width:560px) { h1 { font-size:28px; } main { padding-top:40px; } .stats dd { font-size:22px; } .media img { max-height:min(420px,54vh); } }
 </style>
+<script src="/js/posthog.js"></script>
 </head>
 <body>
 <header class="site-head">

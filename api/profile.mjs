@@ -180,6 +180,7 @@ function render({ runner, handle }) {
   @media (hover:hover) and (pointer:fine) { .desk { display:block; } }
   @media (max-width:560px) { h1 { font-size:30px; } main { padding-top:40px; } .tile { width:76px; height:76px; font-size:26px; } }
 </style>
+<script src="/js/posthog.js"></script>
 </head>
 <body>
 <header class="site-head">
