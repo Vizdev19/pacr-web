@@ -57,6 +57,12 @@ const PLAY_STORE = 'https://play.google.com/store/apps/details?id=life.pacr.app'
 const APP_STORE_ID = '6804190286';
 const SITE = 'https://pacr.life';
 
+// A verified club's seal: the app's VerifiedMark (src/components/squads/
+// Verified.tsx), same shape and green. Staff set it from the admin dashboard.
+const SEAL = '<svg class="seal" viewBox="0 0 24 24" role="img" aria-label="Verified club"><title>Verified club</title>'
+  + '<path d="M12.00 1.10L15.52 3.50L19.71 4.29L20.50 8.48L22.90 12.00L20.50 15.52L19.71 19.71L15.52 20.50L12.00 22.90L8.48 20.50L4.29 19.71L3.50 15.52L1.10 12.00L3.50 8.48L4.29 4.29L8.48 3.50Z" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>'
+  + '<path d="M7.7 12.3l2.9 2.9 5.8-6" fill="none" stroke="#fff" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
 const HEADERS = {
   apikey: SUPABASE_ANON_KEY,
   Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
@@ -198,7 +204,7 @@ function render({ club, slug, invite, runRef = null, runId = null }) {
     <div class="hero">
       <div class="tile">${tile}</div>
       <div>
-        <h1>${esc(name)}</h1>
+        <h1>${esc(name)}${club.verified ? SEAL : ''}</h1>
         <p class="meta"><span class="chip">${policy}</span>${club.women_only ? '<span class="chip">Women-only</span>' : ''}${[club.location].filter(Boolean).map(esc).join('')}</p>
       </div>
     </div>
@@ -260,6 +266,7 @@ function render({ club, slug, invite, runRef = null, runId = null }) {
   h1 { margin:0; font-family:Outfit, sans-serif; font-weight:700; font-size:40px; line-height:1.05; letter-spacing:-0.02em; }
   h2 { margin:40px 0 14px; font-family:Outfit, sans-serif; font-weight:700; font-size:22px; }
   .hero { display:flex; align-items:center; gap:20px; }
+  .seal { width:0.62em; height:0.62em; margin-left:0.16em; vertical-align:-0.02em; color:oklch(0.72 0.19 130); }
   .tile { flex:none; width:88px; height:88px; border-radius:24px; background:#E8FF3A; overflow:hidden;
     display:flex; align-items:center; justify-content:center; font-family:Outfit, sans-serif; font-weight:700; font-size:30px; }
   .tile img { width:100%; height:100%; object-fit:cover; display:block; }
