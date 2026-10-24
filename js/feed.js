@@ -873,6 +873,13 @@ function currentTargets() {
   return targetIds.filter(id => ids.has(id));
 }
 
+/** Where a fresh composer starts for this squad: Squads only needs a squad, so
+ *  the active one; Followers (the default) and Public start with none ticked,
+ *  as the app does — a followers post carries a squad only when you add it. */
+function resetTargets() {
+  targetIds = audience === 'circle' && activeSquad ? [activeSquad.id] : [];
+}
+
 /**
  * The share control: who the post is for, then which squads.
  *
@@ -949,7 +956,6 @@ function setComposerEnabled() {
     note.textContent = squads.length
       ? 'Your squads are set to owners-only posting, so a post from here goes to your followers or to everyone.'
       : '';
-    paintTargets();
     return;
   }
   note.hidden = true;
@@ -1238,9 +1244,9 @@ function paintCountLine(n) {
 async function switchSquad(id) {
   activeSquad = squads.find(s => s.id === id) ?? activeSquad;
   paintChips();
-  targetIds = [activeSquad.id];
-  paintTargets();
+  resetTargets();
   setComposerEnabled();
+  paintTargets();
   members = await listMembers(sb, activeSquad.id);
   await Promise.all([loadPage({ reset: true }), paintBoard()]);
 }
@@ -1306,7 +1312,7 @@ function wireComposer() {
       // ALL is a toggle: collapse back to the active squad rather than leaving
       // the runner with nothing selected.
       targetIds = currentTargets().length === options.length
-        ? [activeSquad.id]
+        ? (audience === 'circle' ? [activeSquad.id] : [])
         : options.map(s => s.id);
     } else {
       const id = btn.dataset.target;
@@ -1466,9 +1472,9 @@ async function showFeed() {
     followingIds = new Set(await listFollowingIds(sb, me.id));
   });
   await step('composer', async () => {
-    targetIds = [activeSquad.id];
-    paintTargets();
+    resetTargets();
     setComposerEnabled();
+    paintTargets();
   });
   await step('members', async () => { members = await listMembers(sb, activeSquad.id); });
 
