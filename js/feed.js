@@ -80,8 +80,9 @@ let followCursor = null;
 let followLoading = false;
 let discoverCursor = null;
 let discoverLoading = false;
-/** The audience for the next post: 'circle' | 'followers' | 'public'. */
-let audience = 'circle';
+/** The audience for the next post: 'circle' | 'followers' | 'public'. Followers
+ *  first, as in the app's Privacy default. */
+let audience = 'followers';
 
 // ─── Formatting ─────────────────────────────────────────────────────────────
 
@@ -873,23 +874,35 @@ function currentTargets() {
 }
 
 /**
- * The share control: which squads, plus followers, plus public.
+ * The share control: who the post is for, then which squads.
  *
- * Public is not a fourth destination sitting beside the squads — it means every
- * squad you are in AND your followers AND everyone else, so choosing it selects
- * and locks the squad chips rather than clearing them. That mirrors what the
- * post actually does, instead of leaving the runner to infer it.
+ *   Squads only — the squads you pick, nobody else.
+ *   Followers   — your followers, plus any squads you pick (none is fine).
+ *   Public      — everyone: every squad you are in, your followers, and
+ *                 runners who don't follow you. Choosing it selects and locks
+ *                 the squad chips rather than clearing them, so the control
+ *                 shows what the post actually does.
+ *
+ * The same three choices as the app's share sheet; a followers post no longer
+ * needs a squad (pacr migration 20261101120000).
  */
 function paintTargets() {
   const host = $('cTargets');
   const options = postableSquads();
-  if (options.length === 0) { host.innerHTML = ''; return; }
-
   const isPublic = audience === 'public';
   const selected = isPublic ? options.map(s => s.id) : currentTargets();
 
+  const aud = (key, label, cls = '') => `
+      <button type="button" class="chip ${cls}" data-aud="${key}" role="radio"
+              aria-checked="${audience === key}" aria-pressed="${audience === key}"
+              ${key === 'circle' && options.length === 0 ? 'disabled' : ''}>${label}</button>`;
+
   host.innerHTML = `
-    <div class="aud-group" role="group" aria-label="Squads to post to">
+    <div class="aud-group" role="radiogroup" aria-label="Who sees this">
+      ${aud('circle', 'Squads only')}${aud('followers', 'Followers')}${aud('public', 'Public', 'chip-public')}
+    </div>
+    ${options.length ? `
+    <div class="aud-group aud-reach" role="group" aria-label="Squads to post to">
       ${options.map(s => `
         <button type="button" class="chip" data-target="${esc(s.id)}"
                 aria-pressed="${selected.includes(s.id)}" ${isPublic ? 'disabled' : ''}>
@@ -899,46 +912,46 @@ function paintTargets() {
         ? `<button type="button" class="chip chip-all" data-target="__all"
                    aria-pressed="${selected.length === options.length}">All squads</button>`
         : ''}
-    </div>
-    <div class="aud-group aud-reach" role="group" aria-label="Who else sees this">
-      <button type="button" class="chip" data-aud="followers"
-              aria-pressed="${audience !== 'circle'}" ${isPublic ? 'disabled' : ''}>
-        + Followers
-      </button>
-      <button type="button" class="chip chip-public" data-aud="public"
-              aria-pressed="${isPublic}">Public</button>
-    </div>
+    </div>` : ''}
     <p class="aud-note">${audienceNote(options.length, selected.length)}</p>`;
 
-  $('draftScope').textContent = audience === 'public' ? '● PUBLIC'
-    : audience === 'followers' ? '● SQUADS + FOLLOWERS' : '● SQUADS ONLY';
+  $('draftScope').textContent = isPublic ? '● PUBLIC'
+    : audience === 'followers'
+      ? (selected.length ? `● FOLLOWERS + ${selected.length} ${selected.length === 1 ? 'SQUAD' : 'SQUADS'}` : '● FOLLOWERS')
+      : '● SQUADS ONLY';
 }
 
 /** Say in one line exactly who ends up seeing this. */
 function audienceNote(squadCount, selectedCount) {
   if (audience === 'public') {
-    return 'Everyone: all ' + squadCount + (squadCount === 1 ? ' squad' : ' squads')
-      + " you are in, your followers, and runners who don't follow you.";
+    return squadCount
+      ? 'Everyone: all ' + squadCount + (squadCount === 1 ? ' squad' : ' squads')
+        + " you are in, your followers, and runners who don't follow you."
+      : "Everyone: your followers, and runners who don't follow you.";
   }
   const squads = `${selectedCount} ${selectedCount === 1 ? 'squad' : 'squads'}`;
-  return audience === 'followers'
-    ? `${squads} and your followers.`
-    : `${squads} only. Nobody outside them sees this.`;
+  if (audience === 'followers') {
+    return selectedCount ? `${squads} and your followers.` : 'Your followers only. No squad sees this.';
+  }
+  return selectedCount ? `${squads} only. Nobody outside them sees this.` : 'Pick at least one squad.';
 }
 
 function setComposerEnabled() {
   const options = postableSquads();
   const note = $('cGate');
   const form = $('composer');
+  // No squad to post in: the composer stays — a post can go to followers or
+  // to everyone with no squad at all — and the note says why Squads only is off.
+  form.hidden = false;
   if (options.length === 0) {
-    form.hidden = true;
+    if (audience === 'circle') audience = 'followers';
     note.hidden = false;
     note.textContent = squads.length
-      ? 'Your squads are set to owners-only posting, so you can read here but not post.'
+      ? 'Your squads are set to owners-only posting, so a post from here goes to your followers or to everyone.'
       : '';
+    paintTargets();
     return;
   }
-  form.hidden = false;
   note.hidden = true;
 }
 
@@ -968,7 +981,8 @@ async function onPost() {
   // only the client knows the full list.
   const targets = audience === 'public' ? options.map(s => s.id) : currentTargets();
 
-  if (targets.length === 0) return msg(note, 'Pick at least one squad to post to.', 'err');
+  // Only a squads-only post needs a squad.
+  if (audience === 'circle' && targets.length === 0) return msg(note, 'Pick at least one squad to post to.', 'err');
   if (!typed && !pendingPhoto) return msg(note, 'Write something, or add a photo.', 'err');
   if (typed.length > MAX_BODY) return msg(note, `Keep it under ${MAX_BODY} characters.`, 'err');
 
@@ -1278,13 +1292,11 @@ function wireComposer() {
   $('cTargets').addEventListener('click', (e) => {
     const aud = e.target.closest('button[data-aud]');
     if (aud) {
-      if (aud.dataset.aud === 'public') {
-        audience = audience === 'public' ? 'circle' : 'public';
-      } else {
-        // "+ Followers" is a toggle between circle and followers; it never
-        // silently drops you out of public.
-        audience = audience === 'circle' ? 'followers' : 'circle';
-      }
+      if (aud.disabled) return;
+      audience = aud.dataset.aud;
+      // Squads only needs a squad: coming back to it with none ticked picks
+      // the active one, as the squad chips do.
+      if (audience === 'circle' && currentTargets().length === 0 && activeSquad) targetIds = [activeSquad.id];
       return paintTargets();
     }
     const btn = e.target.closest('button[data-target]');
@@ -1300,7 +1312,8 @@ function wireComposer() {
       const id = btn.dataset.target;
       const next = new Set(currentTargets());
       if (next.has(id)) next.delete(id); else next.add(id);
-      targetIds = next.size === 0 ? [activeSquad.id] : [...next];
+      // A followers post may go to no squad; a squads-only one keeps the active one.
+      targetIds = next.size === 0 && audience === 'circle' ? [activeSquad.id] : [...next];
     }
     paintTargets();
   });

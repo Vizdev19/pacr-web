@@ -105,12 +105,13 @@ async function classifyPostInsertFailure(sb, circleId, message) {
  *
  * `visibility` is 'circle' | 'followers' | 'public'. Public also targets every
  * squad the author is in — that is the caller's job, since only it knows the
- * full list.
+ * full list. A followers or public post may go to no squad at all (pacr
+ * migration 20261101120000); only a squads-only post needs one.
  */
 export async function createPost(sb, { targets, visibility, body, blob, kind, runId }) {
   if (!sb) return { ok: false, reason: 'error' };
   const circleIds = [...new Set(targets ?? [])];
-  if (circleIds.length === 0) return { ok: false, reason: 'error' };
+  if (circleIds.length === 0 && visibility === 'circle') return { ok: false, reason: 'error' };
 
   const trimmed = String(body ?? '').trim();
   const text = trimmed ? trimmed.slice(0, MAX_BODY) : null;
