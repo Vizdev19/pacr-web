@@ -17,6 +17,9 @@
 //                              as /p/<ref> (api/post.mjs). Combines with
 //                              invite= for an invite-only squad's runs.
 //   /s/<slug>/photo            the club's picture, proxied (see below)
+//   /s/<slug>/cover            its cover photo, the same way (20261113120000):
+//                              a 5:2 banner over the hero, and the preview
+//                              image when there is one
 //
 // Data comes from get_club_page (migration 20261008120000 in the app repo) as
 // anon: a public club, or nothing. Strangers see what the app shows them —
@@ -96,11 +99,14 @@ async function clubPage(slug) {
   return r.json();
 }
 
-async function photo(slug, res) {
+/** Proxy the club's tile (avatar_path) or cover (cover_path). Both live in
+ *  the club-avatars bucket. */
+async function photo(slug, res, column = 'avatar_path') {
   const club = await clubPage(slug).catch(() => null);
-  if (!club?.avatar_path) return notFound(res, 'text/plain', 'No photo');
+  const path = club?.[column];
+  if (!path) return notFound(res, 'text/plain', 'No photo');
   const sign = await fetch(
-    `${SUPABASE_URL}/storage/v1/object/sign/club-avatars/${club.avatar_path.split('/').map(encodeURIComponent).join('/')}`,
+    `${SUPABASE_URL}/storage/v1/object/sign/club-avatars/${path.split('/').map(encodeURIComponent).join('/')}`,
     { method: 'POST', headers: HEADERS, body: JSON.stringify({ expiresIn: 120 }) },
   );
   const signed = sign.ok ? (await sign.json()).signedURL : null;
@@ -161,7 +167,10 @@ function render({ club, slug, invite, runRef = null, runId = null }) {
       .filter(Boolean).join(' · ')
     : invite ? 'Open this link on your phone to join the squad in the PACR app.'
     : 'This squad isn’t public. Ask a member for an invite link.';
-  const ogImage = club?.avatar_path ? `${SITE}/s/${slug}/photo` : `${SITE}/og-image.png`;
+  // The cover makes the better preview; then the tile; then the site's own.
+  const ogImage = club?.cover_path ? `${SITE}/s/${slug}/cover`
+    : club?.avatar_path ? `${SITE}/s/${slug}/photo` : `${SITE}/og-image.png`;
+  const twitterCard = club?.avatar_path && !club?.cover_path ? 'summary' : 'summary_large_image';
   const runs = picked
     ? [picked, ...(club?.runs ?? []).filter(r => r !== picked)].slice(0, 6)
     : (club?.runs ?? []).slice(0, 6);
@@ -169,6 +178,9 @@ function render({ club, slug, invite, runRef = null, runId = null }) {
   const tile = club?.avatar_path
     ? `<img src="/s/${esc(slug)}/photo" alt="" width="88" height="88">`
     : esc(initials(name ?? 'PACR'));
+  const cover = club?.cover_path
+    ? `<div class="cover"><img src="/s/${esc(slug)}/cover" alt="" width="1500" height="600"></div>`
+    : '';
 
   const runRows = runs.map(r => {
     const d = new Date(r.event_at);
@@ -201,7 +213,8 @@ function render({ club, slug, invite, runRef = null, runId = null }) {
     <p class="about">It may be invite-only, or the link may be old. Ask a member for an invite link.</p>
   ` : club ? `
     <p class="eyebrow">${invite ? 'You’re invited' : 'A squad on PACR'}</p>
-    <div class="hero">
+    ${cover}
+    <div class="hero${cover ? ' on-cover' : ''}">
       <div class="tile">${tile}</div>
       <div>
         <h1>${esc(name)}${club.verified ? SEAL : ''}</h1>
@@ -249,7 +262,7 @@ function render({ club, slug, invite, runRef = null, runId = null }) {
 <meta property="og:description" content="${esc(descr)}" />
 <meta property="og:url" content="${esc(shareUrl)}" />
 <meta property="og:image" content="${esc(ogImage)}" />
-<meta name="twitter:card" content="${club?.avatar_path ? 'summary' : 'summary_large_image'}" />
+<meta name="twitter:card" content="${twitterCard}" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 <link rel="apple-touch-icon" href="/brand-acid/icon-512.png" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -270,6 +283,11 @@ function render({ club, slug, invite, runRef = null, runId = null }) {
   .tile { flex:none; width:88px; height:88px; border-radius:24px; background:#E8FF3A; overflow:hidden;
     display:flex; align-items:center; justify-content:center; font-family:Outfit, sans-serif; font-weight:700; font-size:30px; }
   .tile img { width:100%; height:100%; object-fit:cover; display:block; }
+  .cover { aspect-ratio:5 / 2; border-radius:24px; overflow:hidden; background:#F2F2EC; }
+  .cover img { width:100%; height:100%; object-fit:cover; display:block; }
+  .hero.on-cover { align-items:flex-start; padding:0 16px; gap:16px; }
+  .hero.on-cover .tile { width:98px; height:98px; margin-top:-44px; border:5px solid #FFFFFF; border-radius:28px; }
+  .hero.on-cover > div:last-child { padding-top:14px; min-width:0; }
   .meta { margin:10px 0 0; display:flex; align-items:center; gap:10px; flex-wrap:wrap; font-size:14px; color:#5C5C54; }
   .chip { padding:4px 10px; border-radius:999px; background:#F2F2EC; font-weight:700; font-size:12px; color:#0F0F0D; }
   .about { margin:24px 0 0; font-size:17px; line-height:1.55; color:#2A2A26; }
@@ -384,6 +402,7 @@ export default async function handler(req, res) {
   const rawInvite = String(req.query?.invite ?? url.searchParams.get('invite') ?? '').toLowerCase();
   const invite = CODE_RE.test(rawInvite) ? rawInvite : null;
   const wantsPhoto = (req.query?.photo ?? url.searchParams.get('photo')) === '1';
+  const wantsCover = (req.query?.cover ?? url.searchParams.get('cover')) === '1';
   const rawRun = String(req.query?.run ?? url.searchParams.get('run') ?? '');
   const runId = decodeRef(rawRun);
   const runRef = runId ? rawRun : null;
@@ -392,6 +411,7 @@ export default async function handler(req, res) {
     return notFound(res, 'text/html; charset=utf-8', render({ club: null, slug: 'squad', invite: null }));
   }
   if (wantsPhoto) return photo(slug, res);
+  if (wantsCover) return photo(slug, res, 'cover_path');
 
   let club = null;
   try {
