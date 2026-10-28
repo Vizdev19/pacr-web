@@ -37,6 +37,8 @@
 // names a hidden squad and one that names nothing are indistinguishable.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { createHash } from 'node:crypto';
+
 // KEEP IN SYNC with js/config.js. Copied rather than imported: that file is an
 // ES module named .js with no package.json "type", which Node may load as
 // CommonJS inside a function. Publishable anon key — never a service key.
@@ -59,6 +61,12 @@ const APP_STORE = 'https://apps.apple.com/in/app/pacr-run-training-splits/id6804
 const PLAY_STORE = 'https://play.google.com/store/apps/details?id=life.pacr.app';
 const APP_STORE_ID = '6804190286';
 const SITE = 'https://pacr.life';
+
+/** "?v=<8 chars>" from a storage path. The picture's address stays /s/<slug>/…
+ *  and the edge caches it for a day, but every new upload is a new path, so a
+ *  new tile or cover is a new URL the moment the page is re-rendered. Hashed,
+ *  not the path itself: the path starts with the club's uuid. */
+const version = path => `?v=${createHash('sha256').update(String(path)).digest('base64url').slice(0, 8)}`;
 
 // A verified club's seal: the app's VerifiedMark (src/components/squads/
 // Verified.tsx), same shape and green. Staff set it from the admin dashboard.
@@ -168,18 +176,18 @@ function render({ club, slug, invite, runRef = null, runId = null }) {
     : invite ? 'Open this link on your phone to join the squad in the PACR app.'
     : 'This squad isn’t public. Ask a member for an invite link.';
   // The cover makes the better preview; then the tile; then the site's own.
-  const ogImage = club?.cover_path ? `${SITE}/s/${slug}/cover`
-    : club?.avatar_path ? `${SITE}/s/${slug}/photo` : `${SITE}/og-image.png`;
+  const ogImage = club?.cover_path ? `${SITE}/s/${slug}/cover${version(club.cover_path)}`
+    : club?.avatar_path ? `${SITE}/s/${slug}/photo${version(club.avatar_path)}` : `${SITE}/og-image.png`;
   const twitterCard = club?.avatar_path && !club?.cover_path ? 'summary' : 'summary_large_image';
   const runs = picked
     ? [picked, ...(club?.runs ?? []).filter(r => r !== picked)].slice(0, 6)
     : (club?.runs ?? []).slice(0, 6);
 
   const tile = club?.avatar_path
-    ? `<img src="/s/${esc(slug)}/photo" alt="" width="88" height="88">`
+    ? `<img src="/s/${esc(slug)}/photo${version(club.avatar_path)}" alt="" width="88" height="88">`
     : esc(initials(name ?? 'PACR'));
   const cover = club?.cover_path
-    ? `<div class="cover"><img src="/s/${esc(slug)}/cover" alt="" width="1500" height="600"></div>`
+    ? `<div class="cover"><img src="/s/${esc(slug)}/cover${version(club.cover_path)}" alt="" width="1500" height="600"></div>`
     : '';
 
   const runRows = runs.map(r => {
