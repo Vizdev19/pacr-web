@@ -28,6 +28,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { getSupabase, esc, initials, signedUrlsFor } from './supabase.js';
+import { facesFor, faceFrom, faceHtml } from './avatars.js';
 import { mountHeaderAuth, signinHref } from './auth.js';
 import {
   renderBody, activeMentionQuery, insertMention, serializeMentions,
@@ -270,7 +271,7 @@ function cardShell(p, { club, tag, menu, follow, foot }) {
   return `
     <article class="post" data-id="${esc(p.id)}">
       <div class="post-top">
-        <div class="avatar">${esc(initials(p.author_name))}</div>
+        <div class="avatar">${p.face_html ?? esc(initials(p.author_name))}</div>
         <div class="post-who">
           <div class="post-name-row">
             <span class="post-name">${esc(p.author_name)}</span>
@@ -395,7 +396,10 @@ function repaint(postId) {
 async function hydrate(rows) {
   if (rows.length === 0) return '';
   const paths = rows.map(r => r.image_path).filter(Boolean);
-  const urlByPath = await signedUrlsFor(sb, 'post-images', paths);
+  const [urlByPath, faces] = await Promise.all([
+    signedUrlsFor(sb, 'post-images', paths),
+    facesFor(sb, rows.map(r => r.author_id)),
+  ]);
 
   const likedIds = new Set();
   try {
@@ -426,6 +430,7 @@ async function hydrate(rows) {
       liked_by_me: likedIds.has(row.id),
       is_mine: row.author_id === me.id,
     };
+    p.face_html = faceFrom(faces, p.author_id, p.author_name);
     p.scope = 'squad';
     postState.set(p.id, p);
     return postHtml(p);
@@ -441,7 +446,10 @@ async function hydrate(rows) {
  */
 async function hydrateFollowing(rows, scope = 'following') {
   if (rows.length === 0) return '';
-  const urlByPath = await signedUrlsFor(sb, 'post-images', rows.map(r => r.image_path).filter(Boolean));
+  const [urlByPath, faces] = await Promise.all([
+    signedUrlsFor(sb, 'post-images', rows.map(r => r.image_path).filter(Boolean)),
+    facesFor(sb, rows.map(r => r.author_id)),
+  ]);
   return rows.map((row) => {
     const p = {
       id: row.id,
@@ -465,6 +473,7 @@ async function hydrateFollowing(rows, scope = 'following') {
       followed_by_me: row.followed_by_me ?? true,
       scope,
     };
+    p.face_html = faceFrom(faces, p.author_id, p.author_name);
     postState.set(p.id, p);
     return p;
   });
@@ -1109,11 +1118,11 @@ function wireMentions(input, row) {
 // no presence — so those blocks are left out rather than filled with numbers
 // nobody actually ran. Everything below is real.
 
-function paintIdentity(name) {
-  const ini = initials(name || '—');
+function paintIdentity(name, photoUrl) {
+  const face = faceHtml(name || '—', photoUrl, me.id);
   for (const id of ['meAvatar', 'draftAvatar']) {
     const el = $(id);
-    if (el) { el.textContent = ini; el.hidden = false; }
+    if (el) { el.innerHTML = face; el.hidden = false; }
   }
   $('feedDate').textContent = `Feed — ${new Date().toLocaleDateString('en-IN', {
     weekday: 'long', day: '2-digit', month: 'short',
@@ -1190,9 +1199,11 @@ async function paintSuggestions() {
   const card = $('sugCard');
   const people = await suggestedToFollow(sb, me.id, squads.map(s => s.id), [...followingIds]);
   if (people.length === 0) { card.hidden = true; return; }
-  $('sugRows').innerHTML = people.slice(0, 5).map(m => `
+  const shown = people.slice(0, 5);
+  const faces = await facesFor(sb, shown.map(m => m.userId));
+  $('sugRows').innerHTML = shown.map(m => `
     <div class="sug-row" data-uid="${esc(m.userId)}">
-      <div class="sug-av">${esc(initials(m.displayName))}</div>
+      <div class="sug-av">${faceFrom(faces, m.userId, m.displayName)}</div>
       <div class="sug-main">
         <div class="sug-name">${esc(m.displayName)}</div>
         <div class="sug-meta">IN YOUR SQUADS</div>
@@ -1429,11 +1440,12 @@ async function showFeed() {
   $('paneBoot').hidden = true;
   $('paneFeed').hidden = false;
 
-  // Display name drives both avatars and is not on the auth user.
+  // Display name and picture drive both avatars and are not on the auth user.
   try {
-    const { data } = await sb.from('users').select('display_name').eq('id', me.id).maybeSingle();
-    paintIdentity(data?.display_name ?? me.email ?? '—');
-  } catch { paintIdentity(me.email ?? '—'); }
+    const { data } = await sb.from('users').select('display_name, avatar_path').eq('id', me.id).maybeSingle();
+    const signed = await signedUrlsFor(sb, 'avatars', [data?.avatar_path].filter(Boolean));
+    paintIdentity(data?.display_name ?? me.email ?? '—', signed.get(data?.avatar_path) ?? null);
+  } catch { paintIdentity(me.email ?? '—', null); }
 
   squads = await loadSquads();
   if (squads.length === 0) {

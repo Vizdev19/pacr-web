@@ -44,6 +44,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { getSupabase, esc, initials, num, signedUrlsFor } from './supabase.js';
+import { faceHtml } from './avatars.js';
 import { mountHeaderAuth, signinHref, signOut } from './auth.js';
 import { renderBody } from './mentions.js';
 import { POST_SELECT } from './feed-write.js';
@@ -189,11 +190,6 @@ function runPace(r) {
 
 function placeOf(r) {
   return r.neighborhood ? String(r.neighborhood).toUpperCase() : null;
-}
-
-/** A face: signed avatar when the bucket lets us have one, initials otherwise. */
-function faceHtml(name, url) {
-  return url ? `<img src="${esc(url)}" alt="">` : esc(initials(name));
 }
 
 /** Copy for each discriminated follow failure, matching the feed's wording. */
@@ -346,7 +342,7 @@ async function memberCounts(circleIds) {
 
 function paintIdentity() {
   const name = subject?.display_name || (isMe ? (me.email ?? '—') : '—');
-  subjectFaceHtml = faceHtml(name, subject?.avatarUrl);
+  subjectFaceHtml = faceHtml(name, subject?.avatarUrl, subject?.id);
 
   $('pAvatar').innerHTML = subjectFaceHtml;
   $('pName').textContent = name;
@@ -354,7 +350,7 @@ function paintIdentity() {
 
   // The header avatar is always mine, whoever the page is about.
   const head = $('meAvatar');
-  head.innerHTML = faceHtml(myRow?.display_name || me.email || '—', myRow?.avatarUrl);
+  head.innerHTML = faceHtml(myRow?.display_name || me.email || '—', myRow?.avatarUrl, me.id);
   head.hidden = false;
 
   const streak = Number(subject?.current_streak_days) || 0;
@@ -931,7 +927,7 @@ async function paintPeople() {
     // plain div is the right fallback if one ever is.
     const tag = href ? 'a' : 'div';
     rows.push(`<${tag} class="person"${href ? ` href="${esc(href)}"` : ''}>
-      <div class="person-av">${faceHtml(u.display_name, url)}</div>
+      <div class="person-av">${faceHtml(u.display_name, url, u.id)}</div>
       <div class="person-main">
         <div class="person-name">${esc(u.display_name ?? '—')}</div>
         <div class="person-meta">${esc(meta)}</div>

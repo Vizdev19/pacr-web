@@ -130,7 +130,9 @@
   .post { border:1px solid #E3E3DA; background:#FFFFFF; }
   .post-top { display:flex; align-items:center; gap:14px; padding:18px 22px; border-bottom:1px solid #E3E3DA; }
   .avatar { width:38px; height:38px; border-radius:50%; background:#C8C8BD; color:#3F4A00;
-    font-weight:700; font-size:12px; display:flex; align-items:center; justify-content:center; flex:none; }
+    font-weight:700; font-size:12px; display:flex; align-items:center; justify-content:center; flex:none;
+    overflow:hidden; }
+  .avatar img, .sug-av img { width:100%; height:100%; object-fit:cover; display:block; }
   .post-who { flex:1; min-width:0; }
   .post-name-row { display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; }
   .post-name { font-size:16px; font-weight:600; }
@@ -249,7 +251,8 @@
   .sug-list { display:flex; flex-direction:column; gap:1px; background:#E3E3DA; }
   .sug-row { background:#FFFFFF; padding:16px 20px; display:flex; align-items:flex-start; gap:13px; }
   .sug-av { width:34px; height:34px; border-radius:50%; background:#DFDFD5; color:#3F4A00;
-    font-weight:700; font-size:11px; display:flex; align-items:center; justify-content:center; flex:none; }
+    font-weight:700; font-size:11px; display:flex; align-items:center; justify-content:center; flex:none;
+    overflow:hidden; }
   .sug-main { flex:1; min-width:0; }
   .sug-name { font-size:14px; font-weight:600; }
   .sug-meta { font-weight:600; font-size:10px; letter-spacing:0.1em; color:#6A6A61; margin-top:3px; }

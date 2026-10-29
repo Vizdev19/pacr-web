@@ -40,6 +40,22 @@ const HEADERS = {
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => (
   { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
+// A runner who picked one of the app's avatars has "preset:<key>" as their
+// avatar_path: the art in /assets/avatars, never a Storage object. KEEP IN
+// SYNC with js/avatars.js (copied for the same reason as the config above).
+const AVATAR_KEYS = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12'];
+const chosenArt = path => {
+  const key = typeof path === 'string' && path.startsWith('preset:') ? path.slice(7) : null;
+  return key && AVATAR_KEYS.includes(key) ? `/assets/avatars/pacr_avatar_${key}.png` : null;
+};
+
+function redirect(res, location) {
+  res.statusCode = 302;
+  res.setHeader('Location', location);
+  res.setHeader('Cache-Control', 'public, s-maxage=600');
+  res.end();
+}
+
 const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 async function card(handle) {
@@ -55,6 +71,8 @@ async function card(handle) {
 async function photo(handle, res) {
   const runner = await card(handle).catch(() => null);
   if (!runner?.avatar_path) return notFound(res, 'text/plain', 'No photo');
+  const art = chosenArt(runner.avatar_path);
+  if (art) return redirect(res, art);
   const sign = await fetch(
     `${SUPABASE_URL}/storage/v1/object/sign/avatars/${runner.avatar_path.split('/').map(encodeURIComponent).join('/')}`,
     { method: 'POST', headers: HEADERS, body: JSON.stringify({ expiresIn: 120 }) },
@@ -98,12 +116,14 @@ function render({ runner, handle }) {
     ? [runner.bio, runner.location, `${count(followers)} ${followers === 1 ? 'follower' : 'followers'}`]
       .filter(Boolean).join(' · ')
     : 'This profile link may be old — the runner might have changed their handle.';
-  const ogImage = runner?.avatar_path ? `${SITE}/u/${handle}/photo` : `${SITE}/og-image.png`;
+  const art = chosenArt(runner?.avatar_path);
+  const ogImage = art ? `${SITE}${art}`
+    : runner?.avatar_path ? `${SITE}/u/${handle}/photo` : `${SITE}/og-image.png`;
   const tags = Array.isArray(runner?.bio_tags) ? runner.bio_tags : [];
   const joined = runner?.joined_at ? new Date(runner.joined_at) : null;
 
   const tile = runner?.avatar_path
-    ? `<img src="/u/${esc(handle)}/photo" alt="" width="96" height="96">`
+    ? `<img src="${art ?? `/u/${esc(handle)}/photo`}" alt="" width="96" height="96">`
     : esc(initials(name ?? 'PACR'));
 
   const body = runner ? `

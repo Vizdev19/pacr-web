@@ -42,6 +42,22 @@ const HEADERS = {
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => (
   { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
+// A runner who picked one of the app's avatars has "preset:<key>" as their
+// avatar_path: the art in /assets/avatars, never a Storage object. KEEP IN
+// SYNC with js/avatars.js (copied for the same reason as the config above).
+const AVATAR_KEYS = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12'];
+const chosenArt = path => {
+  const key = typeof path === 'string' && path.startsWith('preset:') ? path.slice(7) : null;
+  return key && AVATAR_KEYS.includes(key) ? `/assets/avatars/pacr_avatar_${key}.png` : null;
+};
+
+function redirect(res, location) {
+  res.statusCode = 302;
+  res.setHeader('Location', location);
+  res.setHeader('Cache-Control', 'public, s-maxage=600');
+  res.end();
+}
+
 const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 /** 22-char ref → uuid, or null. Same as decodeUserRef in js/ids.js. */
@@ -133,14 +149,16 @@ function render({ post, ref }) {
   const descr = post
     ? ([run?.map(([, v]) => v).join(' · '), body].filter(Boolean).join(' — ').slice(0, 200) || `${name} on PACR`)
     : 'Open this link in the PACR app to see the post.';
+  const art = chosenArt(post?.author_avatar_path);
   const ogImage = post?.image_path ? `${SITE}/p/${ref}/photo`
+    : art ? `${SITE}${art}`
     : post?.author_avatar_path ? `${SITE}/p/${ref}/avatar` : `${SITE}/og-image.png`;
   const when = post?.created_at ? new Date(post.created_at) : null;
   const likes = Number(post?.like_count) || 0;
   const comments = Number(post?.comment_count) || 0;
 
   const tile = post?.author_avatar_path
-    ? `<img src="/p/${esc(ref)}/avatar" alt="" width="44" height="44">`
+    ? `<img src="${art ?? `/p/${esc(ref)}/avatar`}" alt="" width="44" height="44">`
     : esc(initials(name));
   const who = post?.author_handle
     ? `<a href="/u/${esc(post.author_handle)}">${esc(name)}</a>`
@@ -307,7 +325,10 @@ export default async function handler(req, res) {
   }
 
   if (part === 'photo') return proxy('post-images', post?.image_path, res);
-  if (part === 'avatar') return proxy('avatars', post?.author_avatar_path, res);
+  if (part === 'avatar') {
+    const art = chosenArt(post?.author_avatar_path);
+    return art ? redirect(res, art) : proxy('avatars', post?.author_avatar_path, res);
+  }
 
   // A squad or followers post is a 200 too: the link is fine, the web just
   // can't show it. Only a malformed ref is a 404.

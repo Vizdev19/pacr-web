@@ -12,6 +12,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { SUPABASE_URL, SUPABASE_ANON_KEY, isConfigured } from './config.js';
+import { chosenArtUrl, isPresetPath } from './avatars.js';
 
 let clientPromise = null;
 
@@ -74,7 +75,13 @@ export function num(n) {
  */
 export async function signedUrlsFor(sb, bucket, paths) {
   const out = new Map();
-  const unique = [...new Set((paths ?? []).filter(Boolean))];
+  // A chosen avatar ("preset:07") is the app's art, not an object: it maps
+  // straight to the picture (js/avatars.js) and is never sent to Storage.
+  for (const p of paths ?? []) {
+    const art = chosenArtUrl(p);
+    if (art) out.set(p, art);
+  }
+  const unique = [...new Set((paths ?? []).filter(p => p && !isPresetPath(p)))];
   if (!sb || unique.length === 0) return out;
 
   for (let i = 0; i < unique.length; i += 100) {
