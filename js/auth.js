@@ -1,15 +1,18 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // Shared sign-in for pacr.life
 //
-// One email-OTP flow, used by /signin and mounted into the header of every
-// page. Deliberately the SAME method the app uses (6-digit code, verified with
-// type 'email') and nothing else: the app treats email OTP as the sole identity
-// path and has anonymous sign-ins disabled, so a second method here would mint
-// auth.users rows the app has no way to sign in to. See pacr/src/services/
-// supabase.ts for the flow this mirrors.
+// Used by /signin and mounted into the header of every page. The methods are
+// the app's own, and only those: the 6-digit email code (verified with type
+// 'email') and Continue with Google / Apple (pacr/src/services/socialAuth.ts).
+// A method the app lacks would mint auth.users rows the app can't sign in to.
 //
-// shouldCreateUser is false everywhere. The website recognises an identity the
-// app already made; it must never create one.
+// The website recognises an account the app made; it must never make one.
+// Email gets that from shouldCreateUser: false. Google and Apple can't — an
+// OAuth sign-in creates the auth user on the way back — so
+// finishProviderSignIn() checks for the profile the app writes at sign-up and,
+// when there is none, signs straight back out and says accounts are made in
+// the app. The auth row it leaves holds no data, and the app adopts it if that
+// person later signs up there with the same Google or Apple account.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { getSupabase } from './supabase.js';
@@ -127,6 +130,83 @@ export async function verifyCode(email, token) {
     return { ok: false, text: verifyErrorText(error?.message) };
   }
   return { ok: true, user: data.user };
+}
+
+// ── Google / Apple ──────────────────────────────────────────────────────────
+
+export const PROVIDER_NAMES = { google: 'Google', apple: 'Apple' };
+
+/**
+ * Leave for Google's or Apple's sign-in page. Supabase brings the browser back
+ * to this same page (it serves at /signin and /signin.html) with ?code=, and
+ * the `next` rides along so the return lands where sign-in was asked for.
+ * Resolves only on failure — on success the page is already navigating away.
+ */
+export async function startProviderSignIn(provider, next) {
+  const sb = await getSupabase();
+  if (!sb) return { ok: false, text: 'Sign-in is unavailable right now.' };
+  const back = new URL(location.pathname, location.origin);
+  if (next && !isSigninPath(next)) back.searchParams.set('next', next);
+  const { error } = await sb.auth.signInWithOAuth({
+    provider,
+    options: { redirectTo: back.toString() },
+  });
+  return error
+    ? { ok: false, text: `Couldn't reach ${PROVIDER_NAMES[provider]}. Try again in a moment.` }
+    : { ok: true };
+}
+
+/**
+ * The return trip from Google or Apple. Null when this page load isn't one;
+ * otherwise { ok } once the code is exchanged and the account is confirmed as
+ * one the app made, or { ok: false, text } to show on the form.
+ *
+ * The query is cleaned either way (keeping `next`), so a reload or a Back
+ * doesn't replay a spent code.
+ */
+export async function finishProviderSignIn() {
+  const q = new URLSearchParams(location.search);
+  const hash = new URLSearchParams(location.hash.slice(1));
+  const code = q.get('code');
+  const err = q.get('error') ?? hash.get('error');
+  if (!code && !err) return null;
+
+  const clean = new URL(location.pathname, location.origin);
+  const next = q.get('next');
+  if (next) clean.searchParams.set('next', next);
+  history.replaceState(null, '', clean.pathname + clean.search);
+
+  // Closing Google's window or Apple's sheet comes back as access_denied:
+  // nothing went wrong, so nothing is said.
+  if (err) {
+    return err === 'access_denied'
+      ? { ok: false, text: '' }
+      : { ok: false, text: "Couldn't sign you in. Try again, or use your email." };
+  }
+
+  const sb = await getSupabase();
+  if (!sb) return { ok: false, text: 'Sign-in is unavailable right now.' };
+  const { data, error } = await sb.auth.exchangeCodeForSession(code);
+  const user = data?.session?.user;
+  if (error || !user) {
+    return { ok: false, text: "Couldn't sign you in. Try again, or use your email." };
+  }
+
+  // The app writes public.users when an account finishes sign-up. No row means
+  // this Google/Apple account isn't one the app knows. A failed lookup is not
+  // that answer — RLS still guards every page, so let them in.
+  const { data: profile, error: lookupError } = await sb.from('users')
+    .select('id').eq('id', user.id).maybeSingle();
+  if (!lookupError && !profile) {
+    const provider = PROVIDER_NAMES[user.app_metadata?.provider] ?? 'that';
+    await sb.auth.signOut();
+    return {
+      ok: false,
+      text: `No PACR account uses that ${provider} account. Accounts are made in the app — ` +
+        `sign up there, then sign in here. If you signed up with your email, use it below.`,
+    };
+  }
+  return { ok: true, user };
 }
 
 // ── Header control ──────────────────────────────────────────────────────────

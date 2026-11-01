@@ -7,8 +7,11 @@
 // null as "leave the static markup alone", which is what keeps the page working
 // with JS disabled, with the CDN blocked, or before the anon key is filled in.
 //
-// detectSessionInUrl is false because sign-in is a 6-digit code, not a magic
-// link — the same flow the app uses — so nothing is ever parsed out of the URL.
+// detectSessionInUrl is false: email sign-in is a 6-digit code, and the one URL
+// that does carry something — /signin's return from Google or Apple — is read
+// by finishProviderSignIn() in auth.js, which exchanges the ?code= itself and
+// then checks the account was made in the app. flowType 'pkce' is what makes
+// that return a one-time code in the query instead of tokens in the hash.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { SUPABASE_URL, SUPABASE_ANON_KEY, isConfigured } from './config.js';
@@ -30,6 +33,7 @@ export async function getSupabase() {
           persistSession: true,
           autoRefreshToken: true,
           detectSessionInUrl: false,
+          flowType: 'pkce',
           storageKey: 'pacr.web.auth',
         },
       });

@@ -1,15 +1,16 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // /signin — the standalone sign-in page
 //
-// Owns the two-step form; the flow itself and its error copy live in auth.js so
-// that nothing here has to know about Supabase. Lands on ?next= when it is a
+// Owns Continue with Apple / Google and the two-step email form; the flows and
+// their error copy live in auth.js so that nothing here has to know about
+// Supabase. Google and Apple leave the page and come back to it with ?code=. Lands on ?next= when it is a
 // safe same-origin path, otherwise on the "you're signed in" panel.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { getSupabase } from './supabase.js';
 import {
-  EMAIL_RE, RESEND_COOLDOWN_SEC, currentUser, isSigninPath, nextFromQuery,
-  sendCode, verifyCode, signOut,
+  EMAIL_RE, PROVIDER_NAMES, RESEND_COOLDOWN_SEC, currentUser, finishProviderSignIn,
+  isSigninPath, nextFromQuery, sendCode, signOut, startProviderSignIn, verifyCode,
 } from './auth.js';
 
 const $ = (id) => document.getElementById(id);
@@ -95,6 +96,20 @@ async function submitCode() {
   land();
 }
 
+function providerButtons(disabled) {
+  for (const b of document.querySelectorAll('[data-provider]')) b.disabled = disabled;
+}
+
+async function continueWith(provider) {
+  providerButtons(true);
+  say(`Opening ${PROVIDER_NAMES[provider]}…`);
+  const res = await startProviderSignIn(provider, nextFromQuery());
+  if (!res.ok) {
+    providerButtons(false);
+    say(res.text, 'err');
+  }
+}
+
 // ── Wiring ──────────────────────────────────────────────────────────────────
 
 export async function initSignin() {
@@ -110,13 +125,28 @@ export async function initSignin() {
     return;
   }
 
+  // Back from Google or Apple: finish that before anything else, since the
+  // session it makes is what currentUser() would look for.
+  const back = await finishProviderSignIn();
+  if (back?.ok) { land(); return; }
+
   // Already signed in? Honour ?next= immediately rather than making someone
   // re-authenticate to reach a page they can already see.
   const user = await currentUser();
   if (user) { land(); return; }
 
   show('paneForm');
-  $('email').focus();
+  if (back?.text) say(back.text, 'err');
+  else $('email').focus();
+
+  for (const b of document.querySelectorAll('[data-provider]')) {
+    b.addEventListener('click', () => continueWith(b.dataset.provider));
+  }
+  // Back from Google's or Apple's page without finishing restores this page
+  // from the back-forward cache with the buttons still disabled.
+  window.addEventListener('pageshow', (e) => {
+    if (e.persisted) { providerButtons(false); say(''); }
+  });
 
   $('formEmail').addEventListener('submit', (e) => {
     e.preventDefault();

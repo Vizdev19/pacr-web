@@ -53,6 +53,24 @@
   .btn-quiet:hover:not([disabled]) { color:#0F0F0D; border-color:#5A6B00; }
   .btn-quiet[disabled] { opacity:0.5; cursor:default; }
 
+  /* Continue with Apple / Google. Apple's black and Google's light style are
+     their own brand rules (Google's: white, #747775 border, #1F1F1F text, the
+     G at 20px), so they don't take the site's acid button. The G is the PNG
+     the app ships (pacr/assets/auth/google-g.png). */
+  .providers { display:flex; flex-direction:column; gap:12px; max-width:380px; }
+  .prov { display:flex; align-items:center; justify-content:center; gap:10px; width:100%; height:50px;
+          border-radius:2px; font-family:Manrope, sans-serif; font-weight:600; font-size:15px;
+          cursor:pointer; transition:background .18s ease; }
+  .prov:focus-visible { outline:2px solid #0F0F0D; outline-offset:2px; }
+  .prov[disabled] { opacity:0.45; cursor:default; }
+  .prov-apple { background:#000000; color:#FFFFFF; border:1px solid #000000; }
+  .prov-apple:hover:not([disabled]) { background:#26261F; }
+  .prov-google { background:#FFFFFF; color:#1F1F1F; border:1px solid #747775; }
+  .prov-google:hover:not([disabled]) { background:#F4F4EF; }
+  .or { display:flex; align-items:center; gap:14px; max-width:380px; margin:28px 0 24px;
+        font-weight:600; font-size:11px; letter-spacing:0.14em; text-transform:uppercase; color:#8B8B80; }
+  .or::before, .or::after { content:''; flex:1; height:1px; background:#E3E3DA; }
+
   .msg { font-size:14px; line-height:1.5; margin:18px 0 0; max-width:46ch; }
   .msg.err { color:#A03A1E; }
   .msg.ok  { color:#5A6B00; }
@@ -97,8 +115,21 @@
   <section id="paneForm" hidden>
     <div class="eyebrow">Account</div>
     <h1 class="disp">Sign in.</h1>
-    <p class="lede" id="lede">Use the email on your PACR account. We'll send a six-digit code —
-      the same one the app uses. No password.</p>
+    <p class="lede" id="lede">Sign in the way you do in the app — with Apple, Google, or your
+      email and a six-digit code. No password.</p>
+
+    <div class="providers">
+      <button class="prov prov-apple" type="button" data-provider="apple">
+        <svg width="17" height="20" viewBox="0 0 17 20" aria-hidden="true" fill="currentColor"><path d="M14.05 10.63c-.02-2.3 1.88-3.4 1.96-3.46-1.07-1.56-2.73-1.77-3.32-1.8-1.41-.14-2.76.83-3.48.83-.72 0-1.82-.81-3-.79-1.54.02-2.96.9-3.76 2.28-1.6 2.78-.41 6.9 1.15 9.16.76 1.1 1.67 2.34 2.87 2.3 1.15-.05 1.59-.75 2.98-.75 1.39 0 1.78.75 3 .72 1.24-.02 2.03-1.12 2.78-2.23.88-1.28 1.24-2.52 1.26-2.59-.03-.01-2.41-.93-2.44-3.67zM11.77 3.88c.64-.77 1.06-1.84.95-2.91-.91.04-2.02.61-2.67 1.38-.59.68-1.1 1.77-.96 2.81 1.01.08 2.05-.52 2.68-1.28z"/></svg>
+        <span>Continue with Apple</span>
+      </button>
+      <button class="prov prov-google" type="button" data-provider="google">
+        <img src="/assets/google-g.png" srcset="/assets/google-g@2x.png 2x, /assets/google-g@3x.png 3x"
+             width="20" height="20" alt="">
+        <span>Continue with Google</span>
+      </button>
+    </div>
+    <div class="or">or use your email</div>
 
     <form id="formEmail" novalidate>
       <label class="field-label" for="email">Email</label>
