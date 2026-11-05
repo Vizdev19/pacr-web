@@ -14,7 +14,8 @@
     { "source": "/u/:handle", "destination": "/api/profile?handle=:handle" },
     { "source": "/p/:ref/photo", "destination": "/api/post?ref=:ref&part=photo" },
     { "source": "/p/:ref/avatar", "destination": "/api/post?ref=:ref&part=avatar" },
-    { "source": "/p/:ref", "destination": "/api/post?ref=:ref" }
+    { "source": "/p/:ref", "destination": "/api/post?ref=:ref" },
+    { "source": "/host/:path*", "destination": "/host.html" }
   ],
   "headers": [
     {

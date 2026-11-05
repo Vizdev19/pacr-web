@@ -229,7 +229,13 @@ export async function mountHeaderAuth(host, opts = {}) {
   if (!host) return;
 
   const cls = opts.className ?? '';
-  const signedInHtml = `<button type="button" class="${cls}" data-auth="out">Sign out</button>`;
+  // Signed in: the event host dashboard (/host) beside Sign out. It's a
+  // session control, not site navigation, so it lives here rather than in the
+  // nav every page shares (nav.css).
+  const signedInHtml =
+    `<span style="display:inline-flex;align-items:center;gap:22px">`
+    + `<a class="${cls}" href="/host">Host</a>`
+    + `<button type="button" class="${cls}" data-auth="out">Sign out</button></span>`;
   // Re-render the baseline rather than trusting whatever is in the DOM now,
   // so signing out restores a correct `next` for the current page.
   const signedOutHtml = () =>
