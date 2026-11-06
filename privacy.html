@@ -281,7 +281,7 @@
       <div class="container">
         <div class="updated-strip">
           <div>Effective · 6 June 2026</div>
-          <div>Last updated · 6 June 2026</div>
+          <div>Last updated · 6 November 2026</div>
         </div>
 
         <div class="legal-grid">
@@ -377,7 +377,7 @@
                 <table class="legal-table">
                   <thead><tr><th>Data</th><th>Why we collect it</th></tr></thead>
                   <tbody>
-                    <tr><td>Random anonymous install ID</td><td>Identify a single install for analytics (not tied to your real identity)</td></tr>
+                    <tr><td>Account ID (a random code, not your name or email)</td><td>Link analytics and crash reports to your account, so we can see which features help runners and fix problems that affect you</td></tr>
                     <tr><td>App version, OS version, device model</td><td>Debug crashes and improve compatibility</td></tr>
                     <tr><td>Crash logs</td><td>Diagnose issues</td></tr>
                   </tbody>
@@ -461,7 +461,7 @@
               <ol class="body-list">
                 <li><strong>Run the core app</strong>: track runs, generate workout prescriptions, calculate streaks, show progress</li>
                 <li><strong>Power the squad feature</strong>: display the weekly leaderboard to people you've invited to your squad</li>
-                <li><strong>Improve the app</strong>: aggregate, anonymised analytics help us see which features are used</li>
+                <li><strong>Improve the app</strong>: analytics linked to your account ID help us see which features are used and where people get stuck; we look at them in aggregate</li>
                 <li><strong>Communicate with you</strong>: we don't send marketing emails. Email is used only for authentication (one-time codes for sign-in / sign-up)</li>
                 <li><strong>Comply with legal obligations</strong>: respond to lawful requests if required</li>
               </ol>
@@ -483,7 +483,8 @@
                     <tr><td>Hosting and database provider</td><td>Your account, display name, optional email, squad memberships, run summaries</td><td>Securely stores your account data and powers cross-device sync and the squad leaderboard</td></tr>
                     <tr><td>AI service provider</td><td>Your run statistics, goal, experience, and weekly availability — as text in a prompt. <strong>Not</strong> your name, email, or GPS routes.</td><td>Generates your daily workout prescriptions</td></tr>
                     <tr><td>Weather and air-quality data provider</td><td>Coarse location coordinates (~1 km grid)</td><td>Returns weather and air-quality data for your area. No personal identifier is sent.</td></tr>
-                    <tr><td>Analytics provider</td><td>A random anonymous install ID, screen-navigation events, feature interactions, app version. <strong>Not</strong> your name, email, GPS, or run details.</td><td>Helps us understand which features are used so we can improve the app</td></tr>
+                    <tr><td>Analytics provider</td><td>Your account ID (a random code), screen-navigation events, feature interactions, app version, and the pages you visit on pacr.life. <strong>Not</strong> your name, email, GPS, or run details.</td><td>Helps us understand which features are used so we can improve the app</td></tr>
+                    <tr><td>Crash-reporting provider</td><td>Crash and freeze reports: the error, app version, OS version, device model, and your account ID. <strong>Not</strong> your name, email, GPS, or run details.</td><td>Lets us find and fix crashes</td></tr>
                     <tr><td>Maps provider</td><td>Coordinates of a saved run (only when you view its Run Detail screen)</td><td>Renders the run's route on a map</td></tr>
                     <tr><td>App update provider</td><td>App version and update-check requests</td><td>Delivers in-app updates</td></tr>
                   </tbody>

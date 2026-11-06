@@ -82,6 +82,27 @@ export async function signOut() {
   if (sb) await sb.auth.signOut();
 }
 
+// ── Analytics identity ──────────────────────────────────────────────────────
+// PostHog (js/posthog.js) follows the signed-in account, as the app does
+// (pacr src/services/analytics.ts → identifyAccount): the site and the app send
+// to different PostHog accounts, but both key a signed-in person on the account's
+// uuid, so the staff dashboard can line a visit up with the app and the
+// database. Never the name or email. Signed out, the browser goes back to an
+// anonymous visitor. Best-effort: no posthog, nothing happens.
+function syncAnalyticsIdentity(user, event) {
+  const ph = window.posthog;
+  if (!ph) return;
+  try {
+    if (user?.id) {
+      // Before PostHog's library loads, window.posthog is a queueing stub
+      // whose get_distinct_id returns nothing — the identify is queued.
+      if (ph.get_distinct_id?.() !== user.id) ph.identify(user.id);
+    } else if (event === 'SIGNED_OUT') {
+      ph.reset();
+    }
+  } catch { /* analytics is best-effort */ }
+}
+
 // ── Error copy ──────────────────────────────────────────────────────────────
 // Classification ported from pacr/src/services/supabase.ts so the page reads
 // like a sentence rather than echoing a Supabase error string.
@@ -256,13 +277,16 @@ export async function mountHeaderAuth(host, opts = {}) {
   // itself if it genuinely cannot sign anyone in.
   if (!sb) return;
 
-  const paint = (user) => { host.innerHTML = user ? signedInHtml : signedOutHtml(); };
+  const paint = (user, event) => {
+    host.innerHTML = user ? signedInHtml : signedOutHtml();
+    syncAnalyticsIdentity(user, event);
+  };
 
   const { data } = await sb.auth.getSession();
   paint(data?.session?.user ?? null);
 
   sb.auth.onAuthStateChange((event, session) => {
-    paint(session?.user ?? null);
+    paint(session?.user ?? null, event);
     if (event === 'SIGNED_OUT' && opts.signOutTo) location.href = opts.signOutTo;
   });
 }
