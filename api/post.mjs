@@ -152,7 +152,7 @@ function render({ post, ref }) {
   const art = chosenArt(post?.author_avatar_path);
   const ogImage = post?.image_path ? `${SITE}/p/${ref}/photo`
     : art ? `${SITE}${art}`
-    : post?.author_avatar_path ? `${SITE}/p/${ref}/avatar` : `${SITE}/og-image.png?v=2`;
+    : post?.author_avatar_path ? `${SITE}/p/${ref}/avatar` : `${SITE}/og-image.png?v=3`;
   const when = post?.created_at ? new Date(post.created_at) : null;
   const likes = Number(post?.like_count) || 0;
   const comments = Number(post?.comment_count) || 0;

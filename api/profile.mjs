@@ -118,7 +118,7 @@ function render({ runner, handle }) {
     : 'This profile link may be old — the runner might have changed their handle.';
   const art = chosenArt(runner?.avatar_path);
   const ogImage = art ? `${SITE}${art}`
-    : runner?.avatar_path ? `${SITE}/u/${handle}/photo` : `${SITE}/og-image.png?v=2`;
+    : runner?.avatar_path ? `${SITE}/u/${handle}/photo` : `${SITE}/og-image.png?v=3`;
   const tags = Array.isArray(runner?.bio_tags) ? runner.bio_tags : [];
   const joined = runner?.joined_at ? new Date(runner.joined_at) : null;
 
