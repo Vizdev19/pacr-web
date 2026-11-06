@@ -15,15 +15,19 @@
 
 export const SUPABASE_URL = 'https://zrnoioagjnmetnzwneks.supabase.co';
 
-// The app project's anon/public key, verified as role "anon" (never
-// service_role). It lives in the repo rather than an environment variable on
+// The app project's publishable key (sb_publishable_…, Supabase's replacement
+// for the legacy anon key: signed-out visitors get the "anon" role and nothing
+// more). Never a secret or service_role key. It lives in the repo rather than
+// an environment variable on
 // purpose: this site has no build step, so nothing would ever substitute a
 // placeholder in a file Vercel copies and serves byte-for-byte. A Vercel env
 // var reaches a framework's build or a serverless function, and this site is
 // neither.
 export const SUPABASE_ANON_KEY =
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpybm9pb2Fnam5tZXRuenduZWtzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMjIwNDgsImV4cCI6MjA5NTg5ODA0OH0.D-2Lvvs2lxVG7fGWGcFBBGpBOSrHSw-DT6m_D0o9g3U';
+  'sb_publishable_Bx3sahSCZxbK3lvnWcOu4Q_aD__9yqZ';
 
+// A publishable key, or (until the legacy keys are switched off) the old anon
+// token. A secret key must never be here, so it doesn't count as configured.
 export const isConfigured = () =>
   typeof SUPABASE_ANON_KEY === 'string'
-  && SUPABASE_ANON_KEY.startsWith('ey');
+  && (SUPABASE_ANON_KEY.startsWith('sb_publishable_') || SUPABASE_ANON_KEY.startsWith('ey'));

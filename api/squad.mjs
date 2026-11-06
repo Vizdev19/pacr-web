@@ -44,7 +44,7 @@ import { createHash } from 'node:crypto';
 // CommonJS inside a function. Publishable anon key — never a service key.
 const SUPABASE_URL = 'https://zrnoioagjnmetnzwneks.supabase.co';
 const SUPABASE_ANON_KEY =
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpybm9pb2Fnam5tZXRuenduZWtzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMjIwNDgsImV4cCI6MjA5NTg5ODA0OH0.D-2Lvvs2lxVG7fGWGcFBBGpBOSrHSw-DT6m_D0o9g3U';
+  'sb_publishable_Bx3sahSCZxbK3lvnWcOu4Q_aD__9yqZ';
 
 const SLUG_RE = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 const CODE_RE = /^[a-z0-9]{4,16}$/;
