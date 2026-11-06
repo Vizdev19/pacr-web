@@ -171,11 +171,10 @@ button.link-quiet { background: none; border: 0; border-bottom: 1px solid var(--
 }
 .nav-wordmark { display: inline-flex; }
 .nav-wordmark img {
-  /* 42px box → 32px visible glyphs (svg carries ~24% internal padding);
-     the negative margin cancels the left pad so the mark sits flush */
-  height: 42px;
+  /* The svg is cropped to the art: letters fill the top 56%, the split
+     tick hangs below them. */
+  height: 44px;
   width: auto;
-  margin-left: -26px;
 }
 .nav-links { display: flex; align-items: center; gap: 24px; }
 .nav-sections { display: flex; align-items: center; gap: 24px; }
@@ -457,7 +456,7 @@ button.link-quiet { background: none; border: 0; border-bottom: 1px solid var(--
   flex-wrap: wrap;
   padding: 48px 0 0;
 }
-.footer-brand img { height: 24px; width: auto; }
+.footer-brand img { height: 28px; width: auto; }
 .footer-links {
   display: flex;
   gap: 28px;

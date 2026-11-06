@@ -177,7 +177,7 @@ function render({ club, slug, invite, runRef = null, runId = null }) {
     : 'This squad isn’t public. Ask a member for an invite link.';
   // The cover makes the better preview; then the tile; then the site's own.
   const ogImage = club?.cover_path ? `${SITE}/s/${slug}/cover${version(club.cover_path)}`
-    : club?.avatar_path ? `${SITE}/s/${slug}/photo${version(club.avatar_path)}` : `${SITE}/og-image.png`;
+    : club?.avatar_path ? `${SITE}/s/${slug}/photo${version(club.avatar_path)}` : `${SITE}/og-image.png?v=2`;
   const twitterCard = club?.avatar_path && !club?.cover_path ? 'summary' : 'summary_large_image';
   const runs = picked
     ? [picked, ...(club?.runs ?? []).filter(r => r !== picked)].slice(0, 6)

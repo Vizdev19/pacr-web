@@ -156,7 +156,7 @@ function render({ ev, ref }) {
   const descr = ev
     ? [when, ev.place?.name, dists, price].filter(Boolean).join(' · ').slice(0, 200)
     : 'Open this link in the PACR app to see the event.';
-  const ogImage = posterUrl ? `${SITE}${posterUrl}` : `${SITE}/og-image.png`;
+  const ogImage = posterUrl ? `${SITE}${posterUrl}` : `${SITE}/og-image.png?v=2`;
 
   const eyebrow = cancelled ? 'Cancelled' : ended ? 'This event has ended' : 'An event on PACR';
   const hostName = host?.name ? esc(host.name) : null;
