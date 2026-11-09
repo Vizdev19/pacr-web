@@ -31,6 +31,7 @@ export async function sessionUser() {
 // ── Failure copy ────────────────────────────────────────────────────────────
 
 const COPY = {
+  squad_not_verified: 'Only verified squads can host events. The squad’s owner can get it verified in the PACR app: Manage → Verification.',
   not_allowed: 'You can’t do that for this event.',
   email_required: 'Your account needs an email address first — add one in the app’s Profile.',
   organizer_not_approved: 'Your request to host hasn’t been approved yet.',
