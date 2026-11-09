@@ -113,12 +113,20 @@ function money(minor) {
     : r.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
 }
 
-/** "From ₹524" / "Free" — the cheapest tier, fee included, as the app's grid. */
+/** The host's bare price, as the app shows it (its grid and event page): only
+ *  the tickets still on sale, with the Pacr fee and GST left to checkout.
+ *  "₹499 + fee & GST" / "From ₹499 + fee & GST" / "Free" /
+ *  "Free, or from ₹499 + fee & GST" / "Sold out". */
 function priceLine(tiers) {
-  const prices = (tiers ?? []).map(t => (Number(t.price_minor) || 0) + (Number(t.fee_minor) || 0));
-  if (!prices.length) return null;
+  const all = Array.isArray(tiers) ? tiers : [];
+  if (!all.length) return null;
+  const prices = all.filter(t => !t.sold_out).map(t => Math.max(0, Number(t.price_minor) || 0));
+  if (!prices.length) return 'Sold out';
   const min = Math.min(...prices), max = Math.max(...prices);
-  return min === max ? money(min) : `From ${money(min)}`;
+  if (max === 0) return 'Free';
+  const paidMin = Math.min(...prices.filter(p => p > 0));
+  const paid = `${money(paidMin)} + fee & GST`;
+  return min === 0 ? `Free, or from ${paid}` : min === max ? paid : `From ${paid}`;
 }
 
 function zoneOf(tz) {
