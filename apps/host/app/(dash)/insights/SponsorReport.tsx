@@ -13,6 +13,19 @@ type Sec = "community" | "running" | "top" | "upcoming" | "events";
 /** A4 at 96 px per inch: the sheet is laid out at print size and scaled down on screen. */
 const A4_W = 794, A4_H = 1123;
 
+/** html-to-image drops class-based CSS on SVG parts (the chart's axis text and grid
+ *  lines), so copy what they compute to inline styles for the capture. Returns an undo. */
+const SVG_PROPS = ["font-family", "font-size", "font-weight", "fill", "stroke", "stroke-width", "stroke-dasharray", "opacity"];
+function inlineSvgStyles(root: HTMLElement): () => void {
+  const saved: [Element, string | null][] = [];
+  root.querySelectorAll<SVGElement>("svg *").forEach(n => {
+    saved.push([n, n.getAttribute("style")]);
+    const cs = getComputedStyle(n);
+    for (const k of SVG_PROPS) n.style.setProperty(k, cs.getPropertyValue(k));
+  });
+  return () => saved.forEach(([n, st]) => (st == null ? n.removeAttribute("style") : n.setAttribute("style", st)));
+}
+
 /** Scale that fits an A4-wide sheet into the stage's width (never above 1). */
 function useFit() {
   const ref = useRef<HTMLDivElement>(null);
@@ -30,7 +43,9 @@ function useFit() {
 }
 
 export function SponsorReport({ data, c }: { data: Loaded; c: Computed }) {
-  const { host } = useHost();
+  const { host, notifyError } = useHost();
+  const sheetRef = useRef<HTMLDivElement>(null);
+  const [saving, setSaving] = useState(false);
   const [sec, setSec] = useState<Record<Sec, boolean>>({ community: true, running: true, top: true, upcoming: true, events: true });
   const tog = (k: Sec) => (v: boolean) => setSec(s => ({ ...s, [k]: v }));
   const { ref: fitRef, scale } = useFit();
@@ -54,6 +69,28 @@ export function SponsorReport({ data, c }: { data: Loaded; c: Computed }) {
   );
   const h: React.CSSProperties = { font: "500 15px var(--font-sans)", marginBottom: 8 };
   const rowS: React.CSSProperties = { display: "flex", justifyContent: "space-between", gap: 16, padding: "10px 0", borderTop: "1px solid var(--border-subtle)", font: "400 13px var(--font-sans)" };
+  // The PDF is the sheet itself, drawn at print size (3x for sharp text) onto one A4 page.
+  // Both libraries load on the first click, not with the page.
+  async function downloadPdf() {
+    const el = sheetRef.current;
+    if (!el || saving) return;
+    setSaving(true);
+    let undo = () => {};
+    try {
+      const [{ toPng }, { jsPDF }] = await Promise.all([import("html-to-image"), import("jspdf")]);
+      undo = inlineSvgStyles(el);
+      const png = await toPng(el, { pixelRatio: 3, width: A4_W, height: A4_H, backgroundColor: "#fff", style: { transform: "none", boxShadow: "none" } });
+      const pdf = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait", compress: true });
+      pdf.addImage(png, "PNG", 0, 0, 210, 297, undefined, "FAST");
+      const base = (host.slug || name).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "squad";
+      pdf.save(`${base}-community-report.pdf`);
+    } catch (e) {
+      notifyError("Couldn’t make the PDF", e);
+    } finally {
+      undo();
+      setSaving(false);
+    }
+  }
   const any = Object.entries(sec).some(([k, v]) => v && (k !== "events" || events.length > 0));
 
   return (
@@ -68,12 +105,12 @@ export function SponsorReport({ data, c }: { data: Loaded; c: Computed }) {
           {events.length > 0 ? <Checkbox label="Events" description="Published and ended events with tickets sold and checked in" checked={sec.events} onChange={tog("events")} /> : null}
         </div>
         <div style={{ display: "flex", marginTop: 18 }}>
-          <Button icon="download" style={{ flex: 1 }} onClick={() => window.print()}>Print or save as PDF</Button>
+          <Button icon="download" style={{ flex: 1 }} loading={saving} disabled={!any} onClick={downloadPdf}>Download PDF</Button>
         </div>
       </GlassCard>
       <div className="report-stage" style={{ padding: 16, borderRadius: 16, background: "var(--ink-100)", gridColumn: "span 2", minWidth: 0 }}>
         <div ref={fitRef} className="report-fit" style={{ height: A4_H * scale, overflow: "hidden" }}>
-        <div className="report-sheet" style={{ width: A4_W, height: A4_H, transform: `scale(${scale})`, transformOrigin: "top left", background: "#fff", boxShadow: "var(--shadow-md)", padding: "56px 60px 44px", display: "flex", flexDirection: "column", gap: 28, color: "var(--text-strong)" }}>
+        <div ref={sheetRef} className="report-sheet" style={{ width: A4_W, height: A4_H, transform: `scale(${scale})`, transformOrigin: "top left", background: "#fff", boxShadow: "var(--shadow-md)", padding: "56px 60px 44px", display: "flex", flexDirection: "column", gap: 28, color: "var(--text-strong)" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 24 }}>
             <div style={{ minWidth: 0 }}>
               <div style={{ font: "500 30px/1.15 var(--font-sans)", color: "var(--text-strong)" }}>{name}</div>
