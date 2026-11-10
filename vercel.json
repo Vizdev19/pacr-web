@@ -1,5 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "git": { "deploymentEnabled": false },
   "cleanUrls": true,
   "trailingSlash": false,
   "redirects": [
@@ -17,6 +18,9 @@
     { "source": "/p/:ref", "destination": "/api/post?ref=:ref" },
     { "source": "/e/:ref/poster", "destination": "/api/event?ref=:ref&part=poster" },
     { "source": "/e/:ref", "destination": "/api/event?ref=:ref" },
+    { "source": "/host/_next/:path*", "destination": "https://pacr-host.vercel.app/host/_next/:path*" },
+    { "source": "/host/squads", "destination": "https://pacr-host.vercel.app/host/squads" },
+    { "source": "/host/squads/:path*", "destination": "https://pacr-host.vercel.app/host/squads/:path*" },
     { "source": "/host/:path*", "destination": "/host" }
   ],
   "headers": [

@@ -1,0 +1,113 @@
+name: Site
+
+# pacr.life: the static pages, js/ and the api/ share-link functions
+# (everything outside apps/). Every pull request and every push to main is
+# checked; when the checks pass it ships to Vercel (project pacr-web):
+#   pull request → a preview deployment, its URL in the job summary
+#   push to main → production, pacr.life
+#
+# Vercel's own Git deploys are switched off in vercel.json, so this workflow
+# is the only thing that deploys the site, and nothing ships that failed the
+# checks. The host dashboard (apps/host) has its own workflow, host.yml.
+#
+# One repo secret (Settings › Secrets and variables › Actions):
+#   VERCEL_TOKEN  a token from vercel.com/account/tokens, scoped to the
+#                 "Vishnu Prasath's projects" team (a project-scoped token
+#                 fails `vercel pull` with "Could not retrieve Project
+#                 Settings"). The same token works for pacr-admin.
+
+on:
+  pull_request:
+    paths-ignore:
+      - 'apps/**'
+      - '.github/workflows/host.yml'
+      - '**.md'
+  push:
+    branches: [main]
+    paths-ignore:
+      - 'apps/**'
+      - '.github/workflows/host.yml'
+      - '**.md'
+  # Redeploy production by hand.
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  NODE_VERSION: '24'
+  # 53.4.0 (pacr-admin's) refuses the projects' Node 26.x at `vercel build`.
+  VERCEL_CLI_VERSION: '65.3.1'
+
+jobs:
+  check:
+    name: Syntax and config
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Set up Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Check JavaScript and JSON
+        run: bash .github/scripts/check-site.sh
+
+  deploy:
+    name: Deploy to Vercel (${{ github.event_name == 'pull_request' && 'preview' || 'production' }})
+    needs: check
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # Forked PRs get no secrets, so they stop after the checks.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    environment:
+      name: ${{ github.event_name == 'pull_request' && 'site-preview' || 'site-production' }}
+      url: ${{ steps.deploy.outputs.url }}
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: team_i37ev2MiSqBfbsdrn6ZuQHle
+      VERCEL_PROJECT_ID: prj_npHcwWHBThm4hhG6vuvI70eUT92t
+      VERCEL_ENV: ${{ github.event_name == 'pull_request' && 'preview' || 'production' }}
+      PROD_FLAG: ${{ github.event_name != 'pull_request' && '--prod' || '' }}
+    steps:
+      - name: Check Vercel token
+        run: |
+          if [ -z "$VERCEL_TOKEN" ]; then
+            echo "::error::Missing repo secret VERCEL_TOKEN (see the top of .github/workflows/site.yml)"
+            exit 1
+          fi
+
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Set up Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel@${{ env.VERCEL_CLI_VERSION }}
+
+      - name: Pull Vercel settings and env
+        run: vercel pull --yes --environment="$VERCEL_ENV" --token="$VERCEL_TOKEN"
+
+      - name: Build
+        run: vercel build $PROD_FLAG --token="$VERCEL_TOKEN"
+
+      - name: Deploy
+        id: deploy
+        run: |
+          url=$(vercel deploy --prebuilt $PROD_FLAG --token="$VERCEL_TOKEN")
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+          {
+            echo "### Site deployed to $VERCEL_ENV"
+            echo
+            echo "$url"
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -8,3 +8,8 @@ brand-acid/feature-graphic.png
 # via an import map and runs the real feed startup, so it lives beside the code
 # it exercises, but must never be served from pacr.life.
 _test/
+
+# The Next.js host dashboard is its own Vercel project (pacr-host), deployed by
+# .github/workflows/host.yml; pacr.life reaches it through vercel.json rewrites.
+apps/
+.github/
