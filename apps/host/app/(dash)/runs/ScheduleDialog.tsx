@@ -7,6 +7,7 @@ import { dayTime } from "@/lib/format";
 import { isStaff, useHost } from "@/lib/host";
 import { useLoad } from "@/lib/hooks";
 import { kMuted } from "@/components/shell/kit";
+import { PlaceSearch } from "@/components/places/PlaceSearch";
 
 const OTHER = "other";
 
@@ -26,7 +27,6 @@ export function ScheduleDialog({ onClose, onScheduled }: { onClose: () => void; 
   const [date, setDate] = useState("");
   const [clock, setClock] = useState("06:00");
   const [placeKey, setPlaceKey] = useState<string | null>(null);
-  const [other, setOther] = useState("");
   const [dist, setDist] = useState("");
   const [pace, setPace] = useState("");
   const [leaderId, setLeaderId] = useState<string | null>(null);
@@ -49,7 +49,7 @@ export function ScheduleDialog({ onClose, onScheduled }: { onClose: () => void; 
   const errors = {
     title: !title.trim() ? "Give the run a name." : title.length > 120 ? "Keep it to 120 characters." : "",
     when: !when || Number.isNaN(when.getTime()) ? "Pick a date and start time." : "",
-    place: key === OTHER ? (!other.trim() ? "Say where to meet." : "") : !chosen ? "Pick where to meet." : "",
+    place: key === OTHER ? "Find the meeting place and save it, or pick a saved one." : !chosen ? "Pick where to meet." : "",
     dist: !(km > 0) ? "Enter a distance in km." : km > 200 ? "That’s over 200 km." : "",
     pace: pace.length > 30 ? "Keep it to 30 characters." : "",
   };
@@ -64,7 +64,7 @@ export function ScheduleDialog({ onClose, onScheduled }: { onClose: () => void; 
     try {
       await api.scheduleRun(host.id, {
         title: title.trim(), eventAt: when, distanceKm: km, paceLabel: pace,
-        meetingPoint: key === OTHER ? other.trim() : chosen?.name ?? "", placeId: key === OTHER ? null : chosen?.id ?? null,
+        meetingPoint: chosen?.name ?? "", placeId: chosen?.id ?? null,
         repeatWeekly: repeat, womenOnly: women, leaderId: staff ? leader : null,
       });
       notify("success", "Run scheduled", `${title.trim()} · ${dayTime(when)}`);
@@ -78,7 +78,7 @@ export function ScheduleDialog({ onClose, onScheduled }: { onClose: () => void; 
 
   const placeOptions = [
     ...ordered.map(p => ({ value: p.id, label: p.is_home ? `${p.name} · Home base` : p.name })),
-    { value: OTHER, label: "Somewhere else" },
+    { value: OTHER, label: "Somewhere else…" },
   ];
   const past = lateAt === `${date}T${clock}`;
 
@@ -100,7 +100,20 @@ export function ScheduleDialog({ onClose, onScheduled }: { onClose: () => void; 
           </div>
           <Select label="Meeting place" value={key} options={placeOptions} placeholder="Pick a place" onChange={setPlaceKey}
             hint={show("place") ? <span style={{ color: "var(--danger-text)" }}>{show("place")}</span> : undefined} />
-          {key === OTHER ? <Input label="Where to meet" placeholder="Gate 2, Cubbon Park" value={other} maxLength={60} onChange={e => setOther(e.target.value)} error={show("place")} /> : null}
+          {key === OTHER ? (
+            <PlaceSearch circleId={host.id} title="Find the meeting place" saveLabel="Use this place"
+              near={home?.lat != null && home.lng != null ? { lat: home.lat, lng: home.lng } : null}
+              onCancel={() => setPlaceKey(home?.id ?? ordered[0]?.id ?? "")}
+              onSaved={p => {
+                lists.set(d => ({ ...d, places: d.places.some(x => x.id === p.id) ? d.places : [...d.places, p] }));
+                setPlaceKey(p.id);
+              }} />
+          ) : chosen ? (
+            <div style={{ ...kMuted, display: "flex", alignItems: "center", gap: 6, marginTop: -6 }}>
+              {chosen.lat == null ? "No map pin: runners won’t get directions." : chosen.address ?? "On the map"}
+              {api.mapsUrl(chosen) ? <a href={api.mapsUrl(chosen)!} target="_blank" rel="noopener noreferrer" style={{ color: "var(--text-strong)", textDecoration: "underline" }}>View on map</a> : null}
+            </div>
+          ) : null}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 200px), 1fr))", gap: 12 }}>
             <Input label="Distance (km)" type="number" inputMode="decimal" min={0} step={0.1} placeholder="10" value={dist} onChange={e => setDist(e.target.value)} error={show("dist")} />
             <Input label="Pace (optional)" placeholder="6:00 /km" value={pace} maxLength={30} onChange={e => setPace(e.target.value)} error={show("pace")} />

@@ -9,6 +9,7 @@ import { dayTime, monthYear, num } from "@/lib/format";
 import { useLoad, useViewport } from "@/lib/hooks";
 import { useHost } from "@/lib/host";
 import { organizerApplyHref } from "@/lib/refs";
+import { PlacesCard } from "./Places";
 import { SquadImages, type Images } from "./SquadImages";
 
 export function Settings() {
@@ -150,14 +151,13 @@ function SquadForm({ detail, images, onImages }: { detail: api.SquadDetail; imag
             <Input label="Name" value={v.name} maxLength={60} disabled={nameLocked} error={!nameOk ? "Use 1 to 60 characters" : undefined}
               hint={nameLocked ? "Only the owner can rename a verified squad" : detail.verified ? "Renaming a verified squad removes its badge until it’s verified again." : undefined}
               onChange={e => set("name", e.target.value)} />
-            <Input label="Home base" icon="map-pin" value={detail.location ?? ""} readOnly placeholder="Not set" hint="Change the home base in the pacr app" />
+            <Input label="Instagram" icon="at-sign" value={v.instagram} maxLength={30} readOnly={!owner} hint={owner ? undefined : "Owner only"}
+              onChange={e => set("instagram", e.target.value.replace(/[^A-Za-z0-9._@]/g, ""))} />
             <label className="pc-field" style={{ gridColumn: "1 / -1" }}>
               <span className="pc-label">Description</span>
               <textarea rows={3} style={kTextarea} maxLength={200} value={v.description} onChange={e => set("description", e.target.value)} />
               <span className="pc-hint" style={{ textAlign: "right" }}>{v.description.length} / 200</span>
             </label>
-            <Input label="Instagram" icon="at-sign" value={v.instagram} maxLength={30} readOnly={!owner} hint={owner ? undefined : "Owner only"}
-              onChange={e => set("instagram", e.target.value.replace(/[^A-Za-z0-9._@]/g, ""))} />
             <Select label="Who can join" value={v.policy} options={POLICIES} onChange={val => set("policy", val as api.JoinPolicy)} />
           </div>
           {divider}
@@ -179,6 +179,8 @@ function SquadForm({ detail, images, onImages }: { detail: api.SquadDetail; imag
         <div style={{ display: "flex", justifyContent: "flex-end" }}>
           <Button loading={busy} disabled={!dirty || !valid} onClick={save}>Save changes</Button>
         </div>
+
+        <PlacesCard circleId={detail.id} squadKey={host.key} owner={owner} />
 
         {link ? (
           <GlassCard title="Squad link">

@@ -161,7 +161,7 @@ function Attention({ d, host, onChanged }: { d: Data; host: Host; onChanged: () 
   if (host.kind === "squad" && d.detail && (!d.detail.description?.trim() || !d.detail.location?.trim())) {
     items.push({
       k: "setup", icon: "circle-alert", tone: "warning", kind: "Squad setup", title: "Finish setting up the squad before scheduling runs",
-      reason: `${host.name} needs ${!d.detail.description?.trim() ? "a description" : ""}${!d.detail.description?.trim() && !d.detail.location?.trim() ? " and " : ""}${!d.detail.location?.trim() ? "a home base" : ""}. The home base is set in the pacr app.`,
+      reason: `${host.name} needs ${!d.detail.description?.trim() ? "a description" : ""}${!d.detail.description?.trim() && !d.detail.location?.trim() ? " and " : ""}${!d.detail.location?.trim() ? "a home base" : ""}.`,
       primary: staff ? { label: "Open settings", onClick: () => router.push("/settings") } : undefined,
     });
   }

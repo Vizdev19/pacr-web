@@ -23,7 +23,7 @@ const REASONS = [
   "verified_rename_owner_only", "blocked_content", "leader_not_member", "too_many_places", "is_home",
   "checkin_closed", "unknown_code", "not_a_run", "cooldown", "already_verified", "hidden_beyond_squad",
   "squad_not_verified", "payout_account_required", "incomplete", "schedule_locked", "has_upcoming_events",
-  "email_required", "rate_limited", "signed_out",
+  "email_required", "rate_limited", "signed_out", "invalid_name", "places_unavailable", "places_limit",
 ] as const;
 
 function reasonOf(message: string | undefined | null): string {
@@ -37,7 +37,12 @@ const FAIL: Record<string, string> = {
   not_allowed: "That isn't part of your role here.",
   not_member: "You're not a member of this squad any more.",
   last_owner: "A squad needs an owner. Make someone else an owner first.",
-  squad_not_set_up: "Add a description and a home base in the pacr app before scheduling runs.",
+  squad_not_set_up: "Add a description and a home base in Settings before scheduling runs.",
+  too_many_places: "A squad can save 20 places. Remove one in Settings first.",
+  is_home: "That’s the home base. Make another place home first.",
+  invalid_name: "Give the place a name of up to 60 characters.",
+  places_unavailable: "Place search isn’t available right now. You can still use the name as typed.",
+  places_limit: "That’s a lot of searching for one day. Use the name as typed, or try again tomorrow.",
   verified_rename_owner_only: "Only the owner can rename a verified squad.",
   blocked_content: "That text isn't allowed. Try different words.",
   leader_not_member: "The run leader has to be a member of the squad.",
@@ -430,8 +435,68 @@ export async function scheduleRun(circleId: string, d: RunDraft): Promise<void> 
 /** Cancel a run: everyone going gets a push and it leaves the calendar. A weekly run stops repeating. */
 export const cancelRun = (runId: string) => rpc<void>("cancel_squad_run", { p_run_id: runId });
 
+// ── Places: the squad's home base and saved meeting places ─────────────────
+// The app's squadScreen.ts (circle_places, 20261014120000 + 20261028120000):
+// run leaders and up save places (up to 20), owners and organisers remove
+// them, and only the owner picks the home base, which is what Near you
+// measures from and what a squad needs before it can schedule runs.
+
 export type Place = { id: string; name: string; address: string | null; lat: number | null; lng: number | null; google_place_id: string | null; is_home: boolean };
 export const listPlaces = (circleId: string) => rpc<Place[] | null>("list_circle_places", { p_circle_id: circleId }).then(r => r ?? []);
+export const MAX_PLACES = 20;
+
+export type PlaceDraft = { name: string; address: string | null; lat: number | null; lng: number | null; googlePlaceId: string | null };
+/** Save a place, or get back the one already saved for that Google place. */
+export async function addPlace(circleId: string, d: PlaceDraft): Promise<Place> {
+  const r = await rpc<Omit<Place, "is_home"> | Omit<Place, "is_home">[] | null>("add_circle_place", {
+    p_circle_id: circleId, p_name: d.name.trim(), p_address: d.address, p_lat: d.lat, p_lng: d.lng, p_google_place_id: d.googlePlaceId,
+  });
+  const row = Array.isArray(r) ? r[0] : r;
+  if (!row?.id) throw new ApiError("error");
+  return { id: row.id, name: row.name, address: row.address ?? null, lat: row.lat ?? null, lng: row.lng ?? null, google_place_id: row.google_place_id ?? null, is_home: false };
+}
+/** Remove a saved place (owners and organisers). Runs that met there keep the name. */
+export const removePlace = (placeId: string) => rpc<void>("remove_circle_place", { p_place_id: placeId });
+/** Make a saved place the home base (the owner only). */
+export const setHomePlace = (circleId: string, placeId: string) => rpc<unknown>("set_home_place", { p_circle_id: circleId, p_place_id: placeId });
+
+/** Google Maps at the place's pin (Maps URLs: no key). Null without a pin. */
+export function mapsUrl(p: { lat: number | null; lng: number | null; google_place_id?: string | null }): string | null {
+  if (p.lat == null || p.lng == null) return null;
+  const q = `${p.lat},${p.lng}`;
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}${p.google_place_id ? `&query_place_id=${encodeURIComponent(p.google_place_id)}` : ""}`;
+}
+
+// Google search goes through the app's `places` edge function, so the Google
+// key stays on the server (the app's places.ts). The keystrokes and the
+// details call for the place picked share a session token, which Google
+// bills as one session; each runner gets 300 calls a day.
+
+export type PlaceSuggestion = { placeId: string; main: string; secondary: string; distanceKm?: number | null; kind?: string | null };
+export type PickedPlace = { placeId: string; name: string; address: string; lat: number; lng: number };
+
+export function newPlacesSession(): string {
+  const abc = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  const bytes = crypto.getRandomValues(new Uint8Array(32));
+  return Array.from(bytes, b => abc[b % abc.length]).join("");
+}
+
+async function places<T>(body: Record<string, unknown>): Promise<T> {
+  const { data, error } = await sb().functions.invoke("places", { body });
+  if (error) {
+    const status = (error as { context?: { status?: number } }).context?.status;
+    console.warn(`[host] places ${String(body.action)} failed`, status ?? error.message);
+    throw new ApiError(status === 503 ? "places_unavailable" : status === 429 ? "places_limit" : status === 403 ? "email_required" : status === 401 ? "signed_out" : "error");
+  }
+  return data as T;
+}
+export const searchPlaces = (input: string, session: string, near: { lat: number; lng: number } | null) =>
+  places<{ suggestions?: PlaceSuggestion[] }>({ action: "autocomplete", input, sessionToken: session, near: near ?? undefined }).then(r => r.suggestions ?? []);
+export async function placeDetails(placeId: string, session: string): Promise<PickedPlace> {
+  const r = await places<{ place?: PickedPlace }>({ action: "details", placeId, sessionToken: session });
+  if (!r.place) throw new ApiError("error");
+  return r.place;
+}
 
 export type RunCheckins = {
   title: string; event_at: string; circle_id: string; open: boolean; changed_at: string | null; changed_by_name: string | null;

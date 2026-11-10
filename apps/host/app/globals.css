@@ -46,6 +46,10 @@ textarea:focus-visible { border-color: var(--border-focus) !important; box-shado
   .shell-title { font: 500 18px/1.2 var(--font-sans); }
 }
 
+/* Place search (components/places/PlaceSearch.tsx). */
+.host-place-opt:hover:not(:disabled), .host-place-opt:focus-visible { background: var(--surface-hover) !important; outline: none; }
+.host-place-opt:disabled { cursor: progress !important; opacity: .6; }
+
 /* Print (the sponsor report): only the report sheet. */
 @media print {
   .shell-side, .shell-topbar, .pc-toast-stack, .no-print { display: none !important; }
