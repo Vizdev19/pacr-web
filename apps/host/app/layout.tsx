@@ -1,37 +1,25 @@
 import type { Metadata } from "next";
-import { Manrope, Outfit } from "next/font/google";
-import Link from "next/link";
+import { Geist_Mono, Onest } from "next/font/google";
+import "@/design-system/styles.css";
 import "./globals.css";
 
-const outfit = Outfit({ subsets: ["latin"], weight: ["500", "600", "700"], variable: "--font-outfit" });
-const manrope = Manrope({ subsets: ["latin"], weight: ["400", "500", "600", "700"], variable: "--font-manrope" });
+// The design system's faces (tokens/fonts.css): Onest for everything, Geist
+// Mono for order and ticket IDs. Self-hosted by next/font instead of the
+// Google Fonts @import, so pages don't wait on a third-party stylesheet.
+const onest = Onest({ subsets: ["latin"], weight: ["300", "400", "500", "600", "700"], variable: "--font-onest" });
+const geistMono = Geist_Mono({ subsets: ["latin"], weight: ["400", "500", "600"], variable: "--font-geist-mono" });
 
 export const metadata: Metadata = {
-  title: "Host — PACR",
+  title: { default: "pacr host", template: "%s · pacr host" },
+  description: "The dashboard for squad owners and event hosts on pacr.",
   robots: { index: false, follow: false },
   icons: { icon: "/favicon.svg" },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={`${outfit.variable} ${manrope.variable}`}>
-      <body>
-        <header className="site-head">
-          {/* Plain <a>: "/" is the static site, outside this app's basePath,
-              which <Link> would add. */}
-          {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
-          <a className="brand" href="/" aria-label="PACR home">
-            <span className="brand-dot" aria-hidden />
-            PACR <span className="brand-sub">Host</span>
-          </a>
-          <nav className="host-nav" aria-label="Host">
-            {/* Events still live on the original /host page (host.html). */}
-            <a href="/host">Events</a>
-            <Link href="/squads" className="on">Squads</Link>
-          </nav>
-        </header>
-        {children}
-      </body>
+    <html lang="en" className={`${onest.variable} ${geistMono.variable}`}>
+      <body>{children}</body>
     </html>
   );
 }

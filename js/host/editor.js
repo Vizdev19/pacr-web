@@ -48,7 +48,7 @@ export async function renderEditor(app, { id }) {
   if (id && !ev?.ok) {
     app.innerHTML = `
       <div class="wrap narrow">
-        <a class="back" href="/host">← Your events</a>
+        <a class="back" href="/host/events">← Your events</a>
         <h1 class="h1">Can’t open this event</h1>
         <p class="lede">${esc(ev?.text ?? failText('not_found'))}</p>
       </div>`;
@@ -57,7 +57,7 @@ export async function renderEditor(app, { id }) {
   if (!id && !hosting.can_host) {
     app.innerHTML = `
       <div class="wrap narrow">
-        <a class="back" href="/host">← Your events</a>
+        <a class="back" href="/host/events">← Your events</a>
         <div class="eyebrow">New event</div>
         <h1 class="h1">You can’t host yet</h1>
         <p class="lede">Squad owners, organisers and run leaders can host for their squad. To host as yourself or a brand, ask the PACR team first.</p>
@@ -88,7 +88,7 @@ export async function renderEditor(app, { id }) {
 
   app.innerHTML = `
     <div class="wrap">
-      <a class="back" href="/host">← Your events</a>
+      <a class="back" href="/host/events">← Your events</a>
       <header class="page-head">
         <div>
           <div class="eyebrow">${e ? `${esc(e.host?.name ?? '')} · <span class="tag tag-${esc(e.status)}">${esc(STATUS[e.status] ?? e.status)}</span>` : 'New event'}</div>
@@ -291,7 +291,7 @@ export async function renderEditor(app, { id }) {
     const r = await deleteDraft(e.id);
     if (!r.ok) return say(msg, r.text, 'err');
     await removeImages([state.cover, state.map]);
-    location.replace('/host');
+    location.replace('/host/events');
   });
 
   $('cancel')?.addEventListener('click', async () => {

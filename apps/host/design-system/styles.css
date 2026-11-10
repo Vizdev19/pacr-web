@@ -1,0 +1,11 @@
+/* pacr Squad Host Design System (claude.ai/design project d59ab816-…).
+   tokens/ and components/ are the project's files verbatim; change them in the
+   design project first, then copy them back. tokens/fonts.css is not imported:
+   app/layout.tsx loads the same Google Fonts URL with a <link>. */
+@import url('tokens/colors.css');
+@import url('tokens/typography.css');
+@import url('tokens/spacing.css');
+@import url('tokens/effects.css');
+@import url('tokens/base.css');
+@import url('components/components.css');
+@import url('components/host/host.css');

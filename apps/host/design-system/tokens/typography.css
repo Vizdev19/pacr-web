@@ -1,0 +1,21 @@
+:root{
+--font-sans:'Onest',ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif;
+--font-display:var(--font-sans);
+--font-brand:'Anton','Impact','Haettenschweiler',sans-serif;
+--font-mono:'Geist Mono',ui-monospace,'SFMono-Regular',Menlo,monospace;
+--text-2xs:11px;--text-xs:12px;--text-sm:13px;--text-base:14px;--text-md:15px;--text-lg:17px;--text-xl:20px;--text-2xl:24px;--text-3xl:30px;--text-4xl:36px;--text-5xl:44px;--text-6xl:60px;
+--weight-light:300;/* @kind font */--weight-regular:400;/* @kind font */--weight-medium:500;/* @kind font */--weight-semibold:600;/* @kind font */--weight-bold:700;/* @kind font */--weight-extrabold:800;/* @kind font */
+--leading-none:1;/* @kind font */--leading-tight:1.15;/* @kind font */--leading-snug:1.3;/* @kind font */--leading-normal:1.5;/* @kind font */--leading-relaxed:1.65;/* @kind font */
+--tracking-display:-.025em;/* @kind font */--tracking-tight:-.012em;/* @kind font */--tracking-normal:0;/* @kind font */--tracking-caps:.06em;/* @kind font */
+/* Semantic roles — titles are regular/medium weight, never bold; size does the work */
+--type-page-title:500 var(--text-2xl)/1.2 var(--font-sans);/* @kind font */
+--type-hero-number:500 var(--text-4xl)/1 var(--font-sans);/* @kind font */
+--type-kpi:500 var(--text-3xl)/1 var(--font-sans);/* @kind font */
+--type-section:500 var(--text-lg)/1.3 var(--font-sans);/* @kind font */
+--type-card-title:500 16px/1.25 var(--font-sans);/* @kind font */
+--type-body:400 var(--text-base)/1.5 var(--font-sans);/* @kind font */
+--type-label:500 var(--text-sm)/1.3 var(--font-sans);/* @kind font */
+--type-caption:400 var(--text-xs)/1.4 var(--font-sans);/* @kind font */
+--type-overline:500 var(--text-2xs)/1 var(--font-sans);/* @kind font */
+--type-mono:500 var(--text-sm)/1.4 var(--font-mono);/* @kind font */
+}

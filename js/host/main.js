@@ -16,7 +16,9 @@
 //                             detail page's content, poster; publish, cancel
 //   /host/e/<ref>/attendees   who has a ticket and who's checked in
 //
-// vercel.json sends every /host path to host.html; this file reads
+// The dashboard itself (overview, runs, members, money…) is the Next.js app in
+// apps/host; vercel.json sends only /host/new, /host/apply and /host/e/* here
+// (host-events.html). This file reads
 // location.pathname and draws the view. Links between views are ordinary
 // page loads.
 // ─────────────────────────────────────────────────────────────────────────────
@@ -65,7 +67,7 @@ function notFound(app) {
       <div class="eyebrow">Host</div>
       <h1 class="h1">Not found</h1>
       <p class="lede">That link doesn’t lead to one of your events.</p>
-      <a class="btn" href="/host">Your events</a>
+      <a class="btn" href="/host/events">Your events</a>
     </div>`;
 }
 
@@ -205,18 +207,18 @@ async function apply(app) {
   if (org && org.status !== 'rejected') {
     app.innerHTML = `
       <div class="wrap narrow">
-        <a class="back" href="/host">← Your events</a>
+        <a class="back" href="/host/events">← Your events</a>
         <div class="eyebrow">Ask to host</div>
         <h1 class="h1">${esc(org.name)}</h1>
         <p class="lede">${org.status === 'pending' ? 'Your request is with the PACR team. We’ll let you know in the app.'
           : org.status === 'approved' ? 'You’re approved. Make an event from Your events.' : 'Hosting is paused for this name.'}</p>
-        <a class="btn" href="/host">Your events</a>
+        <a class="btn" href="/host/events">Your events</a>
       </div>`;
     return;
   }
   app.innerHTML = `
     <div class="wrap narrow">
-      <a class="back" href="/host">← Your events</a>
+      <a class="back" href="/host/events">← Your events</a>
       <div class="eyebrow">Ask to host</div>
       <h1 class="h1">Host on PACR</h1>
       <p class="lede">Squads host for themselves. To host as a brand, coach, store or race organiser, tell us who you are — the PACR team reads every request.</p>

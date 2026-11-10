@@ -5,7 +5,8 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 // The same project and publishable key as the rest of pacr.life
 // (js/config.js). Both are public by design; access is the signed-in user's,
 // enforced by RLS and the RPCs.
-const SUPABASE_URL = "https://zrnoioagjnmetnzwneks.supabase.co";
+// NEXT_PUBLIC_SUPABASE_URL is only for pointing a local build at a test server.
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://zrnoioagjnmetnzwneks.supabase.co";
 const SUPABASE_KEY = "sb_publishable_Bx3sahSCZxbK3lvnWcOu4Q_aD__9yqZ";
 
 let client: SupabaseClient | null = null;
@@ -35,4 +36,13 @@ export function getSupabase(): SupabaseClient {
 export function signinHref(): string {
   const next = window.location.pathname + window.location.search;
   return `/signin?next=${encodeURIComponent(next)}`;
+}
+
+/**
+ * Leave the dashboard for a page on the static site ("/", "/download",
+ * "/host/new"): a full navigation, since those pages are outside this app's
+ * basePath and the router would prefix them with /host.
+ */
+export function goSite(path: string): void {
+  window.location.href = path;
 }

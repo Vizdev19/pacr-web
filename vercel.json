@@ -18,10 +18,11 @@
     { "source": "/p/:ref", "destination": "/api/post?ref=:ref" },
     { "source": "/e/:ref/poster", "destination": "/api/event?ref=:ref&part=poster" },
     { "source": "/e/:ref", "destination": "/api/event?ref=:ref" },
-    { "source": "/host/_next/:path*", "destination": "https://pacr-host.vercel.app/host/_next/:path*" },
-    { "source": "/host/squads", "destination": "https://pacr-host.vercel.app/host/squads" },
-    { "source": "/host/squads/:path*", "destination": "https://pacr-host.vercel.app/host/squads/:path*" },
-    { "source": "/host/:path*", "destination": "/host" }
+    { "source": "/host/new", "destination": "/host-events" },
+    { "source": "/host/apply", "destination": "/host-events" },
+    { "source": "/host/e/:path*", "destination": "/host-events" },
+    { "source": "/host", "destination": "https://pacr-host.vercel.app/host" },
+    { "source": "/host/:path*", "destination": "https://pacr-host.vercel.app/host/:path*" }
   ],
   "headers": [
     {

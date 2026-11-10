@@ -1,0 +1,10 @@
+*,*::before,*::after{box-sizing:border-box}
+html,body{margin:0}
+body{font:var(--type-body);color:var(--text-body);background:var(--surface-panel);-webkit-font-smoothing:antialiased;font-feature-settings:"tnum" 1}
+h1,h2,h3,h4{margin:0;color:var(--text-strong);font-weight:500}
+p{margin:0}
+a{color:var(--text-strong);text-decoration:underline;text-decoration-color:var(--ink-300);text-underline-offset:3px;transition:color var(--dur) var(--ease-out),text-decoration-color var(--dur)}
+a:hover{color:var(--accent-text);text-decoration-color:currentColor}
+::selection{background:var(--lime-100);color:var(--ink-900)}
+button,input,select,textarea{font-family:inherit}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:1ms!important;transition-duration:1ms!important}}

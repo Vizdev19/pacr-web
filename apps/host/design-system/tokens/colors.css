@@ -1,0 +1,39 @@
+:root{
+/* Brand neon — the stem of the pacr logo (#E8FF3A). Logo, brand moments and on-black accents only; too light for text or UI on white */
+--brand-neon:#E8FF3A;--brand-ink:#080806;--brand-paper:#F1F2EC;
+/* Lime — primary accent (#8DC63F). Positive status, active data, focus, switches */
+--lime-50:#F4FAEA;--lime-100:#E3F2CA;--lime-200:#CDE6A2;--lime-300:#B4D977;--lime-400:#A0CF58;--lime-500:#8DC63F;--lime-600:#78B02C;--lime-700:#4E7A16;--lime-800:#36560D;
+/* Yellow + orange — the two companion data hues from the reference */
+--yellow-50:#FDFBE3;--yellow-100:#FAF5B8;--yellow-500:#F2E63C;--yellow-600:#DCCF1F;--yellow-700:#7A720A;
+--orange-50:#FFF4EA;--orange-100:#FFE3CA;--orange-200:#FDCFA6;--orange-300:#FCBB82;--orange-400:#FBAE6C;--orange-500:#FBA35A;--orange-600:#EE8A37;--orange-700:#A3520F;
+--green-50:#EEF7E4;--green-100:#D6ECBF;--green-500:#5E9E2B;--green-600:#4C8820;--green-700:#386616;
+--amber-50:var(--yellow-50);--amber-100:var(--yellow-100);--amber-500:var(--orange-400);--amber-600:var(--orange-600);--amber-700:var(--orange-700);
+--red-50:#FDEEEC;--red-100:#F9D3CE;--red-500:#E5533F;--red-600:#CC3F2C;--red-700:#9C2A1B;
+/* Legacy hues kept for compatibility (old pacr social palette) — avoid in host UI */
+--pink-50:#FDEEF4;--pink-100:#FAD3E3;--pink-500:#EE5A93;--pink-600:#DE447F;--pink-700:#B62A62;
+--magenta-50:#FBEEFC;--magenta-100:#F4D2F6;--magenta-500:#DD5CE6;--magenta-600:#C744D1;--magenta-700:#94289C;
+--sky-50:#EDF5FA;--sky-100:#D3E6F2;--sky-500:#5A9BC4;--sky-600:#3F82AE;--sky-700:#245E84;
+--violet-50:#F2EFFF;--violet-100:#DFD8FF;--violet-500:#8E7BFF;--violet-600:#7561F0;--violet-700:#5541C4;
+--navy-950:#101024;--navy-900:#15152F;--navy-800:#1C1C3D;--navy-700:#24244F;--navy-600:#34346A;--navy-500:#4A4A85;--navy-400:#6F6FA6;--navy-300:#9C9CC4;--navy-200:#C9C9E1;--navy-100:#E4E4F1;--navy-50:#F3F3F9;
+/* Neutrals — true greys, near-black ink */
+--white:#FFFFFF;--ink-950:#0B0B0B;--ink-900:#141414;--ink-800:#232323;--ink-700:#3A3A3A;--ink-600:#575757;--ink-500:#7A7A7A;--ink-400:#A1A1A1;--ink-300:#C6C6C6;--ink-200:#E2E2E2;--ink-100:#EDEDED;--ink-50:#F5F5F5;
+/* Chart palette — lime lead, yellow, orange, then tints */
+--chart-1:#8DC63F;--chart-2:#F2E63C;--chart-3:#FBA35A;--chart-4:#C4E08F;--chart-5:#5E9E2B;--chart-6:#FDCFA6;--chart-7:#D4D4D4;--chart-8:#3A3A3A;
+--chart-track:#F2F2F2;
+/* Heatmap scale (low → high) */
+--heat-0:#F2F2F2;--heat-1:#E3F2CA;--heat-2:#C4E08F;--heat-3:#A0CF58;--heat-4:#78B02C;
+/* Semantic aliases */
+--primary:var(--ink-900);--primary-hover:#000000;--primary-active:#000000;
+--accent:var(--lime-500);--accent-hover:var(--lime-600);--accent-text:var(--lime-700);
+--success:var(--lime-500);--success-soft:var(--lime-50);--success-text:var(--lime-600);
+--warning:var(--orange-500);--warning-soft:var(--orange-50);--warning-text:var(--orange-600);
+--danger:var(--red-500);--danger-hover:var(--red-600);--danger-soft:var(--red-50);--danger-text:var(--red-600);
+--info:var(--ink-600);--info-soft:var(--ink-50);--info-text:var(--ink-700);
+--text-strong:var(--ink-900);--text-body:var(--ink-700);--text-muted:var(--ink-500);--text-subtle:var(--ink-400);--text-disabled:var(--ink-300);
+--text-on-dark:#FFFFFF;--text-on-dark-muted:rgba(255,255,255,.7);--text-on-dark-subtle:rgba(255,255,255,.45);--text-brand:var(--ink-900);
+--surface-page:#DCDCDC;--surface-shell:#FFFFFF;--surface-panel:#F4F4F4;--surface-card:#FFFFFF;--surface-raised:#FFFFFF;--surface-solid:#FFFFFF;
+--surface-sunken:#F4F4F4;--surface-hover:rgba(20,20,20,.035);--surface-pressed:rgba(20,20,20,.07);--surface-selected:rgba(141,198,63,.1);--surface-inverse:var(--ink-900);
+--surface-locked:repeating-linear-gradient(135deg,#F6F6F6 0 6px,#F1F1F1 6px 12px);
+--border-subtle:#EFEFEF;--border-default:#E5E5E5;--border-strong:#CFCFCF;--border-glass:rgba(255,255,255,.8);--border-focus:var(--lime-500);
+--control-on:var(--lime-500);--control-off:var(--ink-200);
+}

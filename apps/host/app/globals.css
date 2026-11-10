@@ -1,75 +1,54 @@
-/* pacr.life's signed-in look (host.html, /feed, /profile): white paper,
-   Outfit headings, Manrope body, the acid lime, hairline rules, square
-   corners. Colours live here as tokens so pages never carry raw values. */
+/* App layer on top of the pacr Squad Host Design System (design-system/styles.css,
+   imported first by app/layout.tsx). Only the shell layout and the adapters the
+   system's kit does inline live here, all built from its tokens. Light only. */
+
+/* next/font exposes Onest and Geist Mono as variables; the system's tokens name the families. */
 :root {
-  --paper: #ffffff;
-  --paper-2: #f7f7f3;
-  --paper-3: #f2f2ec;
-  --ink: #0f0f0d;
-  --ink-2: #3d3d37;
-  --ink-3: #5c5c54;
-  --ink-4: #6a6a61;
-  --rule: #e3e3da;
-  --rule-2: #c8c8bd;
-  --lime: #e8ff3a;
-  --lime-ink: #0a0a09;
-  --olive: #5a6b00;
-  --danger: #a03a1e;
-  --danger-rule: #e6b9aa;
+  --font-sans: var(--font-onest), 'Onest', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: var(--font-geist-mono), 'Geist Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
 }
 
-html, body { margin: 0; padding: 0; background: var(--paper); color: var(--ink);
-  font-family: var(--font-manrope), Helvetica, sans-serif; overflow-x: clip; }
-* { box-sizing: border-box; }
-a { color: var(--olive); text-decoration: none; }
-a:hover { color: var(--ink); }
-::selection { background: var(--lime); color: var(--lime-ink); }
+/* ── Link adapters ────────────────────────────────────────────────────────
+   Nav rows, buttons and menu rows are <button>s in the kit; here some are
+   links, which base.css underlines and recolours on hover. */
+a.pc-btn, a.pc-nav, a.pc-hostsw__opt, a.shell-menuitem, a.shell-appcard, a.plain { text-decoration: none; }
+a.pc-nav, a.pc-nav:hover { color: var(--text-strong); }
+a.pc-nav.is-locked, a.pc-nav.is-locked:hover { color: var(--text-subtle); }
+a.pc-btn--primary:hover, a.pc-btn--danger:hover { color: var(--white); }
+a.pc-btn--secondary:hover, a.pc-btn--ghost:hover, a.pc-btn--pop:hover { color: var(--text-strong); }
+a.pc-nav:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+/* A link that reads as text (names in tables). */
+a.plain { color: var(--text-strong); }
+a.plain:hover { color: var(--accent-text); }
+textarea:focus-visible { border-color: var(--border-focus) !important; box-shadow: var(--focus-ring); }
 
-/* ── Header ── */
-.site-head { display: flex; align-items: center; justify-content: space-between; gap: 24px;
-  padding: 18px 40px; border-bottom: 1px solid var(--rule); }
-.brand { display: flex; align-items: center; gap: 10px; color: var(--ink);
-  font-family: var(--font-outfit), sans-serif; font-weight: 700; font-size: 20px; letter-spacing: 0.04em; }
-.brand-dot { width: 12px; height: 12px; background: var(--lime); border: 1px solid var(--lime-ink); }
-.brand-sub { font-family: var(--font-manrope), sans-serif; font-weight: 600; font-size: 11px;
-  letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-4); }
-.host-nav { display: flex; gap: 22px; font-weight: 600; font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; }
-.host-nav a { color: var(--ink-4); padding-bottom: 3px; }
-.host-nav a:hover { color: var(--ink); }
-.host-nav a.on { color: var(--ink); border-bottom: 2px solid var(--lime); }
-@media (max-width: 640px) {
-  .site-head { padding: 12px 16px; gap: 12px; }
-  .brand-sub { display: none; }
+/* ── Shell (ui_kits/host/Shell.jsx) ───────────────────────────────────── */
+.shell { display: flex; min-height: 100vh; background: var(--surface-panel); }
+.shell-side { position: sticky; top: 0; height: 100vh; flex: none; z-index: 30; border-right: 1px solid var(--border-subtle); background: var(--surface-shell); }
+.shell-sheet { position: fixed; left: 0; top: 0; bottom: 0; width: min(300px, 86vw); z-index: calc(var(--z-overlay) + 1); background: var(--surface-shell); box-shadow: var(--shadow-lg); animation: pc-fade-in var(--dur) var(--ease-out); }
+.shell-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.shell-content { flex: 1; padding: 4px 20px 28px 24px; max-width: var(--content-max); width: 100%; animation: pc-fade-in var(--dur-slow) var(--ease-out); }
+.shell-topbar { display: flex; align-items: center; gap: 10px; min-height: var(--topbar-h); padding: 12px 20px 12px 24px; position: sticky; top: 0; z-index: 20; background: rgba(244, 244, 244, .92); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+.shell-crumbs { display: flex; align-items: center; gap: 6px; font: 400 12px/1 var(--font-sans); color: var(--text-muted); margin-bottom: 6px; white-space: nowrap; }
+.shell-crumb { display: inline-flex; align-items: center; gap: 6px; }
+.shell-title { font: var(--type-page-title); letter-spacing: var(--tracking-display); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.shell-me { display: flex; align-items: center; gap: 10px; height: var(--control-h-md); padding: 0 10px 0 4px; border: 1px solid var(--border-default); border-radius: var(--radius-md); background: var(--surface-card); cursor: pointer; }
+.shell-popover { position: absolute; top: calc(100% + 6px); z-index: 50; padding: 6px; background: var(--surface-card); border: 1px solid var(--border-default); border-radius: var(--radius-xl); box-shadow: var(--shadow-lg); animation: pc-pop-in var(--dur) var(--ease-out); }
+.shell-menuitem { display: flex; align-items: center; gap: 10px; width: 100%; padding: 9px 10px; border: 0; border-radius: var(--radius-md); background: transparent; cursor: pointer; text-align: left; color: var(--text-strong); }
+.shell-menuitem:hover { background: var(--ink-50); color: var(--text-strong); }
+.shell-menuitem.is-danger { color: var(--danger-text); }
+.shell-appcard { display: block; padding: 12px; border-radius: var(--radius-xl); border: 1px solid var(--border-default); margin-top: 8px; }
+.shell-appcard:hover { border-color: var(--border-strong); }
+.shell-hostsw-foot { color: var(--text-body); font: 400 13px var(--font-sans); }
+@media (max-width: 719px) {
+  .shell-content { padding: 4px 12px 24px; }
+  .shell-topbar { padding: 10px 12px; }
+  .shell-title { font: 500 18px/1.2 var(--font-sans); }
 }
 
-/* ── Page ── */
-.wrap { max-width: 1040px; margin: 0 auto; padding: 34px 40px 120px; }
-@media (max-width: 760px) { .wrap { padding: 24px 16px 120px; } }
-.page-head { padding-bottom: 26px; border-bottom: 1px solid var(--rule); margin-bottom: 8px; }
-.h1 { font-family: var(--font-outfit), sans-serif; font-weight: 700; font-size: clamp(32px, 4vw, 46px);
-  letter-spacing: -0.02em; line-height: 1.02; margin: 0; text-transform: uppercase; }
-.lede { font-size: 16px; line-height: 1.55; color: var(--ink-3); margin: 12px 0 0; max-width: 60ch; }
-.msg { font-size: 14px; line-height: 1.5; margin: 18px 0 0; max-width: 60ch; color: var(--ink-3); }
-.msg.err { color: var(--danger); }
-
-/* ── Buttons ── */
-.btn { display: inline-block; font-weight: 600; font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase;
-  background: var(--lime); color: var(--lime-ink); border: 1px solid var(--lime); padding: 13px 24px;
-  cursor: pointer; font-family: inherit; }
-.btn:hover { background: var(--lime-ink); border-color: var(--lime-ink); color: var(--lime); }
-
-/* ── Rows ── */
-.rows { border-top: 1px solid var(--rule); margin-top: 22px; }
-.row { display: flex; align-items: center; gap: 16px; border-bottom: 1px solid var(--rule); padding: 14px 0; }
-.face { flex: none; width: 44px; height: 44px; border-radius: 50%; background: var(--lime); color: var(--lime-ink);
-  display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; }
-.row-text { flex: 1; min-width: 0; }
-.row-title { font-weight: 700; font-size: 16px; line-height: 1.3; color: var(--ink); }
-.row-sub { font-size: 13px; color: var(--ink-4); margin-top: 3px; }
-.seal { display: inline-flex; width: 16px; height: 16px; border-radius: 50%; background: var(--olive); color: var(--paper);
-  font-size: 10px; align-items: center; justify-content: center; vertical-align: 2px; margin-left: 6px; }
-.tag { display: inline-block; font-weight: 700; font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase;
-  padding: 4px 8px; border: 1px solid var(--rule-2); color: var(--ink-3); white-space: nowrap; }
-.tag.lime { background: var(--lime); border-color: var(--lime); color: var(--lime-ink); }
-.empty { border: 1px dashed var(--rule-2); background: var(--paper-2); padding: 22px 24px; margin-top: 22px;
-  font-size: 14px; line-height: 1.5; color: var(--ink-3); }
+/* Print (the sponsor report): only the report sheet. */
+@media print {
+  .shell-side, .shell-topbar, .pc-toast-stack, .no-print { display: none !important; }
+  .shell, body { background: #fff !important; }
+  .shell-content { padding: 0; max-width: none; }
+}

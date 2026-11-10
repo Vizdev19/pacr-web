@@ -76,7 +76,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: apps/host/.next/cache
-          key: next-${{ runner.os }}-${{ hashFiles('apps/host/package-lock.json') }}-${{ hashFiles('apps/host/app/**', 'apps/host/lib/**', 'apps/host/*.ts') }}
+          key: next-${{ runner.os }}-${{ hashFiles('apps/host/package-lock.json') }}-${{ hashFiles('apps/host/app/**', 'apps/host/components/**', 'apps/host/design-system/**', 'apps/host/lib/**', 'apps/host/*.ts') }}
           restore-keys: |
             next-${{ runner.os }}-${{ hashFiles('apps/host/package-lock.json') }}-
 
