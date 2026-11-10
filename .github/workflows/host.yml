@@ -101,15 +101,17 @@ jobs:
       VERCEL_ENV: ${{ github.event_name == 'pull_request' && 'preview' || 'production' }}
       PROD_FLAG: ${{ github.event_name != 'pull_request' && '--prod' || '' }}
     steps:
+      # Checkout first: every run step starts in apps/host (defaults above),
+      # which doesn't exist until the repository is checked out.
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
       - name: Check Vercel token
         run: |
           if [ -z "$VERCEL_TOKEN" ]; then
             echo "::error::Missing repo secret VERCEL_TOKEN (see the top of .github/workflows/site.yml)"
             exit 1
           fi
-
-      - name: Checkout repository
-        uses: actions/checkout@v5
 
       - name: Set up Node
         uses: actions/setup-node@v5
