@@ -369,6 +369,7 @@ function render({ club, slug, invite, runRef = null, runId = null }) {
     <a href="/">Home</a>
     <a href="/community-rules">Community rules</a>
     <a href="/privacy">Privacy</a>
+    <a href="/terms">Terms</a>
     <a href="/support">Support</a>
   </span>
 </footer>

@@ -309,6 +309,7 @@ function render({ ev, ref }) {
     <a href="/">Home</a>
     <a href="/community-rules">Community rules</a>
     <a href="/privacy">Privacy</a>
+    <a href="/terms">Terms</a>
     <a href="/support">Support</a>
   </span>
 </footer>

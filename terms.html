@@ -1,0 +1,704 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Terms of Service — PACR</title>
+<meta name="description" content="The terms for using Pacr: your account, health and safety, your content, event tickets and refunds, and hosting." />
+<link rel="canonical" href="https://pacr.life/terms" />
+<meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1" />
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="PACR" />
+<meta property="og:locale" content="en" />
+<meta property="og:url" content="https://pacr.life/terms" />
+<meta property="og:title" content="Terms of Service — PACR" />
+<meta property="og:description" content="The terms for using Pacr: your account, health and safety, your content, event tickets and refunds, and hosting." />
+<meta property="og:image" content="https://pacr.life/og-image.png?v=3" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="Terms of Service — PACR" />
+<meta name="twitter:description" content="The terms for using Pacr: your account, health and safety, your content, event tickets and refunds, and hosting." />
+<meta name="twitter:image" content="https://pacr.life/og-image.png?v=3" />
+
+<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+<link rel="icon" type="image/png" sizes="32x32" href="/brand-acid/favicon.png" />
+<link rel="icon" type="image/png" sizes="16x16" href="/brand-acid/favicon-16.png" />
+<link rel="apple-touch-icon" href="/brand-acid/icon-512.png" />
+<meta name="theme-color" content="#0A0B08" />
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@1,900&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600;700&display=swap" media="print" onload="this.media='all'" />
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@1,900&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600;700&display=swap" /></noscript>
+
+<link rel="stylesheet" href="/brand-acid/tokens.css" />
+<link rel="stylesheet" href="/styles.css" />
+
+<style>
+  /* Legal page (same as /privacy) — dark hero band, paper body (acid system) */
+  .legal-hero {
+    padding: clamp(48px, 8vw, 88px) 0;
+    border-bottom: 1px solid var(--hairline);
+  }
+  .legal-hero .mono-label { display: block; margin-bottom: 18px; }
+  .legal-hero h1 { font-size: clamp(48px, 8vw, 80px); }
+
+  .legal-main {
+    background: var(--paper);
+    color: var(--ink);
+  }
+  .legal-body { padding: clamp(48px, 7vw, 80px) 0 clamp(72px, 9vw, 120px); }
+
+  .updated-strip {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    padding: 18px 0;
+    border-bottom: 1px solid var(--hairline-ink);
+    margin-bottom: 48px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--dim-ink);
+  }
+
+  .legal-grid {
+    display: grid;
+    grid-template-columns: 240px minmax(0, 1fr);
+    gap: clamp(40px, 5vw, 72px);
+    max-width: 1100px;
+  }
+
+  .legal-toc {
+    position: sticky;
+    top: 96px;
+    align-self: start;
+  }
+  .legal-toc h2 {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--dim-ink);
+    margin: 0 0 18px;
+  }
+  .legal-toc ol {
+    list-style: none;
+    counter-reset: item;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .legal-toc ol li { counter-increment: item; }
+  .legal-toc ol li a {
+    display: flex;
+    gap: 12px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink);
+    opacity: 0.72;
+    transition: opacity 0.15s ease;
+  }
+  .legal-toc ol li a:hover { opacity: 1; }
+  .legal-toc ol li a::before {
+    content: counter(item, decimal-leading-zero);
+    color: var(--dim-ink);
+  }
+
+  .legal-content section { padding: 0 0 52px; }
+  .legal-content section + section {
+    border-top: 1px solid var(--hairline-ink);
+    padding-top: 52px;
+  }
+  .legal-content .section-num {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--dim-ink);
+    margin-bottom: 20px;
+  }
+  .legal-content h2 {
+    font-family: var(--font-display);
+    font-weight: 900;
+    font-style: italic;
+    letter-spacing: -0.02em;
+    line-height: 0.9;
+    font-size: 32px;
+    margin: 0 0 14px;
+  }
+  .legal-content h3 {
+    font: 600 17px/1.3 var(--font-body);
+    margin: 28px 0 12px;
+  }
+  .legal-content p {
+    font-size: 16px;
+    line-height: 1.65;
+    color: rgba(10, 11, 8, 0.8);
+    margin: 0 0 16px;
+    max-width: 680px;
+  }
+  .legal-content ul, .legal-content ol.body-list {
+    margin: 8px 0 16px;
+    padding-left: 20px;
+    max-width: 680px;
+  }
+  .legal-content ul li, .legal-content ol.body-list li {
+    font-size: 16px;
+    line-height: 1.65;
+    color: rgba(10, 11, 8, 0.8);
+    margin-bottom: 8px;
+  }
+  .legal-content strong { font-weight: 600; color: var(--ink); }
+  .legal-content a {
+    color: var(--ink);
+    border-bottom: 1px solid var(--hairline-ink);
+    transition: border-color 0.15s ease;
+  }
+  .legal-content a:hover { border-bottom-color: var(--ink); }
+
+  .legal-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 8px 0 20px;
+    font-size: 14px;
+  }
+  .legal-table th {
+    text-align: left;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--dim-ink);
+    padding: 12px 16px 12px 0;
+    border-bottom: 1px solid var(--ink);
+    vertical-align: bottom;
+  }
+  .legal-table td {
+    padding: 14px 16px 14px 0;
+    border-bottom: 1px solid var(--hairline-ink);
+    line-height: 1.5;
+    color: rgba(10, 11, 8, 0.82);
+    vertical-align: top;
+  }
+  .legal-table td:first-child { font-weight: 500; color: var(--ink); }
+  .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+  @media (max-width: 860px) {
+    .legal-grid { grid-template-columns: 1fr; }
+    .legal-toc { position: static; }
+    .legal-content h2 { font-size: 26px; }
+  }
+</style>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebPage",
+      "@id": "https://pacr.life/terms#webpage",
+      "url": "https://pacr.life/terms",
+      "name": "Terms of Service — PACR",
+      "description": "The terms for using Pacr: your account, health and safety, your content, event tickets and refunds, and hosting.",
+      "isPartOf": {
+        "@id": "https://pacr.life/#website"
+      },
+      "inLanguage": "en",
+      "breadcrumb": {
+        "@id": "https://pacr.life/terms#breadcrumb"
+      }
+    },
+    {
+      "@type": "BreadcrumbList",
+      "@id": "https://pacr.life/terms#breadcrumb",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "PACR",
+          "item": "https://pacr.life/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "Terms of service",
+          "item": "https://pacr.life/terms"
+        }
+      ]
+    }
+  ]
+}
+</script>
+<script src="/js/posthog.js"></script>
+</head>
+<body>
+
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="nav">
+  <div class="container nav-inner">
+    <a class="nav-wordmark" href="/" aria-label="PACR home">
+      <img src="/brand-acid/wordmark.svg" alt="PACR" width="103" height="44" />
+    </a>
+    <nav class="nav-links" aria-label="Primary">
+      <span class="nav-sections">
+        <a class="link-quiet" href="/#coach">How it works</a>
+        <a class="link-quiet" href="/#clubs">Clubs</a>
+        <a class="link-quiet" href="/#routes">Routes</a>
+        <a class="link-quiet" href="/feed">Feed</a>
+        <a class="link-quiet" href="/profile">Profile</a>
+      </span>
+      <!-- Baseline; js/auth.js swaps it for Sign out when a session exists. -->
+      <span id="authSlot"><a class="link-quiet" data-auth="in" href="/signin">Sign in</a></span>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+  <!-- HERO -->
+  <section class="legal-hero">
+    <div class="container">
+      <span class="mono-label">// LEGAL</span>
+      <h1 class="display"><span class="skew">Terms of service.</span></h1>
+    </div>
+  </section>
+
+  <!-- BODY -->
+  <div class="legal-main">
+    <section class="legal-body">
+      <div class="container">
+        <div class="updated-strip">
+          <div>Effective · 10 November 2026</div>
+          <div>Last updated · 10 November 2026</div>
+        </div>
+
+        <div class="legal-grid">
+          <!-- TOC -->
+          <aside class="legal-toc">
+            <h2>Contents</h2>
+            <ol>
+              <li><a href="#agreement">The agreement</a></li>
+              <li><a href="#accounts">Your account</a></li>
+              <li><a href="#health">Health and safety</a></li>
+              <li><a href="#together">Running with others</a></li>
+              <li><a href="#content">Your content</a></li>
+              <li><a href="#rules">Community rules</a></li>
+              <li><a href="#use">What you can't do</a></li>
+              <li><a href="#tickets">Event tickets</a></li>
+              <li><a href="#hosting">Hosting events</a></li>
+              <li><a href="#third-party">Other services</a></li>
+              <li><a href="#service">The service</a></li>
+              <li><a href="#ours">What's ours</a></li>
+              <li><a href="#ending">Ending your account</a></li>
+              <li><a href="#disclaimers">Disclaimers</a></li>
+              <li><a href="#liability">Liability</a></li>
+              <li><a href="#law">Law and disputes</a></li>
+              <li><a href="#grievance">Grievances</a></li>
+              <li><a href="#stores">App stores</a></li>
+              <li><a href="#changes">Changes</a></li>
+              <li><a href="#contact">Contact</a></li>
+            </ol>
+          </aside>
+
+          <!-- CONTENT -->
+          <div class="legal-content">
+            <section id="agreement">
+              <div class="section-num">01 / The agreement</div>
+              <h2><span class="skew">The agreement.</span></h2>
+              <p>
+                These terms are an agreement between you and Pacr ("we", "us", "our"), based in
+                Bengaluru, India. They cover the Pacr app on iOS and Android and the website at
+                <a href="https://pacr.life">pacr.life</a> — together, "Pacr".
+              </p>
+              <p>
+                By creating an account or using Pacr, you agree to these terms, to our
+                <a href="/privacy">privacy policy</a> and to our
+                <a href="/community-rules">community rules</a>. If you don't agree, please don't
+                use Pacr.
+              </p>
+            </section>
+
+            <section id="accounts">
+              <div class="section-num">02 / Your account</div>
+              <h2><span class="skew">Your account.</span></h2>
+              <ul>
+                <li><strong>Age.</strong> You must be at least 13 (or the minimum age in your country, if higher). If you are under 18, a parent or guardian must agree to these terms for you, and must make any payment.</li>
+                <li><strong>Accounts are made in the app.</strong> You sign up with Apple, Google or email. Signing in on pacr.life uses the same account.</li>
+                <li><strong>One person, one account.</strong> Use your real name or a name people who run with you would recognise. Don't pretend to be someone else, and don't make accounts to get around a ban.</li>
+                <li><strong>Keep it secure.</strong> You are responsible for what happens on your account. Tell us at <a href="mailto:support@pacr.life">support@pacr.life</a> if you think someone else is using it.</li>
+              </ul>
+            </section>
+
+            <section id="health">
+              <div class="section-num">03 / Health and safety</div>
+              <h2><span class="skew">Health and safety.</span></h2>
+              <p>
+                <strong>Pacr is not a doctor and does not give medical advice.</strong> Training
+                plans, coaching, workout suggestions and voice cues are written partly by AI from
+                what you tell us and from your runs. They can be wrong, and they don't know your
+                health the way a professional does.
+              </p>
+              <ul>
+                <li>Check with a doctor before you start a new training programme, especially if you have a heart condition, an injury, are pregnant, or haven't exercised in a while.</li>
+                <li>Stop and get help if you feel pain, dizziness, chest tightness or shortness of breath.</li>
+                <li>Distance, pace, heart rate, elevation, cadence, calories and steps come from your phone's GPS and sensors and from connected devices. They are estimates and can be off.</li>
+                <li>Run where it is safe and legal to do so. Watch traffic, weather and air quality, and don't look at your phone when it isn't safe to.</li>
+              </ul>
+              <p>You run at your own risk, and you decide how hard to push.</p>
+            </section>
+
+            <section id="together">
+              <div class="section-num">04 / Running with others</div>
+              <h2><span class="skew">Running with others.</span></h2>
+              <p>
+                Squads, clubs, run buddies and events help you run with people you may not know.
+                We don't run background checks on anyone, and we aren't at the runs.
+              </p>
+              <ul>
+                <li><strong>Use your judgement</strong> before meeting someone: meet in public places, tell someone where you're going, and leave if anything feels wrong.</li>
+                <li><strong>A verified badge</strong> means we checked that a club is who it says it is. It is not a promise about any person, run or event.</li>
+                <li><strong>Live run sharing</strong> is a convenience, not a safety service. It updates only while your phone has a connection, it notifies nobody, and you must not rely on it in an emergency. In an emergency, call 112 (in India) or your local emergency number.</li>
+                <li><strong>Squad owners and organisers</strong> set their own join rules, questions and rules, and can remove members. Those rules sit on top of ours, never instead of them.</li>
+              </ul>
+              <p>
+                If something goes wrong with another runner, report them in the app and, if it's
+                serious, contact the police. We will help where we can — see
+                <a href="#grievance">Grievances</a>.
+              </p>
+            </section>
+
+            <section id="content">
+              <div class="section-num">05 / Your content</div>
+              <h2><span class="skew">Your content.</span></h2>
+              <p>
+                Your runs, posts, photos, comments, messages, routes and profile are yours. You
+                keep ownership of them.
+              </p>
+              <p>
+                To show them to the people you choose, you give us a worldwide, non-exclusive,
+                royalty-free licence to store, copy, resize, display and share your content inside
+                Pacr — in the app, on pacr.life and in the share links and previews Pacr makes —
+                for as long as it's on Pacr. Who sees a post depends on the audience you pick: a
+                squad, your followers, or everyone. <strong>Public posts, public routes and profile
+                links can be seen by anyone, including people without an account.</strong>
+              </p>
+              <p>
+                The licence ends when you delete the content or your account, except for copies
+                other people have already shared, backups kept for a short time, and anything we
+                must keep by law.
+              </p>
+              <p>
+                You are responsible for what you post. Only post things you have the right to
+                share, including photos of other people.
+              </p>
+            </section>
+
+            <section id="rules">
+              <div class="section-num">06 / Community rules</div>
+              <h2><span class="skew">Community rules.</span></h2>
+              <p>
+                Our <a href="/community-rules">community rules</a> are part of these terms: no
+                abuse, nothing sexual, no spam or scams, post your own runs, and respect the squad.
+              </p>
+              <p>
+                We may remove content, hide it, limit features or suspend or close an account that
+                breaks them. Posts that enough runners report are hidden automatically while we
+                look. We review every report, but we can't promise to catch everything.
+              </p>
+            </section>
+
+            <section id="use">
+              <div class="section-num">07 / What you can't do</div>
+              <h2><span class="skew">What you can't do.</span></h2>
+              <p>When you use Pacr, don't:</p>
+              <ul>
+                <li>break the law, or help someone else to</li>
+                <li>log runs you didn't do, or tamper with GPS or sensor data to climb leaderboards or earn records and badges</li>
+                <li>harass, threaten, stalk or share someone's location or personal details without their consent</li>
+                <li>pretend to be another person, club or organisation</li>
+                <li>sell, advertise or promote anything without our permission, beyond what a host does for their own event</li>
+                <li>scrape, copy or collect data from Pacr by automated means, or use it to build a competing product</li>
+                <li>reverse-engineer, decompile or try to get around our security, rate limits or blocks</li>
+                <li>upload malware, or do anything that harms or overloads Pacr</li>
+                <li>use someone else's account, or sell or transfer yours</li>
+              </ul>
+            </section>
+
+            <section id="tickets">
+              <div class="section-num">08 / Event tickets</div>
+              <h2><span class="skew">Event tickets.</span></h2>
+              <p>
+                Events on Pacr are run by their hosts — clubs and squads — not by Pacr. When you
+                book, your agreement for the event itself is with the host. Pacr provides the
+                listing and the booking, and collects payment on the host's behalf.
+              </p>
+              <h3>Paying</h3>
+              <ul>
+                <li>Payments are processed by <strong>Razorpay</strong>. We never see or store your card, UPI or bank details.</li>
+                <li>The price of a paid booking is the host's ticket price, plus a <strong>Pacr fee</strong> on the tickets (currently 5%), plus <strong>GST on that fee</strong> (currently 18%). The full breakdown is shown before you pay, and that is the amount you are charged.</li>
+                <li>Your spots are held for ten minutes while you pay. If the hold runs out, they go back on sale.</li>
+                <li>Each seat gets its own ticket and QR code. The host may scan it at the event.</li>
+              </ul>
+              <h3>Cancellations and refunds</h3>
+              <ul>
+                <li><strong>You can't cancel a paid ticket yourself.</strong> Only the host can refund a booking, and a refund is always for the whole booking — ticket price and Pacr fee.</li>
+                <li><strong>If the host cancels the event</strong>, every paid booking is refunded in full automatically.</li>
+                <li>If you pay but a ticket can't be issued — for example, the event was cancelled while you paid — the payment is refunded in full.</li>
+                <li>Refunds go back to how you paid. Banks usually take 5–7 working days to show them.</li>
+                <li>The host's own refund policy, if they have one, is shown on the event. Ask the host first; if you can't reach them, write to <a href="mailto:support@pacr.life">support@pacr.life</a>.</li>
+              </ul>
+              <p>
+                The host is responsible for the event: that it happens as described, that it is
+                safe, and that it has whatever permits and insurance it needs. Pacr isn't
+                responsible for an event that doesn't go as described, but tell us — we can hold a
+                host's payout while we look into it.
+              </p>
+            </section>
+
+            <section id="hosting">
+              <div class="section-num">09 / Hosting events</div>
+              <h2><span class="skew">Hosting events.</span></h2>
+              <p>If you host events on Pacr, you also agree that:</p>
+              <ul>
+                <li><strong>Only verified squads host.</strong> We may refuse, hide or cancel any event that breaks these terms or the community rules.</li>
+                <li><strong>You are the organiser.</strong> You are responsible for the event, the people running it, the route, permits, safety, insurance, and for describing it honestly — date, place, distance, price and what's included.</li>
+                <li><strong>Payouts.</strong> To sell paid tickets you give us a UPI ID or bank account. About a day after the event ends, we pay you the ticket price of every ticket sold, minus tickets that were refunded. The Pacr fee and GST on it are ours.</li>
+                <li><strong>Holds.</strong> We may delay or hold a payout while a refund is unfinished, while a complaint is open, or if we suspect fraud.</li>
+                <li><strong>Refunds.</strong> You can refund a booking through Pacr until the event has been paid out. If you cancel the event, every paid booking is refunded in full, Pacr fee included.</li>
+                <li><strong>Taxes.</strong> You are responsible for any tax on the money you receive for your events.</li>
+                <li><strong>Attendee data.</strong> Use the names and details of people who book only to run the event, and not to market to them without their consent.</li>
+              </ul>
+            </section>
+
+            <section id="third-party">
+              <div class="section-num">10 / Other services</div>
+              <h2><span class="skew">Other services.</span></h2>
+              <p>
+                Pacr works with services run by other companies — Apple Health, Health Connect,
+                Garmin, WHOOP, Apple and Google sign-in, maps, Razorpay, Instagram and others.
+                When you connect or use one, its own terms and privacy policy apply too.
+              </p>
+              <p>
+                We don't control those services and aren't responsible for them, for data they
+                send us, or if they change or stop working with Pacr. You can disconnect a service
+                at any time in the app.
+              </p>
+            </section>
+
+            <section id="service">
+              <div class="section-num">11 / The service</div>
+              <h2><span class="skew">The service.</span></h2>
+              <p>
+                Pacr is free to use today, apart from event tickets. We are building it as we go:
+                features will be added, changed and sometimes removed, and the app updates itself
+                over the air. We may also introduce paid features; if we do, we'll show the price
+                before you pay and nothing will be charged without your say-so.
+              </p>
+              <p>
+                We work to keep Pacr running and your data safe, but we can't promise it will
+                always be available, error-free or that a run will always record. Keep anything
+                important somewhere else too.
+              </p>
+            </section>
+
+            <section id="ours">
+              <div class="section-num">12 / What's ours</div>
+              <h2><span class="skew">What's ours.</span></h2>
+              <p>
+                The Pacr name, logo, app, website, designs and software belong to us. We give you
+                a personal, non-exclusive, non-transferable licence to use Pacr for your own
+                running, under these terms. That doesn't give you any right to our brand.
+              </p>
+              <p>
+                If you send us ideas or feedback, we may use them without owing you anything.
+              </p>
+            </section>
+
+            <section id="ending">
+              <div class="section-num">13 / Ending your account</div>
+              <h2><span class="skew">Ending your account.</span></h2>
+              <p>
+                You can stop using Pacr at any time and delete your account in the app, under
+                <strong>Profile → Settings</strong>, or by writing to
+                <a href="mailto:support@pacr.life">support@pacr.life</a>. What happens to your
+                data is set out in our <a href="/privacy">privacy policy</a>.
+              </p>
+              <p>
+                We may suspend or close your account if you break these terms or the community
+                rules, if we have to by law, or to protect other runners. Where it's safe and
+                lawful, we'll tell you why and give you a chance to respond.
+              </p>
+              <p>
+                If you are a host with events still to come or payouts outstanding, we'll settle
+                tickets and payouts as described above before the account closes. The sections on
+                content you've already shared, disclaimers, liability and disputes keep applying
+                after your account ends.
+              </p>
+            </section>
+
+            <section id="disclaimers">
+              <div class="section-num">14 / Disclaimers</div>
+              <h2><span class="skew">Disclaimers.</span></h2>
+              <p>
+                Pacr is provided <strong>"as is" and "as available"</strong>. To the fullest extent
+                the law allows, we make no promises beyond those written in these terms —
+                including about fitness for a particular purpose, accuracy of data, coaching
+                results, or the conduct of other runners and hosts.
+              </p>
+              <p>
+                Nothing in these terms takes away rights you have under consumer law that can't be
+                excluded by agreement.
+              </p>
+            </section>
+
+            <section id="liability">
+              <div class="section-num">15 / Liability</div>
+              <h2><span class="skew">Limits on our liability.</span></h2>
+              <p>To the fullest extent the law allows:</p>
+              <ul>
+                <li>We aren't liable for injury, illness or loss that comes from running, training, or taking part in a run or event — including one you found through Pacr — except where it was caused by our own negligence.</li>
+                <li>We aren't liable for indirect or consequential losses, lost profits or lost data.</li>
+                <li>Our total liability to you for any claim about Pacr is limited to the greater of the Pacr fees you paid us in the 12 months before the claim, or ₹1,000.</li>
+              </ul>
+              <p>
+                These limits don't apply to anything the law doesn't allow us to limit, such as
+                liability for fraud.
+              </p>
+              <p>
+                If you break these terms or the law and someone makes a claim against us because
+                of it — for example, over content you posted or an event you hosted — you agree to
+                cover our reasonable costs of dealing with that claim.
+              </p>
+            </section>
+
+            <section id="law">
+              <div class="section-num">16 / Law and disputes</div>
+              <h2><span class="skew">Law and disputes.</span></h2>
+              <p>
+                These terms are governed by the laws of India. If you have a problem, please
+                write to us first — most things can be sorted out quickly. If we can't resolve it,
+                the courts of Bengaluru, Karnataka have jurisdiction, without taking away any right
+                you have to bring a claim in the courts where you live.
+              </p>
+              <p>
+                If any part of these terms turns out to be unenforceable, the rest still applies.
+                If we don't enforce a term straight away, we haven't given up the right to.
+                You can't transfer these terms to anyone else; we may transfer them if Pacr is
+                sold or reorganised, and we'll tell you if that happens.
+              </p>
+            </section>
+
+            <section id="grievance">
+              <div class="section-num">17 / Grievances</div>
+              <h2><span class="skew">Grievances.</span></h2>
+              <p>
+                To report content or an account, use <strong>Report</strong> on it in the app or on
+                pacr.life. For anything else — including a complaint about how we handled a report,
+                your data, a payment or a host — write to our Grievance Officer, in line with the
+                Information Technology (Intermediary Guidelines and Digital Media Ethics Code)
+                Rules, 2021:
+              </p>
+              <p>
+                <strong>Grievance Officer, Pacr</strong><br/>
+                <strong>Email:</strong> <a href="mailto:support@pacr.life">support@pacr.life</a><br/>
+                Bengaluru, Karnataka, India
+              </p>
+              <p>
+                We acknowledge complaints within 24 hours and aim to resolve them within 15 days.
+              </p>
+            </section>
+
+            <section id="stores">
+              <div class="section-num">18 / App stores</div>
+              <h2><span class="skew">If you got Pacr from an app store.</span></h2>
+              <p>
+                If you downloaded Pacr from Apple's App Store or Google Play, these terms are
+                between you and Pacr only, not Apple or Google. They aren't responsible for Pacr,
+                its content, support or maintenance, or for any claim about it. The store's own
+                terms of use also apply.
+              </p>
+              <p>
+                For the App Store: if Pacr fails to meet a warranty that applies by law, you may
+                tell Apple and it will refund the purchase price (if any); Apple has no other
+                warranty obligation. Apple is not responsible for product, consumer or legal
+                claims about Pacr, or for intellectual-property claims. Apple and its subsidiaries
+                are third-party beneficiaries of these terms and may enforce them against you.
+                You confirm you are not in a country under a US government embargo and not on a
+                US government list of prohibited or restricted parties.
+              </p>
+            </section>
+
+            <section id="changes">
+              <div class="section-num">19 / Changes</div>
+              <h2><span class="skew">Changes to these terms.</span></h2>
+              <p>We may update these terms as Pacr changes. When we do, we'll:</p>
+              <ul>
+                <li>update the <strong>"Last updated"</strong> date at the top</li>
+                <li>for material changes, tell you in the app before they take effect</li>
+              </ul>
+              <p>
+                If you keep using Pacr after the changes take effect, you accept the new terms. If
+                you don't agree, you can delete your account.
+              </p>
+            </section>
+
+            <section id="contact">
+              <div class="section-num">20 / Contact</div>
+              <h2><span class="skew">Contact.</span></h2>
+              <p>Questions about these terms:</p>
+              <p>
+                <strong>Email:</strong> <a href="mailto:support@pacr.life">support@pacr.life</a><br/>
+                <strong>Website:</strong> <a href="https://pacr.life">https://pacr.life</a>
+              </p>
+              <p>We aim to respond within 7 days.</p>
+            </section>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+</main>
+
+<footer class="footer">
+  <div class="stripes" aria-hidden="true"></div>
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <img src="/brand-acid/wordmark.svg" alt="Pacr" width="65" height="28" />
+      </div>
+      <nav class="footer-links" aria-label="Footer">
+        <a class="link-quiet" rel="noopener"
+           href="https://play.google.com/store/apps/details?id=life.pacr.app">GOOGLE PLAY</a>
+        <a class="link-quiet" href="https://www.instagram.com/pacr.running/" rel="noopener">INSTAGRAM</a>
+        <a class="link-quiet" href="/community-rules">COMMUNITY RULES</a>
+        <a class="link-quiet" href="/privacy">PRIVACY POLICY</a>
+        <a class="link-quiet" href="/terms">TERMS</a>
+        <a class="link-quiet" href="mailto:support@pacr.life">SUPPORT</a>
+      </nav>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 PACR</span>
+      <span>MADE IN INDIA</span>
+    </div>
+  </div>
+</footer>
+
+<script type="module">
+  import { mountHeaderAuth } from '/js/auth.js';
+  mountHeaderAuth(document.getElementById('authSlot'), { className: 'link-quiet' })
+    .catch(e => console.warn('[pacr] auth', e));
+</script>
+</body>
+</html>
