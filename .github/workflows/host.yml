@@ -97,7 +97,7 @@ jobs:
     env:
       VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
       VERCEL_ORG_ID: team_i37ev2MiSqBfbsdrn6ZuQHle
-      VERCEL_PROJECT_ID: prj_GOg22LdvVgM11afdA1NzOlqNgzFl
+      VERCEL_PROJECT_ID: prj_EbNfaLfvcp0tSiT0fAc2DU6bOu24
       VERCEL_ENV: ${{ github.event_name == 'pull_request' && 'preview' || 'production' }}
       PROD_FLAG: ${{ github.event_name != 'pull_request' && '--prod' || '' }}
     steps:
