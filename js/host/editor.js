@@ -31,7 +31,7 @@
 import { openModal } from '../modal.js';
 import {
   myHosting, getEventForEdit, createEvent, updateEvent, publishEvent, deleteDraft, cancelEvent,
-  uploadImage, removeImages, imageUrls, failText,
+  uploadImage, removeImages, imageUrls, avatarUrls, failText,
 } from './api.js';
 import {
   $, esc, editHref, attendeesHref, toLocalInput, fromLocalInput, localZone, STATUS, goingLine, say, when,
@@ -84,6 +84,26 @@ export async function renderEditor(app, { id }) {
   const squads = hosting.squads ?? [];
   const org = hosting.organizer?.status === 'approved' ? hosting.organizer : null;
   const hostIsSquad = e ? e.host?.kind === 'squad' : true;
+
+  // Who it's for, always shown: a picker for a new event (starting on the
+  // host picked in the dashboard's switcher), a fixed card once it exists.
+  const [squadPics, orgPics] = await Promise.all([
+    avatarUrls('club-avatars', squads.map(s => s.avatar_path)),
+    avatarUrls('avatars', [hosting.organizer?.avatar_path]),
+  ]);
+  const hostOptions = [
+    ...squads.map(s => ({
+      key: `squad:${s.id}`, kind: 'squad', name: s.name, pic: squadPics.get(s.avatar_path), verified: !!s.verified,
+      disabled: !s.verified,
+      sub: s.verified
+        ? ['Squad', ROLE_LINE[s.role] ?? null, s.members != null ? `${s.members} ${s.members === 1 ? 'member' : 'members'}` : null].filter(Boolean).join(' · ')
+        : 'Not verified yet · only verified squads host events',
+    })),
+    ...(org ? [{ key: `organizer:${org.id}`, kind: 'organizer', name: org.name, pic: orgPics.get(org.avatar_path), verified: true, disabled: false, sub: 'Organizer account' }] : []),
+  ];
+  const hostPick = !e ? (hostOptions.find(o => o.key === rememberedHost() && !o.disabled) ?? hostOptions.find(o => !o.disabled) ?? null) : null;
+  const hostNow = e ? (hostOptions.find(o => o.key === `${e.host?.kind}:${e.host?.id}`)
+    ?? { kind: e.host?.kind === 'organizer' ? 'organizer' : 'squad', name: e.host?.name ?? '', pic: null, verified: false, sub: e.host?.kind === 'organizer' ? 'Organizer account' : 'Squad' }) : null;
   const tier = e?.tiers?.[0] ?? null;
 
   app.innerHTML = `
@@ -101,14 +121,16 @@ export async function renderEditor(app, { id }) {
       ${!editable ? `<p class="msg">${e.status === 'cancelled' ? 'This event was cancelled' : 'This event is over'}, so it can’t be edited.</p>` : ''}
 
       <form id="ev" class="form" novalidate ${editable ? '' : 'inert'}>
-        ${!e ? `
         <fieldset class="card">
           <legend>Host</legend>
-          <div class="choices">
-            ${squads.map((s, i) => choice('host', `squad:${s.id}`, s.name, `Squad · as ${s.role.replace('_', ' ')}`, i === 0)).join('')}
-            ${org ? choice('host', `organizer:${org.id}`, org.name, 'Organizer', !squads.length) : ''}
-          </div>
-        </fieldset>` : ''}
+          ${e ? `
+          ${hostCard(hostNow)}
+          <p class="fine">Runners see the host on the event page. It can’t change once the event is made.</p>` : hostPick ? `
+          <div class="choices">${hostOptions.map(o => hostChoice(o, o === hostPick)).join('')}</div>
+          <p class="fine">Runners see the host on the event page. It can’t change once the event is made.</p>` : `
+          ${hostOptions.length ? `<div class="choices">${hostOptions.map(o => hostChoice(o, false)).join('')}</div>` : ''}
+          <p class="fine">Only verified squads host events. The owner can ask for verification in Settings.</p>`}
+        </fieldset>
 
         <fieldset class="card">
           <legend>The basics</legend>
@@ -474,6 +496,39 @@ function wirePicture({ eventId, key, fileInput, removeBtn, box, msg, crop, state
 }
 
 // ── Bits ────────────────────────────────────────────────────────────────────
+
+const ROLE_LINE = { owner: 'you’re the owner', organiser: 'you’re an organiser', run_leader: 'you’re a run leader' };
+
+/** The host the dashboard's switcher was on ("squad:<id>" / "organizer:<id>"), same origin. */
+function rememberedHost() {
+  try { return localStorage.getItem('pacr.host.ctx'); } catch { return null; }
+}
+
+const TICK = `<svg class="host-tick" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Verified"><path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z"/><path d="m9 12 2 2 4-4"/></svg>`;
+
+function hostFace(o) {
+  const initials = String(o.name ?? '').trim().split(/\s+/).filter(Boolean).map(w => w[0]).slice(0, 2).join('').toUpperCase();
+  return o.pic
+    ? `<img class="host-face ${o.kind}" src="${esc(o.pic)}" alt="">`
+    : `<span class="host-face ${o.kind}" aria-hidden="true">${esc(initials)}</span>`;
+}
+
+function hostChoice(o, checked) {
+  return `
+    <label class="choice host-choice${o.disabled ? ' is-off' : ''}">
+      <input type="radio" name="host" value="${esc(o.key)}" ${checked ? 'checked' : ''} ${o.disabled ? 'disabled' : ''}>
+      ${hostFace(o)}
+      <span><b>${esc(o.name)}${o.verified ? TICK : ''}</b><i>${esc(o.sub)}</i></span>
+    </label>`;
+}
+
+function hostCard(o) {
+  return `
+    <div class="host-card">
+      ${hostFace(o)}
+      <span><b>${esc(o.name)}${o.verified ? TICK : ''}</b><i>${esc(o.sub)}</i></span>
+    </div>`;
+}
 
 function choice(name, value, title, sub, checked) {
   return `

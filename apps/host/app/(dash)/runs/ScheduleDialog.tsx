@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Button, Dialog, Input, Select, Skeleton, Switch } from "@/components/ds";
+import { Button, Dialog, Icon, Input, Select, Skeleton, Switch } from "@/components/ds";
+import { HostCard } from "@/components/shell/HostCard";
 import * as api from "@/lib/api";
 import { dayTime } from "@/lib/format";
 import { isStaff, useHost } from "@/lib/host";
@@ -89,6 +90,14 @@ export function ScheduleDialog({ onClose, onScheduled }: { onClose: () => void; 
         <Button variant="ghost" onClick={onClose} disabled={busy}>Not now</Button>
         <Button loading={busy} disabled={lists.status !== "ready"} onClick={submit}>Schedule run</Button>
       </>}>
+      <div style={{ marginBottom: 14 }}>
+        <HostCard host={host} label="Scheduling for"
+          extra={lists.status !== "ready" ? null : home ? (
+            <><Icon name="house" size={13} /><span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>Home base · {home.name}</span></>
+          ) : (
+            <><Icon name="map-pin-off" size={13} /><span>No home base yet: set one in Settings to schedule runs</span></>
+          )} />
+      </div>
       {lists.status === "loading" ? <Skeleton lines={5} height={38} gap={14} /> : lists.status === "error" ? (
         <div style={{ ...kMuted, color: "var(--danger-text)" }}>Couldn’t load your meeting places. Close this and try again.</div>
       ) : (
