@@ -67,21 +67,23 @@ export function Insights() {
   if (!data || !c) return null;
 
   const { roster } = data;
-  if (roster.members.length === 0 || roster.runs.length === 0) {
-    return (
-      <EmptyState icon="chart-column" title="No runs logged yet"
-        message="Insights appear once members log runs on pacr. They are built from those runs, not from group-run check-ins." style={{ padding: "56px 24px" }} />
-    );
-  }
+  const noRuns = roster.members.length === 0 || roster.runs.length === 0;
 
   return (
     <div>
       <div className="no-print" style={{ marginBottom: 12 }}>
         <Tabs value={tab} onChange={v => setTab(v as "squad" | "sponsor")} style={{ marginBottom: 8 }}
           tabs={[{ value: "squad", label: "Squad insights" }, { value: "sponsor", label: "Sponsor report" }]} />
-        <div style={kMuted}>From the runs your members log on pacr, last 12 weeks.</div>
+        <div style={kMuted}>
+          {tab === "squad"
+            ? "From the runs your members log on pacr, last 12 weeks."
+            : "From members’ runs on pacr, group-run check-ins, events and the squad feed, for the week, month or year you pick."}
+        </div>
       </div>
-      {tab === "squad" ? <SquadInsights data={data} c={c} /> : <SponsorReport data={data} c={c} />}
+      {tab === "sponsor" ? <SponsorReport data={data} /> : noRuns ? (
+        <EmptyState icon="chart-column" title="No runs logged yet"
+          message="Insights appear once members log runs on pacr. They are built from those runs, not from group-run check-ins." style={{ padding: "56px 24px" }} />
+      ) : <SquadInsights data={data} c={c} />}
     </div>
   );
 }

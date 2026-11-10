@@ -50,7 +50,7 @@ textarea:focus-visible { border-color: var(--border-focus) !important; box-shado
 .host-place-opt:hover:not(:disabled), .host-place-opt:focus-visible { background: var(--surface-hover) !important; outline: none; }
 .host-place-opt:disabled { cursor: progress !important; opacity: .6; }
 
-/* Print (the sponsor report): only the report sheet, one full A4 page.
+/* Print (the sponsor report): only the report sheets, one full A4 page each.
    margin: 0 also stops the browser printing its own header and footer
    (title, date, the page's URL). */
 @page { size: A4; margin: 0; }
@@ -59,12 +59,13 @@ textarea:focus-visible { border-color: var(--border-focus) !important; box-shado
   html, body, .shell { background: #fff !important; margin: 0 !important; padding: 0 !important; }
   .shell-content { padding: 0; max-width: none; }
   .report-stage { padding: 0 !important; background: none !important; border-radius: 0 !important; }
-  .report-fit { height: auto !important; overflow: visible !important; }
+  .report-fit { height: auto !important; overflow: visible !important; margin: 0 !important; }
   .report-sheet {
-    position: absolute; top: 0; left: 0;
+    position: relative;
     width: 210mm !important; height: 297mm !important;
     transform: none !important; box-shadow: none !important;
-    break-inside: avoid; overflow: hidden;
+    break-inside: avoid; break-after: page; overflow: hidden;
     -webkit-print-color-adjust: exact; print-color-adjust: exact;
   }
+  .report-fit:last-child .report-sheet { break-after: auto; }
 }

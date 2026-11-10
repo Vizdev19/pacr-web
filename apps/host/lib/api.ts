@@ -686,6 +686,45 @@ export type EventPricing = { paid_allowed: boolean; fee_bps: number; gst_bps: nu
 /** pacr's fee (5%) and the GST on it (18%), as the database has them. */
 export const eventPricing = () => rpc<EventPricing>("event_pricing");
 
+// ── Sponsor report ─────────────────────────────────────────────────────────
+
+export type ReportBucket = "day" | "week" | "month";
+export type ReportPoint = { start: string; km: number; runs: number; active: number; joined: number; group_runs: number; checkins: number };
+export type ReportRun = { run_id: string; at: string; title: string; going: number | null; checked_in: number; first_timers: number };
+export type SquadReport = {
+  from: string; to: string; bucket: ReportBucket; tz: string;
+  series: ReportPoint[];
+  running: {
+    km: number; runs: number; active: number; duration_sec: number; avg_km: number | null; avg_pace_sec: number | null; longest_km: number | null;
+    bands: { under_5: number; k5: number; k10: number; half: number; full: number };
+  };
+  /** Current members only: leaving isn't recorded, so there is no churn. */
+  members: { now: number; at_start: number; at_end: number; joined: number };
+  group_runs: {
+    held: number; checkins: number; first_timers: number; unique: number; cancelled: number;
+    /** Going and checked in over the runs that used check-in and kept a going count (null when none). */
+    going: number | null; going_checked_in: number | null;
+    runs: ReportRun[];
+  };
+  engagement: { posts: number; kudos: number; comments: number; messages: number; chatters: number };
+  top_runners: { name: string; runs: number; km: number }[];
+};
+/**
+ * A squad's numbers for [from, to) (IST calendar days, `to` exclusive), in
+ * day, 7-day or month buckets. Owners and organisers. Runs count only while
+ * the runner was a member; turnout comes from QR check-ins, and the going
+ * count of a weekly run's past date exists only from 20261221 on.
+ */
+export const squadReport = (circleId: string, from: string, to: string, bucket: ReportBucket) =>
+  rpc<SquadReport>("squad_report", { p_circle_id: circleId, p_from: from, p_to: to, p_bucket: bucket, p_tz: "Asia/Kolkata" }).then(r => ({
+    ...r,
+    series: r.series.map(p => ({ ...p, km: Number(p.km) })),
+    running: { ...r.running, km: Number(r.running.km), avg_km: r.running.avg_km == null ? null : Number(r.running.avg_km),
+      avg_pace_sec: r.running.avg_pace_sec == null ? null : Number(r.running.avg_pace_sec),
+      longest_km: r.running.longest_km == null ? null : Number(r.running.longest_km) },
+    top_runners: r.top_runners.map(t => ({ ...t, km: Number(t.km) })),
+  }));
+
 // ── Weeks ──────────────────────────────────────────────────────────────────
 
 /** ISO week key in local time, "2026-W46": the app's computeWeekKey. */
