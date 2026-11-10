@@ -25,7 +25,13 @@ type Draft = api.PlaceDraft;
 // pacr.life's referrers and to the Maps Embed API only; NEXT_PUBLIC_ values
 // are baked in at build, from the pacr-host Vercel project's variables. A
 // build without it falls back to Google's keyless embed link.
-const EMBED_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_EMBED_KEY ?? "";
+//
+// The variable must NOT be "sensitive" in Vercel: CI builds after
+// `vercel pull`, which gets only the text "[SENSITIVE]" for those (add it
+// with `vercel env add … --no-sensitive`). Anything that isn't a Google key
+// counts as no key, so a placeholder can't break the map.
+const RAW_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_EMBED_KEY ?? "";
+const EMBED_KEY = /^AIza[0-9A-Za-z_-]{35}$/.test(RAW_KEY) ? RAW_KEY : "";
 
 function embedUrl(d: { lat: number; lng: number; googlePlaceId: string | null }): string {
   if (!EMBED_KEY) return `https://maps.google.com/maps?q=${d.lat},${d.lng}&z=16&output=embed`;
