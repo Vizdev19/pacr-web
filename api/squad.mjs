@@ -18,8 +18,12 @@
 //                              invite= for an invite-only squad's runs.
 //   /s/<slug>/photo            the club's picture, proxied (see below)
 //   /s/<slug>/cover            its cover photo, the same way (20261113120000):
-//                              a 5:2 banner over the hero, and the preview
-//                              image when there is one
+//                              a 5:2 banner over the hero
+//   /s/<slug>/card             the link-preview image, 1200 × 630 (the size
+//                              WhatsApp, iMessage, Facebook, LinkedIn and X
+//                              show whole): the full cover with the squad's
+//                              photo and name under it, or the photo and name
+//                              alone. Drawn with @vercel/og (cardImage below).
 //
 // Data comes from get_club_page (migration 20261008120000 in the app repo) as
 // anon: a public club, or nothing. Strangers see what the app shows them —
@@ -107,24 +111,119 @@ async function clubPage(slug) {
   return r.json();
 }
 
-/** Proxy the club's tile (avatar_path) or cover (cover_path). Both live in
- *  the club-avatars bucket. */
-async function photo(slug, res, column = 'avatar_path') {
-  const club = await clubPage(slug).catch(() => null);
-  const path = club?.[column];
-  if (!path) return notFound(res, 'text/plain', 'No photo');
+/** A club-avatars object's bytes and type, through a short-lived signed URL
+ *  (the anon key may sign a public club's pictures). Null if it can't be read. */
+async function storageBytes(path) {
+  if (!path) return null;
   const sign = await fetch(
     `${SUPABASE_URL}/storage/v1/object/sign/club-avatars/${path.split('/').map(encodeURIComponent).join('/')}`,
     { method: 'POST', headers: HEADERS, body: JSON.stringify({ expiresIn: 120 }) },
   );
   const signed = sign.ok ? (await sign.json()).signedURL : null;
-  if (!signed) return notFound(res, 'text/plain', 'No photo');
+  if (!signed) return null;
   const img = await fetch(`${SUPABASE_URL}/storage/v1${signed}`);
-  if (!img.ok) return notFound(res, 'text/plain', 'No photo');
+  if (!img.ok) return null;
+  return { bytes: Buffer.from(await img.arrayBuffer()), type: img.headers.get('content-type') || 'image/jpeg' };
+}
+
+/** Proxy the club's tile (avatar_path) or cover (cover_path). Both live in
+ *  the club-avatars bucket. */
+async function photo(slug, res, column = 'avatar_path') {
+  const club = await clubPage(slug).catch(() => null);
+  const file = await storageBytes(club?.[column]).catch(() => null);
+  if (!file) return notFound(res, 'text/plain', 'No photo');
   res.statusCode = 200;
-  res.setHeader('Content-Type', img.headers.get('content-type') || 'image/jpeg');
+  res.setHeader('Content-Type', file.type);
   res.setHeader('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=86400');
-  res.end(Buffer.from(await img.arrayBuffer()));
+  res.end(file.bytes);
+}
+
+// ── The link-preview card ────────────────────────────────────────────────────
+// Previews show a 1.91:1 picture. A 5:2 cover used as og:image loses its
+// sides, and a square photo its top and bottom, so the preview is a card drawn
+// at 1200 × 630 instead: the cover whole across the top (1200 × 480 is exactly
+// 5:2, nothing drawn over it), the squad's photo and name in the band below;
+// with no cover, the photo
+// large beside the name. Same fonts as this page (Outfit, Manrope), fetched
+// once per instance from Google Fonts; the library's own font if that fails.
+
+const CARD = { width: 1200, height: 630 };
+let fontsPromise = null;
+async function googleFont(family, weight) {
+  // An old-browser user agent makes the CSS API answer with TTF, which the
+  // renderer reads (it can't read WOFF2).
+  const css = await fetch(`https://fonts.googleapis.com/css2?family=${family}:wght@${weight}`,
+    { headers: { 'User-Agent': 'Mozilla/4.0' } }).then(r => (r.ok ? r.text() : ''));
+  const url = /src:\s*url\(([^)]+)\)/.exec(css)?.[1];
+  if (!url) throw new Error(`no ${family} ${weight}`);
+  return { name: family, weight, style: 'normal', data: await fetch(url).then(r => r.arrayBuffer()) };
+}
+function cardFonts() {
+  fontsPromise ??= Promise.all([googleFont('Outfit', 700), googleFont('Manrope', 600)]).catch(e => {
+    fontsPromise = null;
+    throw e;
+  });
+  return fontsPromise;
+}
+
+// Elements for the renderer, written as plain objects (no JSX in this repo).
+const h = (type, style, ...children) => ({ type, props: { style: { display: 'flex', ...style }, children: children.flat().filter(c => c != null && c !== false) } });
+const img = (src, style) => ({ type: 'img', props: { src, style } });
+const dataUri = f => `data:${f.type};base64,${f.bytes.toString('base64')}`;
+
+function cardTree(club, cover, tile, fonts) {
+  const name = club.name ?? 'A squad';
+  const meta = [`${club.member_count} ${club.member_count === 1 ? 'runner' : 'runners'}`, club.location].filter(Boolean).join(' · ');
+  const display = fonts ? 'Outfit' : undefined, body = fonts ? 'Manrope' : undefined;
+  const tileBox = (size, radius, border = 0) => h('div', {
+    width: size, height: size, borderRadius: radius, overflow: 'hidden', flexShrink: 0, alignItems: 'center', justifyContent: 'center',
+    background: '#E8FF3A', ...(border ? { border: `${border}px solid #FFFFFF` } : {}),
+  }, tile ? img(dataUri(tile), { width: size - 2 * border, height: size - 2 * border, objectFit: 'cover' })
+    : h('div', { fontFamily: display, fontWeight: 700, fontSize: Math.round(size * 0.36), color: '#0F0F0D' }, initials(name)));
+  const wordmark = h('div', { alignItems: 'center', gap: 10, fontFamily: display, fontWeight: 700, fontSize: 30, color: '#0F0F0D', letterSpacing: '0.04em' },
+    h('div', { width: 18, height: 18, background: '#E8FF3A', border: '2px solid #0A0A09' }), 'PACR');
+  const nameLine = (size, maxLines) => h('div', {
+    fontFamily: display, fontWeight: 700, fontSize: size, lineHeight: 1.05, color: '#0F0F0D', letterSpacing: '-0.02em',
+    overflow: 'hidden', maxHeight: Math.ceil(size * 1.05 * maxLines) + 2,
+    ...(maxLines === 1 ? { whiteSpace: 'nowrap', textOverflow: 'ellipsis' } : { lineClamp: maxLines }),
+  }, name);
+  const metaLine = h('div', { fontFamily: body, fontWeight: 600, fontSize: 24, color: '#5C5C54', marginTop: 8 }, meta);
+
+  if (cover) {
+    return h('div', { width: CARD.width, height: CARD.height, flexDirection: 'column', background: '#FFFFFF' },
+      img(dataUri(cover), { width: 1200, height: 480, objectFit: 'cover' }),
+      // The band under the cover: nothing overlaps the cover, so all of it shows.
+      h('div', { flex: 1, alignItems: 'center', gap: 28, padding: '0 48px' },
+        tileBox(112, 34),
+        h('div', { flexDirection: 'column', flex: 1, minWidth: 0 }, nameLine(46, 1), metaLine),
+        wordmark));
+  }
+  return h('div', { width: CARD.width, height: CARD.height, alignItems: 'center', gap: 64, padding: '0 80px', background: '#F1F2EC' },
+    tileBox(380, 112),
+    h('div', { flexDirection: 'column', flex: 1, minWidth: 0, gap: 6 },
+      h('div', { fontFamily: body, fontWeight: 600, fontSize: 24, color: '#5A6B00', letterSpacing: '0.12em', textTransform: 'uppercase' }, 'A squad on PACR'),
+      nameLine(76, 3), metaLine,
+      h('div', { marginTop: 36 }, wordmark)));
+}
+
+/** The 1200 × 630 preview card for a public club with a photo or a cover. */
+async function cardImage(slug, res) {
+  const club = await clubPage(slug).catch(() => null);
+  if (!club || !(club.cover_path || club.avatar_path)) return notFound(res, 'text/plain', 'No card');
+  const [cover, tile, fonts] = await Promise.all([
+    storageBytes(club.cover_path).catch(() => null),
+    storageBytes(club.avatar_path).catch(() => null),
+    cardFonts().catch(() => null),
+  ]);
+  if (!cover && !tile) return notFound(res, 'text/plain', 'No card');
+  const { ImageResponse } = await import('@vercel/og');
+  const out = new ImageResponse(cardTree(club, cover, tile, fonts), { ...CARD, ...(fonts ? { fonts } : {}) });
+  const png = Buffer.from(await out.arrayBuffer());
+  res.statusCode = 200;
+  res.setHeader('Content-Type', 'image/png');
+  // The URL carries ?v= of what's drawn on it, so a change is a new address.
+  res.setHeader('Cache-Control', 'public, s-maxage=86400, stale-while-revalidate=604800');
+  res.end(png);
 }
 
 function notFound(res, type, body) {
@@ -175,10 +274,13 @@ function render({ club, slug, invite, runRef = null, runId = null }) {
       .filter(Boolean).join(' · ')
     : invite ? 'Open this link on your phone to join the squad in the PACR app.'
     : 'This squad isn’t public. Ask a member for an invite link.';
-  // The cover makes the better preview; then the tile; then the site's own.
-  const ogImage = club?.cover_path ? `${SITE}/s/${slug}/cover${version(club.cover_path)}`
-    : club?.avatar_path ? `${SITE}/s/${slug}/photo${version(club.avatar_path)}` : `${SITE}/og-image.png?v=3`;
-  const twitterCard = club?.avatar_path && !club?.cover_path ? 'summary' : 'summary_large_image';
+  // The preview card when the club has a picture (versioned by everything
+  // drawn on it); the site's own otherwise. Both are 1200 × 630.
+  const hasCard = !!(club?.cover_path || club?.avatar_path);
+  const ogImage = hasCard
+    ? `${SITE}/s/${slug}/card${version([club.cover_path, club.avatar_path, club.name, club.member_count, club.location].join('|'))}`
+    : `${SITE}/og-image.png?v=3`;
+  const twitterCard = 'summary_large_image';
   const runs = picked
     ? [picked, ...(club?.runs ?? []).filter(r => r !== picked)].slice(0, 6)
     : (club?.runs ?? []).slice(0, 6);
@@ -270,6 +372,9 @@ function render({ club, slug, invite, runRef = null, runId = null }) {
 <meta property="og:description" content="${esc(descr)}" />
 <meta property="og:url" content="${esc(shareUrl)}" />
 <meta property="og:image" content="${esc(ogImage)}" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:image:alt" content="${esc(name ? `${name} on PACR` : 'PACR')}" />
 <meta name="twitter:card" content="${twitterCard}" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 <link rel="apple-touch-icon" href="/brand-acid/icon-512.png" />
@@ -412,6 +517,7 @@ export default async function handler(req, res) {
   const invite = CODE_RE.test(rawInvite) ? rawInvite : null;
   const wantsPhoto = (req.query?.photo ?? url.searchParams.get('photo')) === '1';
   const wantsCover = (req.query?.cover ?? url.searchParams.get('cover')) === '1';
+  const wantsCard = (req.query?.card ?? url.searchParams.get('card')) === '1';
   const rawRun = String(req.query?.run ?? url.searchParams.get('run') ?? '');
   const runId = decodeRef(rawRun);
   const runRef = runId ? rawRun : null;
@@ -421,6 +527,10 @@ export default async function handler(req, res) {
   }
   if (wantsPhoto) return photo(slug, res);
   if (wantsCover) return photo(slug, res, 'cover_path');
+  if (wantsCard) return cardImage(slug, res).catch(e => {
+    console.error('[squad card]', e);
+    notFound(res, 'text/plain', 'No card');
+  });
 
   let club = null;
   try {

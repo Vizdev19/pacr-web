@@ -91,9 +91,14 @@ jobs:
         uses: actions/setup-node@v5
         with:
           node-version: ${{ env.NODE_VERSION }}
+          cache: npm
 
       - name: Install Vercel CLI
         run: npm install --global vercel@${{ env.VERCEL_CLI_VERSION }}
+
+      # api/squad.mjs draws link-preview cards with @vercel/og (package.json).
+      - name: Install dependencies
+        run: npm ci
 
       - name: Pull Vercel settings and env
         run: vercel pull --yes --environment="$VERCEL_ENV" --token="$VERCEL_TOKEN"

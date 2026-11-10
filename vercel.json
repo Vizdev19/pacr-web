@@ -10,6 +10,7 @@
   "rewrites": [
     { "source": "/s/:slug/photo", "destination": "/api/squad?slug=:slug&photo=1" },
     { "source": "/s/:slug/cover", "destination": "/api/squad?slug=:slug&cover=1" },
+    { "source": "/s/:slug/card", "destination": "/api/squad?slug=:slug&card=1" },
     { "source": "/s/:slug", "destination": "/api/squad?slug=:slug" },
     { "source": "/u/:handle/photo", "destination": "/api/profile?handle=:handle&photo=1" },
     { "source": "/u/:handle", "destination": "/api/profile?handle=:handle" },
