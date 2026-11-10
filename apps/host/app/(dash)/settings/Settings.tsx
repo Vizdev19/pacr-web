@@ -9,6 +9,7 @@ import { dayTime, monthYear, num } from "@/lib/format";
 import { useLoad, useViewport } from "@/lib/hooks";
 import { useHost } from "@/lib/host";
 import { organizerApplyHref } from "@/lib/refs";
+import { SquadImages, type Images } from "./SquadImages";
 
 export function Settings() {
   const { host } = useHost();
@@ -64,16 +65,17 @@ function SquadSettings({ circleId, squadKey }: { circleId: string; squadKey: str
   const x = useLoad(async () => {
     const detail = await api.squadDetail(circleId);
     const urls = await api.signedUrls("club-avatars", [detail?.avatar_path, detail?.cover_path]);
-    return {
-      detail,
-      avatar: detail?.avatar_path ? urls.get(detail.avatar_path) : undefined,
+    const images: Images = {
+      photoPath: detail?.avatar_path ?? null, coverPath: detail?.cover_path ?? null,
+      photo: detail?.avatar_path ? urls.get(detail.avatar_path) : undefined,
       cover: detail?.cover_path ? urls.get(detail.cover_path) : undefined,
     };
+    return { detail, images };
   }, `settings:${squadKey}`);
   if (x.status === "loading") return <RowsSkeleton rows={5} />;
   if (x.status === "error") return <LoadError what="settings" error={x.error} onRetry={x.reload} />;
   if (!x.data.detail) return <EmptyState variant="locked" title="Settings aren’t available" message="You’re not a member of this squad any more." />;
-  return <SquadForm detail={x.data.detail} avatar={x.data.avatar} cover={x.data.cover} />;
+  return <SquadForm detail={x.data.detail} images={x.data.images} onImages={images => x.set(d => ({ ...d, images }))} />;
 }
 
 type Values = {
@@ -87,7 +89,7 @@ const POLICIES = [
   { value: "invite", label: "Invite only · hidden from search" },
 ];
 
-function SquadForm({ detail, avatar, cover }: { detail: api.SquadDetail; avatar?: string; cover?: string }) {
+function SquadForm({ detail, images, onImages }: { detail: api.SquadDetail; images: Images; onImages: (next: Images) => void }) {
   const { host, notify, notifyError } = useHost();
   const { phone } = useViewport();
   const owner = host.roleKey === "owner";
@@ -143,13 +145,7 @@ function SquadForm({ detail, avatar, cover }: { detail: api.SquadDetail; avatar?
     <div style={{ display: "grid", gridTemplateColumns: phone ? "minmax(0,1fr)" : "minmax(0,1.6fr) minmax(300px,1fr)", gap: 12, alignItems: "start" }}>
       <div style={{ display: "flex", flexDirection: "column", gap: 12, minWidth: 0 }}>
         <GlassCard title="Squad profile">
-          <div style={{ position: "relative", aspectRatio: "5 / 2", borderRadius: 12, border: "1px solid var(--border-default)",
-            background: cover ? `url(${cover}) center/cover` : "repeating-linear-gradient(135deg, var(--surface-locked) 0 10px, var(--surface-panel) 10px 20px)" }}>
-            <div style={{ position: "absolute", left: 18, bottom: -26, width: 72, height: 72, borderRadius: "50%", background: "#fff", border: "3px solid #fff", boxShadow: "var(--shadow-sm)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <Avatar name={detail.name} src={avatar} size={64} />
-            </div>
-          </div>
-          <div style={{ ...kMuted, marginTop: 8, textAlign: "right" }}>Change the photo and cover in the pacr app.</div>
+          <SquadImages circleId={detail.id} name={detail.name} images={images} onChange={onImages} />
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 220px), 1fr))", gap: 14, marginTop: 14 }}>
             <Input label="Name" value={v.name} maxLength={60} disabled={nameLocked} error={!nameOk ? "Use 1 to 60 characters" : undefined}
               hint={nameLocked ? "Only the owner can rename a verified squad" : detail.verified ? "Renaming a verified squad removes its badge until it’s verified again." : undefined}

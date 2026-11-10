@@ -169,6 +169,57 @@ export type SquadPatch = Partial<{
 }>;
 export const updateSquad = (circleId: string, patch: SquadPatch) =>
   done("circles update", sb().from("circles").update(patch).eq("id", circleId));
+// ── Squad photo and cover ──────────────────────────────────────────────────
+// The app's clubAvatar.ts and squadCover.ts: both live in the private
+// club-avatars bucket under "<circle id>/…" (the first folder is what the
+// storage policies read: owners and organisers may write). The photo is a
+// square saved at 512 px, the cover 5:2 at 1500 × 600, both JPEG. Upload a new
+// file, point the squad at it, then remove the old one; if pointing fails, the
+// new file is removed instead, so nothing is left stranded.
+
+export type SquadImage = "photo" | "cover";
+export const SQUAD_IMAGE: Record<SquadImage, { column: "avatar_path" | "cover_path"; prefix: string; aspect: number; out: { width: number; height: number } }> = {
+  photo: { column: "avatar_path", prefix: "", aspect: 1, out: { width: 512, height: 512 } },
+  cover: { column: "cover_path", prefix: "cover-", aspect: 5 / 2, out: { width: 1500, height: 600 } },
+};
+const CLUB_BUCKET = "club-avatars";
+
+/** Point the squad at a file (or at nothing). RLS matches no row, without an error, for someone who isn't staff. */
+async function setSquadImagePath(circleId: string, kind: SquadImage, path: string | null): Promise<void> {
+  const { data, error } = await sb().from("circles").update({ [SQUAD_IMAGE[kind].column]: path }).eq("id", circleId).select("id");
+  if (error) throw new ApiError(reasonOf(error.message));
+  if (!data?.length) throw new ApiError("not_owner");
+}
+async function removeObject(path: string | null | undefined): Promise<void> {
+  if (!path) return;
+  try { await sb().storage.from(CLUB_BUCKET).remove([path]); } catch { /* best effort, as in the app */ }
+}
+
+/** Upload a cropped JPEG as the squad's photo or cover. Returns the new storage path. */
+export async function uploadSquadImage(circleId: string, kind: SquadImage, jpeg: Blob, previousPath: string | null): Promise<string> {
+  const rand = `${Date.now().toString(36)}-${crypto.getRandomValues(new Uint32Array(2)).join("").slice(0, 10)}`;
+  const path = `${circleId}/${SQUAD_IMAGE[kind].prefix}${rand}.jpg`;
+  const { error } = await sb().storage.from(CLUB_BUCKET).upload(path, jpeg, { contentType: "image/jpeg", upsert: false, cacheControl: "31536000" });
+  if (error) {
+    console.warn("[host] squad image upload failed", error.message);
+    throw new ApiError(reasonOf(error.message));
+  }
+  try {
+    await setSquadImagePath(circleId, kind, path);
+  } catch (e) {
+    await removeObject(path);
+    throw e;
+  }
+  await removeObject(previousPath);
+  return path;
+}
+
+/** Clear the squad's photo or cover: the column first, then the file. */
+export async function removeSquadImage(circleId: string, kind: SquadImage, previousPath: string | null): Promise<void> {
+  await setSquadImagePath(circleId, kind, null);
+  await removeObject(previousPath);
+}
+
 export const setJoinPolicy = (circleId: string, policy: JoinPolicy) =>
   rpc<unknown>("set_join_policy", { p_circle_id: circleId, p_policy: policy }).then(() => undefined);
 /** Owner only. An empty handle clears it. */

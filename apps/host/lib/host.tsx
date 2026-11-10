@@ -44,6 +44,8 @@ type Ctx = {
   /** Things waiting on staff in this squad; both 0 for other roles. */
   counts: { requests: number; reports: number };
   refreshCounts: () => void;
+  /** Reload the hosts list (names and pictures in the switcher), keeping the page as it is. */
+  refreshHosts: () => void;
   /** A toast: past-tense title plus the specific outcome. */
   notify: Notify;
   /** A toast for a failed action, worded from the database's reason. */
@@ -119,9 +121,9 @@ export function HostProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<Ctx | null>(() => (data && host ? {
     me: data.me, greeting: `${data.greeting}, ${firstName(data.me.name)}`, hosts: data.hosts, host, setHost,
-    counts: counts.status === "ready" ? counts.data : { requests: 0, reports: 0 }, refreshCounts: counts.reload,
+    counts: counts.status === "ready" ? counts.data : { requests: 0, reports: 0 }, refreshCounts: counts.reload, refreshHosts: shell.reload,
     notify, notifyError,
-  } : null), [data, host, setHost, counts.status, counts.data, counts.reload, notify, notifyError]);
+  } : null), [data, host, setHost, counts.status, counts.data, counts.reload, shell.reload, notify, notifyError]);
 
   if (shell.status === "error") {
     return <Centered><EmptyState variant="error" title="Couldn’t load your dashboard" message={failText(shell.error)} action={{ label: "Retry", onClick: shell.reload }} /></Centered>;
