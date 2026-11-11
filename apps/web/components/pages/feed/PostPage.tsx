@@ -13,6 +13,8 @@ import { signedUrls, useSigned } from "@/lib/storage";
 import { getFeedPost, listLikers, myProfile, mySquads, refToUuid, type FeedPost, type Liker, type MySquad } from "@/lib/feed";
 import { Comments } from "./Comments";
 import { FeedPostCard, useKudos, useNow, usePostActions } from "./FeedPost";
+import { faceOf } from "@/lib/avatars";
+import { decodeRef } from "@/lib/refs";
 
 export function PostPage({ postRef }: { postRef: string }) {
   return <RequireSignIn title="Sign in to see this post" body="Runs, photos and kudos from the people and squads you follow.">
@@ -42,7 +44,7 @@ function Post({ uid, postRef }: { uid: string; postRef: string }) {
     let live = true;
     mySquads(uid).then(s => { if (live) setSquads(s); });
     myProfile(uid).then(async p => {
-      const avatar = p.avatarPath ? (await signedUrls("avatars", [p.avatarPath])).get(p.avatarPath) ?? null : null;
+      const avatar = faceOf(p.avatarPath ? (await signedUrls("avatars", [p.avatarPath])).get(p.avatarPath) : null, p.avatarPath, uid);
       if (live) setMe({ ...p, avatar });
     });
     return () => { live = false; };
@@ -66,7 +68,7 @@ function Post({ uid, postRef }: { uid: string; postRef: string }) {
       : post === null ? <Card><ErrorState kind="notfound" title="We can't find that post." body="It may have been deleted, or it isn't shared with you." action="Back to your feed" href="/feed" /></Card>
       : <>
         <FeedPostCard post={post} now={now} commentHref="#comments"
-          avatar={post.authorAvatarPath ? signed.get(post.authorAvatarPath) : null} image={post.imagePath ? pictures.get(post.imagePath) : null}
+          avatar={faceOf(post.authorAvatarPath ? signed.get(post.authorAvatarPath) : null, post.authorAvatarPath, post.authorId)} image={post.imagePath ? pictures.get(post.imagePath) : null}
           onKudos={give => kudos(post, give)} menu={actions.items(post)} onMenu={a => actions.select(post, a)} />
         <Likers postId={post.id} count={post.likeCount} mine={post.likedByMe} />
         <Card><div id="comments">
@@ -90,7 +92,7 @@ function Likers({ postId, count, mine }: { postId: string; count: number; mine: 
     {list === undefined ? <Skeleton variant="runner" />
       : list === null ? <p className="t-caption" style={{ margin: 0 }}>This list didn&apos;t load. Refresh to try again.</p>
       : !list.length ? <p className="t-caption" style={{ margin: 0 }}>{count ? "Nobody you can see yet." : "No kudos yet. Be the first."}</p>
-      : list.map(l => <RunnerRow key={l.ref} name={l.name} isYou={l.isMe} avatar={l.avatarPath ? faces.get(l.avatarPath) ?? null : null}
+      : list.map(l => <RunnerRow key={l.ref} name={l.name} isYou={l.isMe} avatar={faceOf(l.avatarPath ? faces.get(l.avatarPath) : null, l.avatarPath, decodeRef(l.ref))}
         href={l.handle ? `/u/${l.handle}` : `/profile?r=${l.ref}`} />)}
   </Card>;
 }

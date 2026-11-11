@@ -18,6 +18,7 @@ import { useSigned } from "@/lib/storage";
 import { listFeed, mySquads, squadMeta, type Cursor, type FeedPost, type MySquad, type Scope, type SquadMeta } from "@/lib/feed";
 import { FeedPostCard, useKudos, useNow, usePostActions } from "./FeedPost";
 import { NextRuns, YourWeek } from "./Side";
+import { faceOf } from "@/lib/avatars";
 
 const TABS: { id: Scope; label: string }[] = [{ id: "all", label: "All" }, { id: "following", label: "Following" }, { id: "squads", label: "Squads" }];
 
@@ -137,7 +138,7 @@ function Feed({ uid, squadSlug, cityId, cityName }: { uid: string; squadSlug: st
         : !shown.length && !cursor ? <Card>{empty}</Card>
         : <>
           {shown.map(p => <FeedPostCard key={p.id} post={p} now={now}
-            avatar={p.authorAvatarPath ? avatars.get(p.authorAvatarPath) : null} image={p.imagePath ? images.get(p.imagePath) : null}
+            avatar={faceOf(p.authorAvatarPath ? avatars.get(p.authorAvatarPath) : null, p.authorAvatarPath, p.authorId)} image={p.imagePath ? images.get(p.imagePath) : null}
             onKudos={give => kudos(p, give)} menu={actions.items(p)} onMenu={id => actions.select(p, id)} />)}
           <LoadMore hasMore={!!cursor} loading={more} onClick={loadMore} endLabel="You're all caught up" />
         </>}

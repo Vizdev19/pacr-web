@@ -17,6 +17,7 @@ import { encodeRef } from "./refs";
 import { dayLine, istParts } from "./format";
 import { plainMentions } from "./mentions";
 import { money } from "./tickets";
+import { faceOf } from "./avatars";
 
 export type Kind = "kudos" | "comment" | "reply" | "mention" | "follow" | "invite" | "announcement" | "join_request"
   | "join_approved" | "owner_invite" | "owner_accepted" | "role_changed" | "run_cancelled" | "event_cancelled" | "event_refunded";
@@ -52,7 +53,7 @@ export async function listNotifications(before: string | null): Promise<Note[]> 
     const circle = str(r.circle_id);
     return {
       id: String(r.id), ids: Array.isArray(r.ids) ? (r.ids as string[]) : [String(r.id)], kind, createdAt: String(r.created_at),
-      unread: !!r.unread, actorId: str(r.actor_id), actorName: str(r.actor_name), actorAvatar: path ? avatars.get(path) ?? null : null,
+      unread: !!r.unread, actorId: str(r.actor_id), actorName: str(r.actor_name), actorAvatar: faceOf(path ? avatars.get(path) : null, path, str(r.actor_id)),
       othersCount: Number(r.others_count) || 0, postId: str(r.post_id), postTitle: str(r.post_title), commentBody: str(r.comment_body),
       circleId: circle, circleName: str(r.circle_name), circleSlug: circle ? slugOf.get(circle) ?? null : null,
       annTitle: str(r.ann_title), annBody: str(r.ann_body), annAt: str(r.ann_event_at),

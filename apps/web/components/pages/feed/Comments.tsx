@@ -21,6 +21,7 @@ import {
   type FeedComment, type FeedPost, type Member, type ReportReason,
 } from "@/lib/feed";
 import { ReportSheet } from "./FeedPost";
+import { faceOf } from "@/lib/avatars";
 
 export function Comments({ post, uid, me, now, onCount }:
   { post: FeedPost; uid: string; me: { name: string; avatarPath: string | null; avatar: string | null }; now: number; onCount: (delta: number) => void }) {
@@ -132,7 +133,7 @@ export function Comments({ post, uid, me, now, onCount }:
       : rows === "error" ? <ErrorState title="Comments didn't load." body="Check your connection and try again." onRetry={() => { setRows(null); setRetry(x => x + 1); }} />
       : !list.length ? <EmptyState icon="message-circle" title="No comments yet." body={post.canReply ? "Say something nice about the run." : undefined} />
       : <div>{list.map(c => <CommentRow key={c.id} indent={!!c.parentId && list.some(x => x.id === c.parentId)}
-          author={{ name: c.authorName, avatar: c.authorAvatarPath ? avatars.get(c.authorAvatarPath) ?? null : c.isMine ? me.avatar : null, href: runnerHref(null, c.authorId) }}
+          author={{ name: c.authorName, avatar: faceOf(c.authorAvatarPath ? avatars.get(c.authorAvatarPath) : null, c.authorAvatarPath, c.authorId), href: runnerHref(null, c.authorId) }}
           time={ago(c.createdAt, now)} text={<MentionText body={c.body} />} tag={c.isPostAuthor ? "Runner" : undefined} hidden={c.hidden}
           kudos={c.likeCount} kudosGiven={c.likedByMe} onKudos={() => kudos(c)}
           onReply={post.canReply ? () => startReply(c) : undefined}

@@ -18,6 +18,7 @@ import { getSupabase } from "./supabase";
 import { signedUrls } from "./storage";
 import { num } from "./activity";
 import { istParts } from "./format";
+import { faceOf } from "./avatars";
 
 // ─── Loading (shared by the runner's pages) ─────────────────────────────────
 
@@ -70,7 +71,7 @@ export async function getProfile(userId: string): Promise<Profile | null> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const r = data as any;
   if (!r) return null;
-  const avatar = r.avatar_path ? (await signedUrls("avatars", [r.avatar_path])).get(r.avatar_path) ?? null : null;
+  const avatar = faceOf(r.avatar_path ? (await signedUrls("avatars", [r.avatar_path])).get(r.avatar_path) : null, r.avatar_path, r.id);
   const st = r.stats;
   return {
     id: r.id, name: r.display_name || "Runner", avatar, handle: r.handle ?? null, instagram: r.instagram ?? null,
@@ -186,7 +187,7 @@ export async function getPosts(userId: string, cursor: Cursor): Promise<{ posts:
     // untagged run picture is an old 9:16 story, shown over a blur.
     const tagged = !!path && /\.(4x5|route)\.(png|jpe?g)$/i.test(path);
     return {
-      id: r.id, authorName: r.author_name || "Runner", authorAvatar: r.author_avatar_path ? faces.get(r.author_avatar_path) ?? null : null,
+      id: r.id, authorName: r.author_name || "Runner", authorAvatar: faceOf(r.author_avatar_path ? faces.get(r.author_avatar_path) : null, r.author_avatar_path, r.author_id),
       title: r.title ?? null, body: r.body ?? null, image: path ? imgs.get(path) ?? null : null,
       imageMode: isRun && path && !tagged ? "story" : "fill", createdAt: r.created_at, visibility: r.visibility ?? "circle",
       reason: r.reason ?? "public", squadNames: r.squad_names ?? [], place: r.place ?? null,
@@ -236,7 +237,7 @@ export async function getPeople(subjectId: string, self: boolean, kind: "followe
   const rows = (data ?? []) as any[];
   const faces = await signedUrls("avatars", rows.map(r => r.avatar_path));
   return rows.map(r => ({
-    id: r.id, name: r.display_name || "Runner", avatar: r.avatar_path ? faces.get(r.avatar_path) ?? null : null,
+    id: r.id, name: r.display_name || "Runner", avatar: faceOf(r.avatar_path ? faces.get(r.avatar_path) : null, r.avatar_path, r.id),
     handle: r.handle ?? null, place: r.location ?? r.home_neighborhood ?? null, followsYou: !!r.follows_you,
   }));
 }

@@ -9,6 +9,7 @@
 // Account deletion is not called from here: it lives in the app.
 import { getSupabase } from "./supabase";
 import { signedUrls } from "./storage";
+import { faceOf } from "./avatars";
 
 export async function getAccount(uid: string): Promise<{ name: string | null; handle: string | null }> {
   const { data, error } = await getSupabase().from("users").select("display_name, handle").eq("id", uid).maybeSingle();
@@ -36,7 +37,7 @@ export async function getBlocked(): Promise<Blocked[]> {
   const faces = await signedUrls("avatars", rows.map(r => one(r.blocked)?.avatar_path));
   return rows.map(r => {
     const u = one(r.blocked);
-    return { id: r.blocked_id, name: u?.display_name || "Blocked runner", avatar: u?.avatar_path ? faces.get(u.avatar_path) ?? null : null, since: r.created_at };
+    return { id: r.blocked_id, name: u?.display_name || "Blocked runner", avatar: faceOf(u?.avatar_path ? faces.get(u.avatar_path) : null, u?.avatar_path, r.blocked_id), since: r.created_at };
   });
 }
 

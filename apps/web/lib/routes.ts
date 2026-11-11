@@ -8,6 +8,7 @@
 import { getSupabase } from "./supabase";
 import { signedUrls } from "./storage";
 import { num, projectRoute } from "./activity";
+import { faceOf } from "./avatars";
 
 export type RouteKind = "loop" | "out-and-back" | "one-way";
 export const KIND_LABEL: Record<RouteKind, string> = { loop: "Loop", "out-and-back": "Out and back", "one-way": "One way" };
@@ -64,7 +65,7 @@ export async function getNearbyRoutes(lat: number, lng: number, radiusKm: number
     id: r.id, name: r.name, shape: projectRoute(decodeLine(r.line ?? "")), distanceKm: num(r.distance_km),
     elevGainM: r.elev_gain_m == null ? null : num(r.elev_gain_m), kind: kindOf(r.kind),
     awayKm: r.away_km == null ? null : num(r.away_km), isMine: !!r.is_mine,
-    creator: r.creator_id && r.creator_name ? { id: r.creator_id, name: r.creator_name, avatar: r.creator_avatar_path ? faces.get(r.creator_avatar_path) ?? null : null } : null,
+    creator: r.creator_id && r.creator_name ? { id: r.creator_id, name: r.creator_name, avatar: faceOf(r.creator_avatar_path ? faces.get(r.creator_avatar_path) : null, r.creator_avatar_path, r.creator_id) } : null,
   }));
 }
 

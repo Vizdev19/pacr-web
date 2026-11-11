@@ -16,6 +16,7 @@
 import { getSupabase } from "./supabase";
 import { signedUrls } from "./storage";
 import { TZ } from "./format";
+import { faceOf } from "./avatars";
 
 export type Pace = "any" | "easy" | "steady" | "fast";
 export type MyStatus = "host" | "accepted" | "pending" | "declined" | "left" | "removed" | "invited" | "invite_declined" | null;
@@ -122,7 +123,7 @@ export async function getOpenRun(id: string): Promise<OpenRunDetail | null> {
     chatClosesAt: str(r.chat_closes_at), acceptedCount: num(r.accepted_count),
     leaveIsLate: !!me?.leave_is_late, safetyCheck: !!me?.safety_check, safeAt: str(me?.safe_at),
     members: members.map(m => ({
-      userId: String(m.user_id), name: str(m.name) ?? "Runner", avatar: url(m.avatar_path), isHost: !!m.is_host,
+      userId: String(m.user_id), name: str(m.name) ?? "Runner", avatar: faceOf(url(m.avatar_path), str(m.avatar_path), String(m.user_id)), isHost: !!m.is_host,
       ranWith: m.ran_with == null ? null : num(m.ran_with), ...rec(m),
     })),
     requests: Array.isArray(r.requests) ? r.requests.length : null,
@@ -150,7 +151,7 @@ function pastRow(r: Row, url: (p: unknown) => string | null, detail: boolean): P
     id: String(r.id), title: String(r.title ?? ""), startsAt: String(r.starts_at), endsAt: String(r.ends_at),
     distanceKm: num(r.distance_km), pace: pace(r.pace), cap: num(r.cap), womenOnly: !!r.women_only, isHost: !!r.is_host,
     outcome: r.outcome === "left" || r.outcome === "cancelled" ? r.outcome : "ran", placeName: str(r.place_name), departed: num(r.departed),
-    people: people.map(p => ({ userId: String(p.user_id), name: str(p.name) ?? "Runner", avatar: url(p.avatar_path), isHost: !!p.is_host, ...(detail ? rec(p) : {}) })),
+    people: people.map(p => ({ userId: String(p.user_id), name: str(p.name) ?? "Runner", avatar: faceOf(url(p.avatar_path), str(p.avatar_path), String(p.user_id)), isHost: !!p.is_host, ...(detail ? rec(p) : {}) })),
     ...(detail ? { placeAddress: str(r.place_address), meetPoint: str(r.meet_point), safetyDue: !!r.safety_due, canMark: !!r.can_mark } : {}),
   };
 }

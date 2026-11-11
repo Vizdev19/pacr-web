@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { chosenArt, isPresetPath } from "./avatars";
 import { getSupabase } from "./supabase";
 
 // Pictures in private buckets, signed as the viewer (storage policies decide
@@ -17,8 +18,14 @@ const cache = new Map<string, string>();
 const TTL = 60 * 60 * 6;
 
 export async function signedUrls(bucket: Bucket, paths: (string | null | undefined)[]): Promise<Map<string, string>> {
-  const want = [...new Set(paths.filter((p): p is string => !!p))];
   const out = new Map<string, string>();
+  // A chosen avatar ("preset:07") is the app's own art, never a Storage object.
+  const want = [...new Set(paths.filter((p): p is string => !!p))].filter(p => {
+    if (!isPresetPath(p)) return true;
+    const art = bucket === "avatars" ? chosenArt(p) : null;
+    if (art) out.set(p, art);
+    return false;
+  });
   const todo = want.filter(p => { const hit = cache.get(bucket + "/" + p); if (hit) out.set(p, hit); return !hit; });
   if (todo.length) {
     const { data } = await getSupabase().storage.from(bucket).createSignedUrls(todo, TTL);

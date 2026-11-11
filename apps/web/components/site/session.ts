@@ -5,6 +5,7 @@ import { getSupabase } from "@/lib/supabase";
 import { signedUrls } from "@/lib/storage";
 import { CITY_COOKIE } from "@/lib/config";
 import type { HeaderUser } from "@/components/ds/nav";
+import { faceOf } from "@/lib/avatars";
 
 /**
  * The signed-in runner for the header, read from the session /signin stores
@@ -19,7 +20,7 @@ export function useSessionUser(): [HeaderUser | null, () => Promise<void>] {
     async function load(uid: string | undefined, email: string | undefined) {
       if (!uid) { if (alive) setUser(null); return; }
       const { data } = await sb.from("users").select("display_name, handle, avatar_path").eq("id", uid).maybeSingle();
-      const avatar = data?.avatar_path ? (await signedUrls("avatars", [data.avatar_path])).get(data.avatar_path) ?? null : null;
+      const avatar = faceOf(data?.avatar_path ? (await signedUrls("avatars", [data.avatar_path])).get(data.avatar_path) : null, data?.avatar_path, uid);
       if (alive) setUser({ name: data?.display_name || email?.split("@")[0] || "You", handle: data?.handle ?? null, avatar });
     }
     sb.auth.getSession().then(({ data }) => load(data.session?.user.id, data.session?.user.email));
