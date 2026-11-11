@@ -7,5 +7,7 @@ export default defineConfig([
   ...nextTs,
   // design-system/ is the design project copied as-is: CSS, assets and the kit's page
   // designs (.jsx layout references that are never imported).
-  globalIgnores([".next/**", ".vercel/**", "out/**", "build/**", "next-env.d.ts", "design-system/**"]),
+  // public/legacy and public/js are the old /download page and its PostHog
+  // snippet, copied unchanged.
+  globalIgnores([".next/**", ".vercel/**", "out/**", "build/**", "next-env.d.ts", "design-system/**", "public/**"]),
 ]);
