@@ -129,8 +129,10 @@ export function Logo({ height = 28, tone = "auto", href, className }: { height?:
 }
 
 /* Card */
-export function Card({ variant = "outline", pad = true, interactive = false, href, className, children, style }:
-  { variant?: "outline" | "flat" | "raised"; pad?: boolean; interactive?: boolean; href?: string; className?: string; children?: ReactNode; style?: CSSProperties }) {
-  const cls = cx("pw-card", variant !== "outline" && "pw-card--" + variant, pad && "pw-card--pad", (interactive || href) && "pw-card--interactive", className);
-  return href ? <a className={cls} href={href} style={style}>{children}</a> : <div className={cls} style={style}>{children}</div>;
+export function Card({ variant = "outline", pad = true, interactive = false, href, className, children, style, onClick }:
+  { variant?: "outline" | "flat" | "raised"; pad?: boolean; interactive?: boolean; href?: string; className?: string; children?: ReactNode; style?: CSSProperties; onClick?: () => void }) {
+  const cls = cx("pw-card", variant !== "outline" && "pw-card--" + variant, pad && "pw-card--pad", (interactive || href || onClick) && "pw-card--interactive", className);
+  if (href) return <a className={cls} href={href} style={style}>{children}</a>;
+  if (onClick) return <div className={cls} style={style} role="button" tabIndex={0} onClick={onClick} onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClick(); } }}>{children}</div>;
+  return <div className={cls} style={style}>{children}</div>;
 }

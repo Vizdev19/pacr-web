@@ -12,3 +12,14 @@ export function encodeRef(uuid: string): string | null {
   const b64 = typeof btoa === "function" ? btoa(bin) : Buffer.from(bin, "binary").toString("base64");
   return b64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
+
+/** A 22-character ref back to its uuid, or null for anything that isn't one. */
+export function decodeRef(ref: string | null | undefined): string | null {
+  if (!ref || !/^[A-Za-z0-9_-]{22}$/.test(ref)) return null;
+  const b64 = ref.replace(/-/g, "+").replace(/_/g, "/") + "==";
+  const bin = typeof atob === "function" ? atob(b64) : Buffer.from(b64, "base64").toString("binary");
+  if (bin.length !== 16) return null;
+  const hex = Array.from(bin, c => c.charCodeAt(0).toString(16).padStart(2, "0")).join("");
+  const uuid = `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+  return encodeRef(uuid) === ref ? uuid : null;
+}
