@@ -142,6 +142,7 @@ export function Home({ cities, city, runs, pics }: { cities: SiteCity[]; city: s
 
       <footer className="hl-app" id="app">
         <div className="hl-app__grid"><div><span className="hl-label">get the app</span></div><div><p className="hl-app__h">RSVP to runs, chat with your squad and check in with one tap in the pacr app.</p><div className="hl-app__row"><StoreBadges /></div></div></div>
+        <div className="hl-app__grid hl-app__grid--next"><div><span className="hl-label">for hosts</span></div><div><p className="hl-app__h">Run your squad from a bigger screen: weekly runs, check-ins, members and event tickets on the host dashboard.</p><div className="hl-app__row"><a className="hl-btn hl-btn--dark" href="/host">Open the host dashboard <Icon name="arrow-right" /></a><a className="hl-btn" href="/hosts">How hosting works</a></div></div></div>
         <div className="hl-foot"><span>© {new Date().getFullYear()} pacr</span>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/brand/pacr-wordmark-on-light.svg" alt="pacr" />

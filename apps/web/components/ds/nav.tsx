@@ -103,7 +103,7 @@ export function SiteHeader({ active, signin = "/signin", cityName, onCity, onMen
 
 /* MobileMenuSheet */
 const MOBILE_OUT: [string, string, string][] = [["squads", "Squads", "/clubs"], ["runs", "Runs this week", "/runs"], ["events", "Events", "/events"], ["app", "The app", "/app"], ["hosts", "For hosts", "/hosts"], ["safety", "Safety", "/safety"]];
-const MOBILE_IN: [string, string, string][] = [["feed", "Feed", "/feed"], ["squads", "Your squads", "/squads"], ["clubs", "Find squads", "/clubs"], ["runs", "Runs this week", "/runs"], ["events", "Events", "/events"], ["runbuddies", "Run buddies", "/runbuddies"], ["tickets", "Tickets", "/tickets"], ["profile", "Profile", "/profile"], ["settings", "Settings", "/settings"]];
+const MOBILE_IN: [string, string, string][] = [["feed", "Feed", "/feed"], ["squads", "Your squads", "/squads"], ["clubs", "Find squads", "/clubs"], ["runs", "Runs this week", "/runs"], ["events", "Events", "/events"], ["runbuddies", "Run buddies", "/runbuddies"], ["tickets", "Tickets", "/tickets"], ["profile", "Profile", "/profile"], ["settings", "Settings", "/settings"], ["host", "Host dashboard", "/host"]];
 export function MobileMenuSheet({ open, onClose, active, signin = "/signin", cityName, onCity, user, onSignOut }:
   { open: boolean; onClose: () => void; active?: string; signin?: string; cityName: string; onCity: () => void; user: HeaderUser | null; onSignOut: () => void }) {
   useEscape(open, onClose);
