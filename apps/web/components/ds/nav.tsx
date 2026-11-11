@@ -2,7 +2,8 @@
 // components/navigation/* and components/actions/StoreBadges of the pacr Web
 // Design System, ported to TSX.
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { APP_STORE_URL, INSTAGRAM_URL, PLAY_STORE_URL } from "@/lib/config";
+import { APP_STORE_URL, PLAY_STORE_URL } from "@/lib/config";
+import { SocialIcons, StoreIcons } from "./brands";
 import { Avatar, Button, Icon, IconButton, Logo } from "./core";
 import { useEscape } from "./feedback";
 
@@ -92,7 +93,7 @@ export function SiteHeader({ active, signin = "/signin", cityName, onCity, onMen
           <IconButton className="pw-header__menu" icon="menu" label="Menu" onClick={onMenu} />
         </div> : <div className="pw-header__actions">
           <span className="pw-header__d"><Button variant="ghost" size="sm" href={signin}>Sign in</Button></span>
-          <Button size="sm" href="/download">Get the app</Button>
+          <StoreIcons />
           <IconButton className="pw-header__menu" icon="menu" label="Menu" onClick={onMenu} />
         </div>}
       </div>
@@ -114,7 +115,7 @@ export function MobileMenuSheet({ open, onClose, active, signin = "/signin", cit
       <button className="pw-listrow" onClick={onCity} style={{ marginBottom: 8, background: "var(--surface-2)" }}><Icon name="map-pin" /><span>City</span><span className="pw-listrow__meta" style={{ color: "var(--text-primary)", fontWeight: 600 }}>{cityName}</span><Icon name="chevron-right" size={18} /></button>
       {items.map(([id, l, h]) => <a key={id} href={h} className="pw-listrow pw-listrow--big" aria-current={active === id ? "page" : undefined}>{l}</a>)}
     </div>
-    <div className="pw-sheet__foot"><Button block size="lg" href="/download">Get the app</Button>
+    <div className="pw-sheet__foot"><div style={{ display: "flex", justifyContent: "center" }}><StoreBadges /></div>
       {user ? <Button block size="lg" variant="secondary" onClick={onSignOut}>Sign out</Button> : <Button block size="lg" variant="secondary" href={signin}>Sign in</Button>}</div>
   </div>;
 }
@@ -151,7 +152,7 @@ export function SiteFooter({ cities }: { cities: CityOption[] }) {
         {cols.map(([h, ls]) => <div key={h}><h4>{h}</h4><ul>{ls.map(([l, href]) => <li key={href}><a href={href}>{l}</a></li>)}</ul></div>)}
       </div>
     </div>
-    <div className="pw-footer__bottom"><span>© {new Date().getFullYear()} pacr</span><div className="pw-footer__social"><IconButton icon="instagram" label="pacr on Instagram" size="sm" href={INSTAGRAM_URL} /></div></div>
+    <div className="pw-footer__bottom"><span>© {new Date().getFullYear()} pacr</span><SocialIcons /></div>
   </div></footer>;
 }
 

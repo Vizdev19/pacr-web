@@ -3,13 +3,8 @@
 import { Button, Card, Icon } from "@/components/ds/core";
 import { QRBlock } from "@/components/ds/actions";
 import { StoreBadges } from "@/components/ds/nav";
-import { INSTAGRAM_URL } from "@/lib/config";
-
-const SOCIALS: [string, string][] = [
-  ["Instagram", INSTAGRAM_URL],
-  ["X", "https://x.com/pacr_run"],
-  ["LinkedIn", "https://www.linkedin.com/company/pacr-life/posts/?feedView=all"],
-];
+import { SOCIALS } from "@/lib/config";
+import { BrandIcon } from "@/components/ds/brands";
 
 const WHAT: { icon: string; title: string; body: string; href: string }[] = [
   { icon: "route", title: "Run", body: "GPS tracking with auto-pause, a voice coach that calls your splits and pace, live sharing by link and share cards.", href: "/app#run" },
@@ -58,8 +53,7 @@ export function Download() {
       <div className="pw-container row" style={{ justifyContent: "space-between", gap: "var(--space-4)" }}>
         <div><h2 className="t-h3">Follow pacr</h2><p className="t-secondary" style={{ margin: "var(--space-1) 0 0" }}>pacr running, on the socials.</p></div>
         <div className="row">
-          {SOCIALS.map(([label, href]) => <Button key={label} variant="secondary" size="sm" href={href} target="_blank" rel="noopener" iconRight="arrow-up-right"
-            icon={label === "Instagram" ? "instagram" : undefined}>{label}</Button>)}
+          {SOCIALS.map(so => <a key={so.id} className="pw-btn pw-btn--secondary pw-btn--sm" href={so.url} target="_blank" rel="noopener"><BrandIcon name={so.id} size={16} /><span>{so.label}</span></a>)}
         </div>
       </div>
     </section>

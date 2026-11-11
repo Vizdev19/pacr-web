@@ -8,7 +8,8 @@ import { useRouter } from "next/navigation";
 import { Icon, IconButton } from "@/components/ds/core";
 import { CityPicker, MobileMenuSheet, StoreBadges } from "@/components/ds/nav";
 import { rememberCity, useSessionUser } from "@/components/site/session";
-import { INSTAGRAM_URL } from "@/lib/config";
+import { SOCIALS } from "@/lib/config";
+import { BrandIcon, STORES } from "@/components/ds/brands";
 import type { SiteCity } from "@/lib/cities";
 
 export type HomeRun = { href: string; title: string; place: string; tags: string[]; when: string; peek: string };
@@ -52,7 +53,7 @@ export function Home({ cities, city, runs, pics }: { cities: SiteCity[]; city: s
           <button className="hl-pill" onClick={() => setCityOpen(true)} aria-haspopup="dialog">{cityName} <Icon name="chevron-down" /></button>
           <a className="hl-pill" href={`/events/${city}`}>Events</a>
           {user ? <Link className="hl-pill" href="/feed">Feed</Link> : <Link className="hl-pill" href="/signin">Sign in</Link>}
-          <a className="hl-pill hl-pill--line" href="/download">Get the app</a>
+          {STORES.map(st => <a key={st.id} className="hl-pill hl-pill--line hl-pill--icon" href={st.url} aria-label={st.label} title={st.label} target="_blank" rel="noopener"><BrandIcon name={st.id} size={16} /></a>)}
           <IconButton className="hl-only-m" icon="menu" label="Menu" onClick={() => setMenu(true)} />
         </div>
       </header>
@@ -83,7 +84,7 @@ export function Home({ cities, city, runs, pics }: { cities: SiteCity[]; city: s
           <div className="hl-hot" style={{ top: "28%", right: "9%" }}><span className="hl-hot__ring" /><span className="hl-hot__label">Group runs</span></div>
           <div className="hl-hot" style={{ top: "37%", left: "9%" }}><span className="hl-hot__ring" /><span className="hl-hot__label">Run buddies</span></div>
           <div className="hl-hot" style={{ top: "50%", left: "44%" }}><span className="hl-hot__ring" /><span className="hl-hot__label">Events</span></div>
-          <div className="hl-social"><a href={INSTAGRAM_URL} aria-label="pacr on Instagram"><Icon name="instagram" /></a>Follow pacr</div>
+          <div className="hl-social">{SOCIALS.map(so => <a key={so.id} href={so.url} aria-label={`pacr on ${so.label}`} target="_blank" rel="noopener"><BrandIcon name={so.id} size={13} /></a>)}Follow pacr</div>
           <div className="hl-notch hl-notch--bc" style={{ left: "12%", fontSize: 11.5, lineHeight: 1.3 }}>Join a group run<br />this weekend</div>
           <div className="hl-notch hl-notch--br" style={{ width: "46%", fontSize: 12.5, lineHeight: 1.35 }}>pacr helps runners find squads, group runs and events in their city.</div>
         </div>
@@ -100,7 +101,7 @@ export function Home({ cities, city, runs, pics }: { cities: SiteCity[]; city: s
         {/* eslint-enable @next/next/no-img-element */}
         <h2 className="hl-h2">Every pace is welcome. Your squad is one run away.</h2>
         <p className="hl-lede">Find <b>verified squads</b> and <b>women-only runs</b> near you, RSVP in a tap and meet at the start line.</p>
-        <div className="hl-actions"><a className="hl-btn" href={`/clubs/${city}`}>Browse squads <Icon name="arrow-right" /></a><a className="hl-learn" href="/download">Get the app</a></div>
+        <div className="hl-actions"><a className="hl-btn" href={`/clubs/${city}`}>Browse squads <Icon name="arrow-right" /></a><span className="hl-stores">{STORES.map(st => <a key={st.id} className="hl-pill hl-pill--icon" href={st.url} aria-label={st.label} title={st.label} target="_blank" rel="noopener"><BrandIcon name={st.id} size={16} /></a>)}</span></div>
       </section>
 
       <section className="hl-strip" aria-label="We run together">
@@ -135,7 +136,7 @@ export function Home({ cities, city, runs, pics }: { cities: SiteCity[]; city: s
         <article className="hl-card"><img className="hl-fill" src="/home/runners.jpg" alt="" /><div className="hl-card__scrim" /><div className="hl-card__top"><div className="hl-card__chips"><span className="hl-chip">Verified squads</span><span className="hl-chip">Women-only runs</span></div><a className="hl-arrow hl-arrow--lime" href={`/clubs/${city}`} aria-label="Squads"><Icon name="arrow-right" /></a></div><div className="hl-card__body"><h4 className="hl-card__title">Running<br />squads</h4><p className="hl-card__text">Running clubs in your city, from first-5K crews to marathon groups.</p><a className="hl-explore" href={`/clubs/${city}`}>Find squads <Icon name="chevron-right" /></a></div></article>
         <article className="hl-card"><img className="hl-fill" src="/home/night.jpg" alt="" /><div className="hl-card__scrim" /><div className="hl-card__top"><a className="hl-arrow" href={`/runs/${city}`} aria-label="Group runs"><Icon name="arrow-up-right" /></a></div><div className="hl-card__body"><h4 className="hl-card__title">Group<br />runs</h4><p className="hl-card__text">RSVP, see the meeting point and check in with one tap.</p><a className="hl-explore" href={`/runs/${city}`}>See runs <Icon name="chevron-right" /></a></div></article>
         <article className="hl-card"><img className="hl-fill" src="/home/ribbon.jpg" alt="" /><div className="hl-card__scrim" /><div className="hl-card__top"><a className="hl-arrow" href={`/events/${city}`} aria-label="Events"><Icon name="arrow-up-right" /></a></div><div className="hl-card__body"><h4 className="hl-card__title">Races &amp;<br />events</h4><p className="hl-card__text">Run fests and races with tickets in the app.</p><a className="hl-explore" href={`/events/${city}`}>See events <Icon name="chevron-right" /></a></div></article>
-        <article className="hl-card"><img className="hl-fill" src="/home/track.jpg" alt="" /><div className="hl-card__scrim" /><div className="hl-card__top"><a className="hl-arrow" href="/download" aria-label="Run buddies"><Icon name="arrow-up-right" /></a></div><div className="hl-card__body"><h4 className="hl-card__title">Run<br />buddies</h4><p className="hl-card__text">Find someone near you who runs your pace. In the app.</p><a className="hl-explore" href="/download">Get the app <Icon name="chevron-right" /></a></div></article>
+        <article className="hl-card"><img className="hl-fill" src="/home/track.jpg" alt="" /><div className="hl-card__scrim" /><div className="hl-card__top"><a className="hl-arrow" href="/download" aria-label="Run buddies"><Icon name="arrow-up-right" /></a></div><div className="hl-card__body"><h4 className="hl-card__title">Run<br />buddies</h4><p className="hl-card__text">Find someone near you who runs your pace. In the app.</p><div className="hl-explore-stores">{STORES.map(st => <a key={st.id} className="hl-explore" href={st.url} aria-label={st.label} title={st.label} target="_blank" rel="noopener"><BrandIcon name={st.id} size={16} /></a>)}</div></div></article>
         {/* eslint-enable @next/next/no-img-element */}
       </section>
 
@@ -144,7 +145,7 @@ export function Home({ cities, city, runs, pics }: { cities: SiteCity[]; city: s
         <div className="hl-foot"><span>© {new Date().getFullYear()} pacr</span>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/brand/pacr-wordmark-on-light.svg" alt="pacr" />
-          <div className="hl-foot__r"><a href={INSTAGRAM_URL} aria-label="pacr on Instagram" title="pacr on Instagram"><Icon name="instagram" size={15} /></a><a href="/support">Help</a><a href="/community-rules">Community rules</a><a href="/privacy">Privacy</a><a href="/terms">Terms</a></div></div>
+          <div className="hl-foot__r">{SOCIALS.map(so => <a key={so.id} href={so.url} aria-label={`pacr on ${so.label}`} title={`pacr on ${so.label}`} target="_blank" rel="noopener"><BrandIcon name={so.id} size={14} /></a>)}<a href="/support">Help</a><a href="/community-rules">Community rules</a><a href="/privacy">Privacy</a><a href="/terms">Terms</a></div></div>
       </footer>
     </div>
     <CityPicker open={cityOpen} city={city} cities={cities} onClose={() => setCityOpen(false)} onSelect={pick} />

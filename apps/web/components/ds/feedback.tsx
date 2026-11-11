@@ -3,11 +3,11 @@
 import { useEffect, type CSSProperties, type ReactNode } from "react";
 import { Button, Icon, IconButton } from "./core";
 
-export function EmptyState({ icon = "calendar-x", title, body, action, onAction, href, boxed = false, kind }:
-  { icon?: string; title: string; body?: string; action?: string; onAction?: () => void; href?: string; boxed?: boolean; kind?: "error" | "offline" }) {
+export function EmptyState({ icon = "calendar-x", title, body, action, onAction, href, boxed = false, kind, children }:
+  { icon?: string; title: string; body?: string; action?: string; onAction?: () => void; href?: string; boxed?: boolean; kind?: "error" | "offline"; children?: ReactNode }) {
   return <div className={"pw-empty" + (boxed ? " pw-empty--boxed" : "") + (kind ? " pw-empty--" + kind : "")}><span className="pw-empty__ico"><Icon name={icon} size={26} /></span>
     <h3 className="pw-empty__t">{title}</h3>{body ? <p className="pw-empty__b">{body}</p> : null}
-    {action ? (href ? <Button variant="secondary" href={href}>{action}</Button> : <Button variant="secondary" onClick={onAction}>{action}</Button>) : null}</div>;
+    {action ? (href ? <Button variant="secondary" href={href}>{action}</Button> : <Button variant="secondary" onClick={onAction}>{action}</Button>) : null}{children}</div>;
 }
 
 export function ErrorState({ kind = "error", title, body, onRetry, action, onAction, href }:

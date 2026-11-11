@@ -18,6 +18,7 @@ import {
 } from "@/lib/runbuddies";
 import { AppBar, MyRunRow, OpenRunRow, PastRunRow, SafetyCard, runHref } from "./parts";
 import { RunDetail } from "./RunDetail";
+import { StoreIcons } from "@/components/ds/brands";
 
 type Tab = "nearby" | "mine" | "past";
 
@@ -147,7 +148,7 @@ function Nearby({ now }: { now: number }) {
       </>
       : filter !== "all" ? <EmptyState boxed icon="search-x" title="Nothing matches that filter." action="Show all runs" onAction={() => setFilter("all")} />
       : radius !== "5" ? <EmptyState boxed icon="calendar-x" title={`No one's posted a run within ${radius} km yet.`} body="Look a little further, or post a run in the pacr app and nearby runners can join you." action="Look within 5 km" onAction={() => setRadius("5")} />
-      : <EmptyState boxed icon="calendar-x" title="No one's posted a run near you yet." body="Post a run in the pacr app and nearby runners can join you." action="Get the app" href="/download" />}
+      : <EmptyState boxed icon="calendar-x" title="No one's posted a run near you yet." body="Post a run in the pacr app and nearby runners can join you."><StoreIcons size="md" /></EmptyState>}
   </div>;
 }
 

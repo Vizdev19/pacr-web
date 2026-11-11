@@ -1,7 +1,7 @@
 // /about: who makes pacr. The company facts are the terms' (Pacr Life,
 // Bengaluru, support@pacr.life); the socials are download.html's.
 import { Button, Card, Media } from "@/components/ds/core";
-import { INSTAGRAM_URL } from "@/lib/config";
+import { SOCIALS } from "@/lib/config";
 import { Band, FactList, Hero, SecHead, Steps } from "./blocks";
 
 export function About() {
@@ -52,9 +52,7 @@ export function About() {
             ["Based in", "Bengaluru, Karnataka, India"],
             ["Email", <a key="e" href="mailto:support@pacr.life">support@pacr.life</a>],
             ["Grievances", <a key="g" href="/terms#grievance">Grievance Officer</a>],
-            ["Instagram", <a key="i" href={INSTAGRAM_URL}>@pacr.running</a>],
-            ["X", <a key="x" href="https://x.com/pacr_run">@pacr_run</a>],
-            ["LinkedIn", <a key="l" href="https://www.linkedin.com/company/pacr-life/posts/?feedView=all">Pacr Life</a>],
+            ...SOCIALS.map(so => [so.label, <a key={so.id} href={so.url} target="_blank" rel="noopener">{so.handle}</a>] as [string, React.ReactNode]),
           ]} />
         </Card>
       </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { Button } from "@/components/ds/core";
+import { StoreIcons } from "@/components/ds/brands";
 import { EmptyState, Skeleton } from "@/components/ds/feedback";
 import { signinHref, useAuth, type Auth } from "@/lib/auth";
 
@@ -14,7 +14,7 @@ export function RequireSignIn({ title, body, children }: { title: string; body: 
   if (auth.status === "loading") return <div className="pw-container pw-page"><Skeleton lines={4} /></div>;
   if (auth.status === "signed-out" || !auth.uid) return <div className="pw-container sec">
     <EmptyState icon="lock" title={title} body={body} action="Sign in" href={signinHref()} />
-    <div style={{ display: "flex", justifyContent: "center", marginTop: -20 }}><Button variant="ghost" size="sm" href="/download">Get the app</Button></div>
+    <div style={{ display: "flex", justifyContent: "center", marginTop: -20 }}><StoreIcons /></div>
   </div>;
   return <>{children({ ...auth, uid: auth.uid })}</>;
 }

@@ -9,6 +9,7 @@ import { EmptyState, ErrorState, Skeleton } from "@/components/ds/feedback";
 import { RequireSignIn } from "@/components/site/RequireSignIn";
 import { getShoes, ymdLong, type ShoeView } from "@/lib/shoes";
 import { useLoad } from "@/lib/profile";
+import { StoreIcons } from "@/components/ds/brands";
 
 export function ShoesPage() {
   return <RequireSignIn title="Sign in to see your shoes" body="Your pairs, and how far you've run in each.">
@@ -30,7 +31,7 @@ function Shoes({ uid }: { uid: string }) {
     </div>
     {failed ? <ErrorState title="Couldn't load your shoes" body="Check your connection and try again." onRetry={retry} />
       : !shoes ? <div className="stack"><Skeleton variant="runner" /><Skeleton variant="runner" /></div>
-      : !shoes.length ? <EmptyState boxed icon="footprints" title="No shoes yet." body="Add a pair in the app and its kilometres add up here as you run." action="Get the app" href="/download" />
+      : !shoes.length ? <EmptyState boxed icon="footprints" title="No shoes yet." body="Add a pair in the app and its kilometres add up here as you run."><StoreIcons size="md" /></EmptyState>
       : <>
         {!data?.counted ? <div style={{ marginBottom: "var(--space-6)" }}><Banner tone="warning" title="Kilometres from your runs aren't added in">We couldn&apos;t read your runs just now, so each pair shows only the kilometres it started with. Refresh to try again.</Banner></div> : null}
         {active.length ? <section className="block" aria-label="In use"><h2>In use</h2><div className="stack">{active.map(s => <Pair key={s.key} s={s} counted={!!data?.counted} />)}</div></section> : null}

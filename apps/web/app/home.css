@@ -4,7 +4,9 @@
       the brand-token overrides are dropped (same values as tokens/brand.css);
    2. the kit's <image-slot> placeholders are real <img class="hl-fill">;
    3. a menu button for phones, where the left nav pills are hidden, and the
-      logo pill kept to its own width there (the kit's stretched across).
+      logo pill kept to its own width there (the kit's stretched across);
+   4. App Store and Google Play icon pills where the kit says "Get the app",
+      and all four social networks where it had Instagram and YouTube.
    Everything else is the kit's CSS as written. */
 .hl-page{--lime:#E4F46A;--lime-deep:#C9DB3C;--ink:#111111;--muted:#5E5E5E;--hair:#DADADA;--fill:#F2F2F2;--frame:#FFFFFF;--page:#E9E9E9;--r-panel:30px;background:var(--page);color:var(--ink);font-family:var(--brand-font-text);min-height:100vh;padding:1px 0}
 .hl-page a{color:var(--ink);text-decoration:none}.hl-page a:hover{color:var(--muted)}
@@ -111,6 +113,9 @@
 .hl-foot img{height:16px;display:block}
 .hl-foot__r{display:flex;gap:4px;justify-content:flex-end;flex-wrap:wrap}
 .hl-page .hl-foot__r a{height:26px;padding:0 10px;border-radius:999px;border:1px solid #BDBDBD;display:inline-flex;align-items:center;font-size:12px;color:#333}.hl-page .hl-foot__r a:hover{background:#fff;color:var(--ink)}
+.hl-pill--icon{width:38px;padding:0;justify-content:center}
+.hl-stores{display:inline-flex;gap:6px}
+.hl-explore-stores{display:grid;grid-template-columns:1fr 1fr;gap:6px;pointer-events:auto}.hl-page .hl-explore-stores .hl-explore{justify-content:center;padding:0}
 .hl-only-m{display:none}
 @media (max-width:1100px){.hl-bubble{display:none}}
 @media (max-width:900px){.hl-frame{margin:0;border-radius:0}.hl-nav{grid-template-columns:1fr auto}.hl-nav__l{display:none}.hl-logo{justify-self:start}.hl-only-m{display:inline-grid}.hl-hero{grid-template-columns:1fr}.hl-panel{min-height:480px}.hl-h1{font-size:38px}.hl-form{flex-direction:column;width:100%;max-width:320px}.hl-input{width:100%}.hl-strip{grid-template-columns:1fr 1fr}.hl-strip__item{height:120px;font-size:34px}.hl-cards{grid-template-columns:1fr 1fr}.hl-runs{padding:64px 16px 24px}.hl-table th:nth-child(2),.hl-table td:nth-child(2){display:none}.hl-app__grid{grid-template-columns:1fr}.hl-bubble{display:none}.hl-h2{font-size:34px}.hl-peek{display:none}}
