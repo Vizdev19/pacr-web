@@ -144,7 +144,7 @@ export function Home({ cities, city, runs, pics }: { cities: SiteCity[]; city: s
         <div className="hl-foot"><span>© {new Date().getFullYear()} pacr</span>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/brand/pacr-wordmark-on-light.svg" alt="pacr" />
-          <div className="hl-foot__r"><a href={INSTAGRAM_URL}>Instagram</a><a href="/support">Help</a><a href="/community-rules">Community rules</a><a href="/privacy">Privacy</a><a href="/terms">Terms</a></div></div>
+          <div className="hl-foot__r"><a href={INSTAGRAM_URL} aria-label="pacr on Instagram" title="pacr on Instagram"><Icon name="instagram" size={15} /></a><a href="/support">Help</a><a href="/community-rules">Community rules</a><a href="/privacy">Privacy</a><a href="/terms">Terms</a></div></div>
       </footer>
     </div>
     <CityPicker open={cityOpen} city={city} cities={cities} onClose={() => setCityOpen(false)} onSelect={pick} />
