@@ -180,6 +180,7 @@ export const PRIVACY_SECTIONS: LegalSection[] = [
     title: "The website, cookies and browser storage.",
     body: <>
       <P>pacr.life uses no advertising trackers. It stores one cookie to remember the city you picked, and, if you sign in, keeps your sign-in in your browser&apos;s storage. Maps on the site load from Google Maps, and live run pages load map tiles from OpenStreetMap, so those companies see your IP address when the map loads.</P>
+      <P>The download page (pacr.life/download) uses PostHog to count visits, which link brought you there, and clicks on the store and social links. It doesn&apos;t identify you, but PostHog stores a random ID in your browser to tell visits apart.</P>
     </>,
   },
   {

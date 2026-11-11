@@ -26,7 +26,14 @@ const nextConfig: NextConfig = {
     ];
   },
   async rewrites() {
-    return { beforeFiles: [], afterFiles: [], fallback: [{ source: "/:path*", destination: "https://pacr.life/:path*" }] };
+    return {
+      // /download stays the old link-in-bio page (download.html), as it was:
+      // its own look, fonts and PostHog script (public/legacy, public/js,
+      // public/brand-acid, public/assets/pacr-avatar.png, copied unchanged).
+      beforeFiles: [{ source: "/download", destination: "/legacy/download.html" }],
+      afterFiles: [],
+      fallback: [{ source: "/:path*", destination: "https://pacr.life/:path*" }],
+    };
   },
   async headers() {
     return [

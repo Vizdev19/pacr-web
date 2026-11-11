@@ -50,9 +50,11 @@ Every page on pacr.life except the host dashboard (`/host`, plus its event edito
 | Share pages | `/s/<slug>` (`?run=`, `?invite=`), `/e/<ref>`, `/p/<ref>`, `/u/<handle>`, `/live?t=` |
 | Pictures | `/s/<slug>/photo`, `/cover`, `/card`, `/e/<ref>/poster`, `/course`, `/p/<ref>/photo`, `/avatar`, `/u/<handle>/photo` |
 | Signed in | `/feed`, `/feed/<ref>`, `/profile` (`?r=`), `/activity/<ref>`, `/squads`, `/tickets`, `/notifications`, `/runbuddies`, `/routes`, `/shoes`, `/settings` |
-| Static | `/signin`, `/download`, `/support`, `/app`, `/hosts`, `/safety`, `/about`, `/plans/<distance>`, `/privacy`, `/terms`, `/community-rules` |
+| Static | `/signin`, `/support`, `/app`, `/hosts`, `/safety`, `/about`, `/plans/<distance>`, `/privacy`, `/terms`, `/community-rules` |
 
 The old URLs `/*-training-plan`, `/running-coach-app`, `/social` and `/downloads` redirect (`next.config.ts`).
+
+**Exception: `/download` keeps the old link-in-bio page**, by choice. It is the old `download.html`, copied unchanged into `public/legacy/` with its favicons, avatar and PostHog script, and served at `/download` by a rewrite in `next.config.ts`. It is not built with the design system.
 
 ## Not built yet (needs a decision or a deploy)
 
