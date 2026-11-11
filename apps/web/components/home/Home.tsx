@@ -76,7 +76,7 @@ export function Home({ cities, city, runs, pics }: { cities: SiteCity[]; city: s
         <div className="hl-panel hl-lime">
           <div className="hl-eyebrow"><Icon name="asterisk" />pacr · running squads</div>
           <h1 className="hl-h1">Find your squad <span className="hl-inlineicon"><Icon name="arrow-up-right" /></span> &amp; run your city <u>together</u>.</h1>
-          <form className="hl-form" onSubmit={search}><input className="hl-input" name="q" placeholder="Search your city or a squad" aria-label="City or squad" /><button className="hl-btn hl-btn--flat" type="submit">Find squads <Icon name="arrow-right" /></button></form>
+          <form className="hl-form" onSubmit={search}><input className="hl-input" name="q" placeholder="Search your city or a squad" aria-label="City or squad" /><button className="hl-btn hl-btn--dark" type="submit">Find squads <Icon name="arrow-right" /></button></form>
           <div className="hl-cities">
             {pics.length ? <div className="hl-avs">{pics.slice(0, 3).map(p => <span key={p.src}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -95,12 +95,12 @@ export function Home({ cities, city, runs, pics }: { cities: SiteCity[]; city: s
             <div><span className="hl-dot" /><br />Run leaders<br />&amp; squads</div>
             <a className="hl-volcard__arrow" href={`/clubs/${city}`} aria-label="See squads"><Icon name="arrow-up-right" /></a></div></div>
           <span className="hl-photo__icon" aria-hidden="true"><Icon name="footprints" /></span>
-          <div className="hl-hot" style={{ top: "28%", right: "9%" }}><span className="hl-hot__ring" /><span className="hl-hot__label">Group runs</span></div>
-          <div className="hl-hot" style={{ top: "37%", left: "9%" }}><span className="hl-hot__ring" /><span className="hl-hot__label">Run buddies</span></div>
-          <div className="hl-hot" style={{ top: "50%", left: "44%" }}><span className="hl-hot__ring" /><span className="hl-hot__label">Events</span></div>
+          <a className="hl-hot" href={`/runs/${city}`} style={{ top: "28%", right: "9%" }}><span className="hl-hot__ring" /><span className="hl-hot__label">Group runs</span></a>
+          <a className="hl-hot" href="/app#together" style={{ top: "37%", left: "9%" }}><span className="hl-hot__ring" /><span className="hl-hot__label">Run buddies</span></a>
+          <a className="hl-hot" href={`/events/${city}`} style={{ top: "50%", left: "44%" }}><span className="hl-hot__ring" /><span className="hl-hot__label">Events</span></a>
           <div className="hl-social">{SOCIALS.map(so => <a key={so.id} href={so.url} aria-label={`pacr on ${so.label}`} target="_blank" rel="noopener"><BrandIcon name={so.id} size={13} /></a>)}Follow pacr</div>
-          <div className="hl-notch hl-notch--bc" style={{ left: "12%", fontSize: 11.5, lineHeight: 1.3 }}>Join a group run<br />this weekend</div>
-          <div className="hl-notch hl-notch--br" style={{ width: "46%", fontSize: 12.5, lineHeight: 1.35 }}>pacr helps runners find squads, group runs and events in their city.</div>
+          <div className="hl-notch hl-notch--bc" style={{ left: "12%", fontSize: 14, lineHeight: 1.3 }}>Join a group run<br />this weekend</div>
+          <div className="hl-notch hl-notch--br" style={{ width: "46%", fontSize: 14, lineHeight: 1.35 }}>pacr helps runners find squads, group runs and events in their city.</div>
         </div>
       </section>
 
@@ -122,7 +122,7 @@ export function Home({ cities, city, runs, pics }: { cities: SiteCity[]; city: s
         <div className="hl-strip__item hl-strip__grey" style={{ color: "var(--ink)" }}>We</div>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <div className="hl-strip__item"><img className="hl-fill" src="/home/runners.jpg" alt="" /><span>Run</span></div>
-        <div className="hl-strip__item hl-strip__lime"><Icon name="arrow-right" /></div>
+        <a className="hl-strip__item hl-strip__lime" href={`/clubs/${city}`} aria-label="Find your squad"><Icon name="arrow-right" /></a>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <div className="hl-strip__item"><img className="hl-fill" src="/home/night.jpg" alt="" /><span>Together</span></div>
       </section>

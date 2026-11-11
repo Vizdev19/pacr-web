@@ -12,7 +12,10 @@
       host dashboard;
    7. the frame's side margins 60% smaller than the kit's: the kit centres a
       1280px frame, leaving (screen − 1280) / 2 a side; calc(60vw + 512px)
-      leaves 40% of that at every width (exactly 1280px on a 1280px screen).
+      leaves 40% of that at every width (exactly 1280px on a 1280px screen).;
+   8–10 (design critique, 2026-11-11): nothing under 14px; the photo's labels
+      and the strip's arrow are real links; on phones, runs come straight
+      after the hero, the photo is shorter and the decorative strip goes.
    Everything else is the kit's CSS as written. */
 .hl-page{--lime:#E4F46A;--lime-deep:#C9DB3C;--ink:#111111;--muted:#5E5E5E;--hair:#DADADA;--fill:#F2F2F2;--frame:#FFFFFF;--page:#E9E9E9;--r-panel:30px;background:var(--page);color:var(--ink);font-family:var(--brand-font-text);min-height:100vh;padding:1px 0}
 .hl-page a{color:var(--ink);text-decoration:none}.hl-page a:hover{color:var(--muted)}
@@ -138,3 +141,36 @@
 @media (max-width:1100px){.hl-bubble{display:none}}
 @media (max-width:900px){.hl-frame{margin:0;border-radius:0}.hl-nav{grid-template-columns:1fr auto}.hl-nav__l{display:none}.hl-logo{justify-self:start}.hl-only-m{display:inline-grid}.hl-hero{grid-template-columns:1fr}.hl-panel{min-height:480px}.hl-h1{font-size:38px}.hl-form{flex-direction:column;width:100%;max-width:320px}.hl-input{width:100%}.hl-strip{grid-template-columns:1fr 1fr}.hl-strip__item{height:120px;font-size:34px}.hl-cards{grid-template-columns:1fr 1fr}.hl-runs{padding:64px 16px 24px}.hl-table th:nth-child(2),.hl-table td:nth-child(2){display:none}.hl-app__grid{grid-template-columns:1fr}.hl-bubble{display:none}.hl-h2{font-size:34px}.hl-peek{display:none}}
 @media (max-width:560px){.hl-cards{grid-template-columns:1fr}.hl-nav__r .hl-pill:not(.hl-pill--line){display:none}.hl-foot{grid-template-columns:1fr;gap:12px;justify-items:center}}
+
+/* 8. Readable text: nothing on the home page under 14px (the kit went down to
+   11.5px), the mission line at 16px, and pills a little taller to fit. The
+   card captions get a deeper scrim so they read over bright photos too. */
+.hl-pill,.hl-btn,.hl-eyebrow,.hl-cities,.hl-volcard,.hl-hot__label,.hl-social,.hl-note,.hl-table th,.hl-runplace,.hl-tag,.hl-chip,.hl-card__text,.hl-page .hl-explore,.hl-label,.hl-foot,.hl-page .hl-foot__r a{font-size:14px}
+.hl-lede{font-size:16px}
+.hl-hot__label,.hl-label,.hl-page .hl-foot__r a{height:30px}
+.hl-tag{height:28px}
+.hl-chip{height:26px}
+.hl-card__scrim{height:72%;background:linear-gradient(to top,rgb(0 0 0 / .8),rgb(0 0 0 / .4) 45%,transparent)}
+
+/* 9. The photo's three labels and the strip's arrow tile go somewhere now. */
+.hl-hot{pointer-events:auto}
+.hl-page a.hl-hot:hover .hl-hot__label,.hl-page a.hl-hot:focus-visible .hl-hot__label{background:var(--lime);color:var(--ink)}
+.hl-page a.hl-strip__lime{color:var(--ink)}
+.hl-page a.hl-strip__lime:hover{background:var(--lime-deep)}
+
+/* 10. Phones: the week's runs straight after the hero, a shorter photo panel,
+   and no decorative "We Run Together" strip. */
+@media (max-width:560px){
+  .hl-frame{display:flex;flex-direction:column}
+  /* The hero's two panels join the page's column, so the week's runs can
+     sit between the search panel and the photo. */
+  .hl-hero{display:contents}
+  .hl-hero > .hl-panel{margin:0 16px}
+  .hl-nav{order:0}.hl-lime{order:1}.hl-runs{order:2}.hl-photo{order:3}.hl-mission{order:4}.hl-cards{order:5}.hl-app{order:6}
+  .hl-strip,.hl-social{display:none}
+  .hl-photo{min-height:340px}
+  .hl-runs{padding-top:40px}
+  .hl-runs__head{display:block}
+  .hl-runs__head .hl-note{max-width:none;margin-top:10px}
+}
+
