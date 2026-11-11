@@ -1,8 +1,9 @@
 // The reading template for /privacy, /terms and /community-rules: a title
 // block, the text in the reading measure and, on desktop, an "On this page"
-// rail (SectionNav rail) that follows the scroll. The words are the old
-// pages' own, word for word (components/pages/legal/*.tsx); only the
-// presentation is the design system's.
+// rail (SectionNav rail) that follows the scroll. The terms and community
+// rules are the old pages' words, word for word; the privacy policy was
+// rewritten on 11 November 2026 (privacy.tsx). Only the presentation is the
+// design system's.
 import type { ReactNode } from "react";
 import { SectionNav } from "@/components/ds/nav";
 import { SpyNav } from "../static/SpyNav";

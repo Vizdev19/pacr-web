@@ -4,7 +4,7 @@ import { PRIVACY } from "@/components/pages/legal/privacy";
 
 export const metadata: Metadata = {
   title: "Privacy policy",
-  description: "How pacr collects, uses and protects your information: what we collect, location and live sharing, who we share it with, how long we keep it and your rights.",
+  description: "What pacr collects, who can see it, who we share it with, how long we keep it, and how to delete your account: runs and GPS, health data, squads, payments and your rights.",
   alternates: { canonical: "/privacy" },
 };
 
