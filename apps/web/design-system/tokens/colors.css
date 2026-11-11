@@ -1,0 +1,89 @@
+/* Colour roles. Components read ONLY the semantic roles below the divider. */
+:root {
+  --grey-0: #FFFFFF; --grey-25: #FAFAFA; --grey-50: #F2F2F2; --grey-100: #E9E9E9; --grey-150: #E2E2E2; --grey-200: #DADADA;
+  --grey-300: #BDBDBD; --grey-400: #9B9B9B; --grey-500: #777777; --grey-600: #5E5E5E; --grey-700: #444444; --grey-800: #2B2B2B;
+  --grey-850: #222222; --grey-900: #1A1A1A; --grey-925: #141414; --grey-950: #0D0D0D;
+  --lime: #E4F46A; --lime-deep: #C9DB3C; --ink: #111111;
+  --tint: var(--brand-surface-tint); --tint-amt: var(--brand-surface-tint-amount); /* @kind other */
+
+  /* Surfaces 0–3: 0 page · 1 card/raised · 2 inset/fill · 3 strong fill/pressed */
+  --surface-0: color-mix(in oklab, var(--grey-100), var(--tint) var(--tint-amt));
+  --surface-1: color-mix(in oklab, var(--grey-0), var(--tint) calc(var(--tint-amt) * .5));
+  --surface-2: color-mix(in oklab, var(--grey-50), var(--tint) var(--tint-amt));
+  --surface-3: color-mix(in oklab, var(--grey-150), var(--tint) var(--tint-amt));
+  --surface-inverse: var(--ink);
+  --surface-scrim: rgb(13 13 14 / .48);
+  --surface-glass: rgb(255 255 255 / .86);
+
+  /* Text */
+  --text-primary: #111111;
+  --text-secondary: #333333;
+  --text-muted: #5E5E5E;
+  --text-disabled: #A3A3A3;
+  --text-inverse: #FFFFFF;
+
+  /* Borders */
+  --border-subtle: #E6E6E6;
+  --border: #DADADA;
+  --border-strong: #9B9B9B;
+
+  /* Accent (derived from the brand token) */
+  --accent: var(--brand-accent);
+  --accent-hover: color-mix(in oklab, var(--brand-accent), black 10%);
+  --accent-pressed: color-mix(in oklab, var(--brand-accent), black 20%);
+  --accent-soft: color-mix(in oklab, var(--brand-accent) 40%, var(--surface-1));
+  --accent-text: var(--text-primary); /* lime fails as text on light: accent text is ink */
+  --on-accent: var(--brand-on-accent);
+  --focus-ring: var(--ink);
+
+  /* Status */
+  --success: #1E7A3C; --success-soft: #E6F4EA; --on-success: #FFFFFF;
+  --warning: #935600; --warning-soft: #FDF1DC; --on-warning: #FFFFFF;
+  --danger: #C42B2B;  --danger-soft: #FCE9E8;  --on-danger: #FFFFFF;
+  --info: #0B6597;    --info-soft: #E3F1F9;    --on-info: #FFFFFF;
+
+  /* Special roles */
+  --live: #D81B60; --live-soft: #FCE4EE; --on-live: #FFFFFF;       /* live runs, open check-in */
+  --verified: #2350D8; --verified-soft: #E8EEFD; --on-verified: #FFFFFF;
+
+  /* Data (Okabe–Ito based, colour-blind safe) */
+  --data-1: #0072B2; --data-2: #D98E00; --data-3: #009E73; --data-4: #D55E00;
+  --data-5: #B8609A; --data-6: #3F9FD6; --data-7: #8A6E00; --data-8: #6A6A66;
+  --data-grid: #ECECE9;
+
+  /* Fixed — never themed */
+  --qr-fg: #000000; --qr-bg: #FFFFFF;
+  --media-placeholder: color-mix(in oklab, var(--grey-150), var(--tint) var(--tint-amt));
+  --map-land: #EDEDEA; --map-water: #D6E4EC; --map-park: #DDE8D6; --map-road: #FFFFFF; --map-route: var(--accent);
+}
+/* Dark scope. Can wrap a whole page (<html data-theme="dark">) or any section inside a light page. */
+[data-theme="dark"] {
+  --tint: var(--brand-surface-tint); --tint-amt: var(--brand-surface-tint-amount); /* @kind other */
+  --accent: var(--brand-accent); --on-accent: var(--brand-on-accent);
+  --focus-ring: var(--brand-accent);
+  --map-route: var(--brand-accent);
+  --media-placeholder: color-mix(in oklab, #2A2A2D, var(--tint) var(--tint-amt));
+  --surface-0: color-mix(in oklab, var(--grey-950), var(--tint) var(--tint-amt));
+  --surface-1: color-mix(in oklab, var(--grey-900), var(--tint) var(--tint-amt));
+  --surface-2: color-mix(in oklab, var(--grey-850), var(--tint) var(--tint-amt));
+  --surface-3: color-mix(in oklab, #2E2E31, var(--tint) var(--tint-amt));
+  --surface-inverse: var(--grey-50);
+  --surface-scrim: rgb(0 0 0 / .64);
+  --surface-glass: rgb(26 26 28 / .84);
+  --text-primary: #F2F2F2; --text-secondary: #C4C4C4; --text-muted: #9B9B9B; --text-disabled: #5E5E5E; --text-inverse: #111111;
+  --border-subtle: #262626; --border: #363636; --border-strong: #6A6A6A;
+  --accent-hover: color-mix(in oklab, var(--brand-accent), white 10%);
+  --accent-pressed: color-mix(in oklab, var(--brand-accent), white 20%);
+  --accent-soft: color-mix(in oklab, var(--brand-accent) 18%, var(--surface-1));
+  --accent-text: var(--brand-accent);
+  --success: #4CC27A; --success-soft: #14301F; --on-success: #04150A;
+  --warning: #F0B045; --warning-soft: #33250C; --on-warning: #1C1300;
+  --danger: #FF7A70;  --danger-soft: #3A1614;  --on-danger: #2A0503;
+  --info: #5BB8EE;    --info-soft: #0F2A3B;    --on-info: #031522;
+  --live: #FF5A92; --live-soft: #3D1222; --on-live: #2A0412;
+  --verified: #7D9CFF; --verified-soft: #17204A; --on-verified: #050B26;
+  --data-1: #3AA2E6; --data-2: #F0B13C; --data-3: #2EC497; --data-4: #FF7B33;
+  --data-5: #E09AC3; --data-6: #8FD0F5; --data-7: #EADF57; --data-8: #A3A39E;
+  --data-grid: #2A2A2D;
+  --map-land: #1E1F21; --map-water: #16232C; --map-park: #1B2619; --map-road: #2E2F33;
+}

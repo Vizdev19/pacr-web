@@ -1,0 +1,34 @@
+/* Store badges */
+.pw-stores { display: flex; flex-wrap: wrap; gap: 10px; }
+.pw-store { display: inline-flex; align-items: center; gap: 8px; height: 48px; padding: 0 16px 0 12px; border-radius: 10px; background: #000; color: #fff; border: 1px solid #3a3a3a; text-decoration: none; line-height: 1.05; }
+.pw-store:hover { background: #1c1c1c; color: #fff; }
+.pw-store small { display: block; font-size: 10px; letter-spacing: .02em; opacity: .85; }
+.pw-store b { display: block; font-size: 17px; font-weight: 600; letter-spacing: -0.01em; }
+.pw-stores--sm .pw-store { height: 40px; padding: 0 12px 0 10px; }
+.pw-stores--sm .pw-store b { font-size: 14px; }
+
+/* QR */
+.pw-qr { display: inline-flex; flex-direction: column; align-items: center; gap: 12px; }
+.pw-qr__plate { padding: 14px; background: var(--qr-bg); border-radius: var(--radius-lg); box-shadow: 0 0 0 1px rgb(0 0 0 / .08); }
+.pw-qr__plate svg { display: block; }
+.pw-qr__cap { font-size: 13px; color: var(--text-secondary); text-align: center; max-width: 240px; }
+.pw-qr--large .pw-qr__plate { padding: 20px; border-radius: var(--radius-xl); }
+.pw-qr__hint { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-muted); }
+.pw-qr__ref { font-family: var(--font-mono); font-size: 13px; letter-spacing: .08em; color: var(--text-secondary); }
+
+/* Open in app bar */
+.pw-openapp { display: flex; align-items: center; gap: 12px; padding: 10px 12px 10px 14px; background: var(--surface-1); border-top: 1px solid var(--border-subtle); box-shadow: 0 -6px 20px -10px rgb(0 0 0 / .18); }
+.pw-openapp--fixed { position: fixed; left: 0; right: 0; bottom: 0; z-index: var(--z-header); padding-bottom: calc(10px + env(safe-area-inset-bottom)); }
+.pw-openapp__icon { width: 40px; height: 40px; border-radius: 10px; flex: none; background: #080806 url("../../assets/logo/pacr-app-icon.png") center / 150% no-repeat; }
+.pw-openapp__text { flex: 1; min-width: 0; line-height: 1.25; }
+.pw-openapp__text b { display: block; font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pw-openapp__text span { font-size: 12.5px; color: var(--text-muted); }
+.pw-openapp--card { border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); box-shadow: none; }
+
+/* Share */
+.pw-share { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.pw-share__opt { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 10px 4px; border: 0; background: none; border-radius: var(--radius-md); color: var(--text-primary); font-size: 12.5px; cursor: pointer; }
+.pw-share__opt:hover { background: var(--surface-2); }
+.pw-share__ico { display: grid; place-items: center; width: 52px; height: 52px; border-radius: 50%; background: var(--surface-2); color: var(--text-primary); }
+.pw-share__link { display: flex; align-items: center; gap: 8px; margin-top: 12px; padding: 0 6px 0 14px; height: 48px; border-radius: var(--radius-control); background: var(--surface-2); font-size: 14px; color: var(--text-secondary); }
+.pw-share__link span { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

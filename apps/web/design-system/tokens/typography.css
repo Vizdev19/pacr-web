@@ -1,0 +1,37 @@
+:root {
+  --font-display: var(--brand-font-display);
+  --font-text: var(--brand-font-text);
+  --font-mono: "Geist Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+
+  --weight-regular: 400; /* @kind other */ --weight-medium: 500; /* @kind other */ --weight-semibold: 600; /* @kind other */ --weight-bold: 700; /* @kind other */
+  --weight-display: var(--brand-display-weight); /* @kind other */
+  --weight-heading: var(--brand-heading-weight); /* @kind other */
+  --case-heading: var(--brand-heading-case); /* @kind other */
+  --case-button: var(--brand-button-case); /* @kind other */
+  --tracking-display: var(--brand-display-tracking); /* @kind other */
+  --tracking-heading: -0.015em; /* @kind other */
+  --tracking-overline: 0.08em; /* @kind other */
+
+  /* Display — font-display */
+  --text-display-1: clamp(40px, 5.6vw, 72px); --lh-display-1: 1.02; /* @kind other */
+  --text-display-2: clamp(32px, 4.2vw, 52px); --lh-display-2: 1.06; /* @kind other */
+  /* Headings */
+  --text-h1: clamp(28px, 3vw, 36px); --lh-h1: 1.12; /* @kind other */
+  --text-h2: clamp(22px, 2.2vw, 28px); --lh-h2: 1.18; /* @kind other */
+  --text-h3: 21px; --lh-h3: 1.3; /* @kind other */
+  --text-h4: 17px; --lh-h4: 1.35; /* @kind other */
+  /* Body */
+  --text-body-l: 18px; --lh-body-l: 1.55; /* @kind other */
+  --text-body: 16px; --lh-body: 1.5; /* @kind other */
+  --text-body-s: 14px; --lh-body-s: 1.45; /* @kind other */
+  /* Caption / overline */
+  --text-caption: 13px; --lh-caption: 1.4; /* @kind other */
+  --text-overline: 12px; --lh-overline: 1.3; /* @kind other */
+  /* Numeric — tabular figures, for stats */
+  --text-stat-xl: clamp(40px, 4.4vw, 56px);
+  --text-stat-l: 32px;
+  --text-stat-m: 22px;
+  --text-stat-s: 16px;
+  --lh-stat: 1; /* @kind other */
+  --numeric: tabular-nums; /* @kind other */
+}

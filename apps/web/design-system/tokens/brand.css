@@ -1,0 +1,31 @@
+/* ==========================================================================
+   BRAND SWAP TOKENS — the only values you change to set the brand.
+   Everything else in the system derives from these. Each has a light and a
+   dark value. Theme: "lime" — neutral greys, lime accent, Lexend, pill controls.
+   ========================================================================== */
+:root {
+  /* 1. Accent — CTAs, links, selected states, focus ring */
+  --brand-accent: #E4F46A;
+  /* 1b. Text/icon colour that sits on the accent (must pass 4.5:1) */
+  --brand-on-accent: #111111;
+  /* 2. Display font — hero, section titles, big numbers */
+  --brand-font-display: "Lexend", ui-sans-serif, system-ui, sans-serif;
+  /* 3. Text font — body, UI, labels */
+  --brand-font-text: "Lexend", ui-sans-serif, system-ui, sans-serif;
+  /* 4. Radius base — every radius in the system is a multiple of this */
+  --brand-radius-base: 14px;
+  /* 5. Surface tint — a hue mixed into every grey surface (0% = pure grey) */
+  --brand-surface-tint: #E4F46A;
+  --brand-surface-tint-amount: 0%; /* @kind other */
+  /* 6. Letter case — "none" = sentence case, "uppercase" = uppercase display */
+  --brand-heading-case: none; /* @kind other */
+  --brand-button-case: none; /* @kind other */
+  --brand-display-weight: 400; /* @kind other */
+  --brand-display-tracking: -0.02em; /* @kind other */
+  --brand-heading-weight: 400; /* @kind other */
+}
+[data-theme="dark"] {
+  --brand-accent: #E4F46A;
+  --brand-on-accent: #111111;
+  --brand-surface-tint: #E4F46A;
+}

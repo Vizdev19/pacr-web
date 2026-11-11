@@ -1,0 +1,32 @@
+/* The pacr Web Design System (claude.ai/design project 1066e016…), copied
+   verbatim into design-system/. fonts.css is left out: next/font self-hosts
+   Lexend and Geist Mono (app/layout.tsx) and the overrides below point the
+   font tokens at them. */
+@import "../design-system/tokens/brand.css";
+@import "../design-system/tokens/colors.css";
+@import "../design-system/tokens/typography.css";
+@import "../design-system/tokens/layout.css";
+@import "../design-system/tokens/base.css";
+@import "../design-system/components/core/core.css";
+@import "../design-system/components/navigation/navigation.css";
+@import "../design-system/components/actions/actions.css";
+@import "../design-system/components/forms/forms.css";
+@import "../design-system/components/content/content.css";
+@import "../design-system/components/data/data-display.css";
+@import "../design-system/components/maps/maps.css";
+@import "../design-system/components/feedback/feedback.css";
+@import "../design-system/ui_kits/website/site.css";
+@import "./home.css";
+
+:root {
+  --brand-font-display: var(--font-lexend), "Lexend", ui-sans-serif, system-ui, sans-serif;
+  --brand-font-text: var(--font-lexend), "Lexend", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), "Geist Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+
+/* Store badges are Apple's and Google's artwork, not the kit's drawn pills. */
+.pw-stores a { display: inline-flex; border-radius: 8px; }
+.pw-stores img { display: block; }
+
+/* A page title row: heading + supporting line on the left, controls on the right. */
+.pw-page { padding-top: 24px; padding-bottom: 64px; }
