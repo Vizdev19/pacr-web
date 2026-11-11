@@ -8,11 +8,15 @@
 //
 //   Host           which squad (where I'm a run leader or above) or my
 //                  approved organizer — new events only
-//   The basics     title, kind, description, start and end (browser's zone)
+//   The basics     title, kind, description, start and end (browser's zone);
+//                  a published event's date and time are fixed
+//                  (update_event refuses with schedule_locked)
 //   Where          Google Places search, plus a meet note ("Gate 2")
 //   Tickets        capacity (empty = no limit), who can see it, women only,
-//                  the host's own cancellation/refund note. Free for now:
-//                  paid tiers arrive with payments (20261201)
+//                  the host's own cancellation/refund note. This page makes
+//                  one free ticket type; an event with several types, or a
+//                  priced one, was made in the app and its tickets are left
+//                  to the app (no capacity is shown or sent for it)
 //   Poster         2:3, cropped here, shown on the app's Events grid
 //   Race details   surface, chip timing, distances, terrain
 //   Event day      the schedule timeline (time · step · note)
@@ -23,9 +27,10 @@
 //
 // Everything maps to update_event's patch keys, which validate on the server
 // too. Start and end are sent only when changed, so editing a running event's
-// notes never trips the "start must be in the future" rule. Pictures save as
-// soon as they're cropped (and the replaced one is removed), so a page left
-// without Save never strands an upload.
+// notes never trips the "start must be in the future" rule, and the kind only
+// when the host picks another, so a kind made in the app is never rewritten.
+// Pictures save as soon as they're cropped (and the replaced one is removed),
+// so a page left without Save never strands an upload.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { openModal } from '../modal.js';
@@ -40,6 +45,21 @@ import { mountPlaceSearch } from './places.js';
 import { cropImage } from './crop.js';
 
 const MAX = { schedule: 12, course: 6, faq: 8, included: 12 };
+
+// events.kind (20261130140000): the app's Type picker, the Events tab's chips.
+const KINDS = [['run', 'Run'], ['race', 'Race'], ['workshop', 'Workshop or clinic'], ['social', 'Social']];
+
+/** Several ticket types, or a priced one: made in the app, and managed there. */
+function ticketsInApp(e) {
+  const tiers = e?.tiers ?? [];
+  return tiers.length > 1 || tiers.some(t => Number(t.price_minor) > 0);
+}
+
+/** Every ticket type's capacity added up; null when one has no limit. */
+function totalCapacity(tiers) {
+  if (!tiers.length || tiers.some(t => t.capacity == null)) return null;
+  return tiers.reduce((n, t) => n + Number(t.capacity), 0);
+}
 
 export async function renderEditor(app, { id }) {
   app.innerHTML = `<div class="wrap"><div class="skel"><div></div></div></div>`;
@@ -104,7 +124,16 @@ export async function renderEditor(app, { id }) {
   const hostPick = !e ? (hostOptions.find(o => o.key === rememberedHost() && !o.disabled) ?? hostOptions.find(o => !o.disabled) ?? null) : null;
   const hostNow = e ? (hostOptions.find(o => o.key === `${e.host?.kind}:${e.host?.id}`)
     ?? { kind: e.host?.kind === 'organizer' ? 'organizer' : 'squad', name: e.host?.name ?? '', pic: null, verified: false, sub: e.host?.kind === 'organizer' ? 'Organizer account' : 'Squad' }) : null;
-  const tier = e?.tiers?.[0] ?? null;
+  const tiers = e?.tiers ?? [];
+  const tier = tiers[0] ?? null;
+  const appTickets = ticketsInApp(e);
+  const paid = !!e?.is_paid || tiers.some(t => Number(t.price_minor) > 0);
+  // Once published, the date and time are fixed: the server refuses a move.
+  const timeLocked = e?.status === 'published';
+  const kindNow = e?.kind ?? 'run';
+  // A kind this list doesn't know stays selected as it is, not shown as Run.
+  const kinds = KINDS.some(([v]) => v === kindNow) ? KINDS
+    : [...KINDS, [kindNow, String(kindNow).replace(/[_-]+/g, ' ').replace(/^./, c => c.toUpperCase())]];
 
   app.innerHTML = `
     <div class="wrap">
@@ -113,7 +142,7 @@ export async function renderEditor(app, { id }) {
         <div>
           <div class="eyebrow">${e ? `${esc(e.host?.name ?? '')} · <span class="tag tag-${esc(e.status)}">${esc(STATUS[e.status] ?? e.status)}</span>` : 'New event'}</div>
           <h1 class="h1">${e ? esc(e.title) : 'New event'}</h1>
-          ${e ? `<p class="lede">${esc(when(e.starts_at))}${e.status !== 'draft' ? ` · ${esc(goingLine(e.sold ?? 0, tier?.capacity ?? null))}` : ''}</p>` : `<p class="lede">Start with the basics. Once it’s saved as a draft you can add a poster and the event-day details, then publish.</p>`}
+          ${e ? `<p class="lede">${esc(when(e.starts_at))}${e.status !== 'draft' ? ` · ${esc(goingLine(e.sold ?? 0, totalCapacity(tiers)))}` : ''}</p>` : `<p class="lede">Start with the basics. Once it’s saved as a draft you can add a poster and the event-day details, then publish.</p>`}
         </div>
         ${e && e.status !== 'draft' ? `<a class="btn-outline" href="${attendeesHref(e.id)}">Attendees</a>` : ''}
       </header>
@@ -138,18 +167,20 @@ export async function renderEditor(app, { id }) {
             <input name="title" maxlength="80" required value="${esc(e?.title ?? '')}" placeholder="Cubbon Park 10K"></label>
           <label class="field"><span>Kind</span>
             <select name="kind">
-              ${[['run', 'Run or race'], ['workshop', 'Workshop or clinic'], ['social', 'Social']].map(([v, l]) =>
-                `<option value="${v}" ${(e?.kind ?? 'run') === v ? 'selected' : ''}>${l}</option>`).join('')}
+              ${kinds.map(([v, l]) =>
+                `<option value="${esc(v)}" ${kindNow === v ? 'selected' : ''}>${esc(l)}</option>`).join('')}
             </select></label>
           <label class="field"><span>About it <i>optional</i></span>
             <textarea name="description" maxlength="2000" rows="5" placeholder="The route, who it’s for, what makes it worth getting up for">${esc(e?.description ?? '')}</textarea></label>
           <div class="two">
             <label class="field"><span>Starts</span>
-              <input name="starts" type="datetime-local" required value="${esc(toLocalInput(e?.starts_at))}"></label>
+              <input name="starts" type="datetime-local" required value="${esc(toLocalInput(e?.starts_at))}" ${timeLocked ? 'disabled' : ''}></label>
             <label class="field"><span>Ends</span>
-              <input name="ends" type="datetime-local" value="${esc(toLocalInput(e?.ends_at))}"></label>
+              <input name="ends" type="datetime-local" value="${esc(toLocalInput(e?.ends_at))}" ${timeLocked ? 'disabled' : ''}></label>
           </div>
-          <p class="fine">Times are in your time zone (${esc(localZone())}). No end time means two hours after the start.</p>
+          <p class="fine">Times are in your time zone (${esc(localZone())}). ${timeLocked
+            ? 'A live event’s date and time are fixed. To move it, cancel it and make a new one.'
+            : 'No end time means two hours after the start.'}</p>
         </fieldset>
 
         <fieldset class="card">
@@ -161,9 +192,11 @@ export async function renderEditor(app, { id }) {
 
         <fieldset class="card">
           <legend>Tickets</legend>
+          ${appTickets ? `
+          <p class="fine">Ticket types and prices are managed in the PACR app.</p>` : `
           <label class="field short"><span>How many people <i>empty for no limit</i></span>
             <input name="capacity" type="number" min="1" max="100000" inputmode="numeric" value="${esc(tier?.capacity ?? '')}"></label>
-          <p class="fine">Tickets are free for now. Paid tickets, with payouts to you, are coming.</p>
+          <p class="fine">Tickets made here are free. For more ticket types, or paid tickets, use the PACR app.</p>`}
           <div class="choices">
             ${choice('visibility', 'public', 'Everyone', 'Listed on the PACR Events tab for runners nearby', (e?.visibility ?? 'public') === 'public')}
             ${choice('visibility', 'link', 'Anyone with the link', 'Not listed — share the link yourself', e?.visibility === 'link')}
@@ -319,9 +352,13 @@ export async function renderEditor(app, { id }) {
   $('cancel')?.addEventListener('click', async () => {
     let reason = '';
     const going = e.sold ?? 0;
+    // cancel_event refunds every paid booking in full, by itself.
+    const refunds = paid && going
+      ? ' Every paid booking is refunded in full: the ticket price, PACR’s fee and the GST go back the way they paid.'
+      : '';
     const ask = openModal({
       title: 'Cancel this event?',
-      body: `<p>${going ? `${going} ${going === 1 ? 'person has a ticket' : 'people have tickets'}. Each gets a notification that it’s off.` : 'Nobody has a ticket yet.'} This can’t be undone.</p>
+      body: `<p>${going ? `${going} ${going === 1 ? 'person has a ticket' : 'people have tickets'}. Each gets a notification that it’s off.` : 'Nobody has a ticket yet.'}${refunds} This can’t be undone.</p>
         <label class="field"><span>Tell them why <i>optional</i></span><textarea id="cancelWhy" maxlength="300" rows="2" placeholder="Heavy rain forecast — we’ll run it on the 22nd instead."></textarea></label>`,
       options: [{ label: 'Cancel event', value: true, primary: true }, { label: 'Keep it', value: false }],
     });
@@ -381,19 +418,20 @@ async function create(form, state) {
 async function save(e, form, state) {
   const { f, get } = read(form);
   if (!get('title')) return { ok: false, text: failText('title_required') };
-  const cap = capacityOf(get('capacity'));
+  // update_event's capacity is the first ticket type's: never sent for
+  // tickets made in the app, or it would rewrite (or lift) that type's limit.
+  const appTickets = ticketsInApp(e);
+  const cap = appTickets ? { ok: true, value: null } : capacityOf(get('capacity'));
   if (!cap.ok) return cap;
   const distances = get('distances').split(/[,\s]+/).filter(Boolean).map(Number);
   if (distances.some(n => !Number.isFinite(n))) return { ok: false, text: failText('invalid_distances') };
 
   const patch = {
     title: get('title'),
-    kind: get('kind') || 'run',
     description: get('description'),
     meet_note: get('meet_note'),
     visibility: get('visibility') || 'public',
     women_only: f.get('women_only') === 'on',
-    capacity: cap.value,
     refund_note: get('refund_note'),
     surface: get('surface') || null,
     terrain: get('terrain'),
@@ -404,16 +442,24 @@ async function save(e, form, state) {
     faq: clean(state.faq, ['q', 'a'], 'q'),
     included: get('included').split('\n').map(s => s.trim()).filter(Boolean),
   };
-  // Times only when moved: a running event's notes must stay editable.
-  const startsAt = fromLocalInput(get('starts'));
-  const endsAt = fromLocalInput(get('ends'));
-  if (startsAt && toLocalInput(startsAt) !== toLocalInput(e.starts_at)) patch.starts_at = startsAt;
-  if (endsAt && toLocalInput(endsAt) !== toLocalInput(e.ends_at)) patch.ends_at = endsAt;
+  // The kind only when the host picked another one.
+  const kind = get('kind');
+  if (kind && kind !== e.kind) patch.kind = kind;
+  if (!appTickets) patch.capacity = cap.value;
+  // Times only when moved, and never on a published event (its inputs are
+  // locked): a running event's notes must stay editable.
+  if (e.status !== 'published') {
+    const startsAt = fromLocalInput(get('starts'));
+    const endsAt = fromLocalInput(get('ends'));
+    if (startsAt && toLocalInput(startsAt) !== toLocalInput(e.starts_at)) patch.starts_at = startsAt;
+    if (endsAt && toLocalInput(endsAt) !== toLocalInput(e.ends_at)) patch.ends_at = endsAt;
+  }
   if (patch.starts_at || patch.ends_at) patch.timezone = localZone();
   if (state.placeChanged && state.place) patch.place = placeJson(state.place);
 
   const r = await updateEvent(e.id, patch);
   if (r.ok) {
+    if (patch.kind) e.kind = patch.kind;
     if (patch.starts_at) e.starts_at = patch.starts_at;
     if (patch.ends_at) e.ends_at = patch.ends_at;
     state.placeChanged = false;

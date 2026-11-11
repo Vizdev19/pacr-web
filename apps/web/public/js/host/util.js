@@ -69,7 +69,7 @@ export const STATUS = {
   ended: 'Ended',
 };
 
-export const KIND = { run: 'Run', workshop: 'Workshop', social: 'Social' };
+export const KIND = { run: 'Run', race: 'Race', workshop: 'Workshop', social: 'Social' };
 
 /** "12 of 40 going" / "12 going". */
 export function goingLine(sold, capacity) {
