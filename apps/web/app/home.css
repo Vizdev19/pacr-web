@@ -6,7 +6,8 @@
    3. a menu button for phones, where the left nav pills are hidden, and the
       logo pill kept to its own width there (the kit's stretched across);
    4. App Store and Google Play icon pills where the kit says "Get the app",
-      and all four social networks where it had Instagram and YouTube.
+      and all four social networks where it had Instagram and YouTube;
+   5. the logo in the nav pill 60% larger (29px, the kit's 18px).
    Everything else is the kit's CSS as written. */
 .hl-page{--lime:#E4F46A;--lime-deep:#C9DB3C;--ink:#111111;--muted:#5E5E5E;--hair:#DADADA;--fill:#F2F2F2;--frame:#FFFFFF;--page:#E9E9E9;--r-panel:30px;background:var(--page);color:var(--ink);font-family:var(--brand-font-text);min-height:100vh;padding:1px 0}
 .hl-page a{color:var(--ink);text-decoration:none}.hl-page a:hover{color:var(--muted)}
@@ -20,7 +21,7 @@
 .hl-pill--active::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--ink)}
 .hl-pill--line{background:#fff;border-color:var(--ink)}.hl-page .hl-pill--line:hover{background:var(--ink);color:#fff}
 .hl-pill svg{width:15px;height:15px}
-.hl-logo{display:flex;align-items:center;height:38px;padding:0 18px;border-radius:999px;background:var(--fill)}.hl-logo img{height:18px;display:block}
+.hl-logo{display:flex;align-items:center;height:38px;padding:0 18px;border-radius:999px;background:var(--fill)}.hl-logo img{height:29px;display:block}
 .hl-hero{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:0 16px}
 .hl-panel{position:relative;border-radius:var(--r-panel);min-height:600px}
 .hl-lime{background:var(--lime);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:64px 48px 80px}

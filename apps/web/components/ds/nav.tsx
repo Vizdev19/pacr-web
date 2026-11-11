@@ -76,7 +76,7 @@ export function SiteHeader({ active, signin = "/signin", cityName, onCity, onMen
   return (
     <header className="pw-header">
       <div className="pw-container pw-header__in">
-        <Logo height={26} href="/" />
+        <Logo height={42} href="/" />
         <span className="pw-header__d"><CityButton city={cityName} onClick={onCity} /></span>
         <nav className="pw-header__nav" aria-label="Main">
           {nav.map(([id, l, h]) => <a key={id} className="pw-header__link" href={h} aria-current={active === id ? "page" : undefined}>{l}</a>)}
@@ -110,7 +110,7 @@ export function MobileMenuSheet({ open, onClose, active, signin = "/signin", cit
   if (!open) return null;
   const items = user ? MOBILE_IN : MOBILE_OUT;
   return <div className="pw-sheet pw-sheet--full" role="dialog" aria-modal="true" aria-label="Menu" style={{ zIndex: "var(--z-dialog)" }}>
-    <div className="pw-sheet__head" style={{ height: "var(--header-h)", padding: "0 var(--space-3) 0 var(--space-4)", borderBottom: "1px solid var(--border-subtle)" }}><span style={{ flex: 1 }}><Logo height={26} /></span><IconButton icon="x" label="Close menu" onClick={onClose} /></div>
+    <div className="pw-sheet__head" style={{ height: "var(--header-h)", padding: "0 var(--space-3) 0 var(--space-4)", borderBottom: "1px solid var(--border-subtle)" }}><span style={{ flex: 1 }}><Logo height={42} /></span><IconButton icon="x" label="Close menu" onClick={onClose} /></div>
     <div className="pw-sheet__body" style={{ padding: "var(--space-4)", flex: 1 }}>
       <button className="pw-listrow" onClick={onCity} style={{ marginBottom: 8, background: "var(--surface-2)" }}><Icon name="map-pin" /><span>City</span><span className="pw-listrow__meta" style={{ color: "var(--text-primary)", fontWeight: 600 }}>{cityName}</span><Icon name="chevron-right" size={18} /></button>
       {items.map(([id, l, h]) => <a key={id} href={h} className="pw-listrow pw-listrow--big" aria-current={active === id ? "page" : undefined}>{l}</a>)}
