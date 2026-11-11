@@ -4,9 +4,9 @@
 // except the four PostHog events below.
 import Script from "next/script";
 import { useEffect, useRef, useState, type CSSProperties, type MouseEvent } from "react";
-import { storeUrl } from "@/components/ds/actions";
 import { Button, Card } from "@/components/ds/core";
 import { FieldMessage, Input, Select } from "@/components/ds/forms";
+import { StoreBadges } from "@/components/ds/nav";
 import { calculate, fmtPace, raceKm, RACES, type ZoneErrors, type ZoneForm, type ZoneResult } from "@/lib/zones";
 
 type PH = { capture: (event: string, props?: Record<string, unknown>, opts?: Record<string, unknown>) => void };
@@ -86,11 +86,11 @@ export function ZoneCalculator({ initial }: { initial: ZoneForm }) {
 
   const set = (k: keyof ZoneForm) => (v: string) => { edited.current = true; setForm(f => ({ ...f, [k]: v })); };
 
-  // Phones go straight to their store; anything else to the download page.
-  function openStore(e: MouseEvent<HTMLAnchorElement>) {
-    track("zones_cta_clicked", true);
-    const url = storeUrl();
-    if (url !== "/download") { e.preventDefault(); window.location.href = url; }
+  // A click on either store badge. /js/posthog.js also logs app_store_click
+  // or play_store_click for it.
+  function storeClick(e: MouseEvent<HTMLDivElement>) {
+    const a = (e.target as HTMLElement).closest("a");
+    if (a) track("zones_cta_clicked", true);
   }
 
   async function copyLink() {
@@ -176,7 +176,7 @@ export function ZoneCalculator({ initial }: { initial: ZoneForm }) {
           <p className="t-body" style={{ margin: "0 0 var(--space-6)", maxWidth: 520 }}>
             Log every run and see your heart rate and pace, with your runs from Garmin, WHOOP, Apple Health or Health Connect in one place.
           </p>
-          <Button variant="inverse" size="lg" href="/download?via=zones" onClick={openStore}>Get pacr free</Button>
+          <div onClickCapture={storeClick}><StoreBadges /></div>
         </div>
 
         <p className="t-caption t-muted" style={{ margin: "var(--space-8) 0 0", textWrap: "pretty" }}>
