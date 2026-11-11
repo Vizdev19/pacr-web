@@ -9,10 +9,10 @@ export const HM_KM = 21.0975;
 const RIEGEL = 1.06;
 
 export const RACES = [
-  { km: 5, label: "5K" },
-  { km: 10, label: "10K" },
-  { km: HM_KM, label: "Half marathon" },
-  { km: 42.195, label: "Marathon" },
+  { km: 5, label: "5K", short: "5K" },
+  { km: 10, label: "10K", short: "10K" },
+  { km: HM_KM, label: "Half marathon", short: "Half" },
+  { km: 42.195, label: "Marathon", short: "Marathon" },
 ] as const;
 
 export const DEFAULTS = { age: "30", max: "", d: String(HM_KM), t: "2:00:00" };
@@ -34,7 +34,7 @@ export const ZONES: ZoneDef[] = [
 export const MSG = {
   age: "Enter an age between 12 and 90.",
   max: "Max heart rate should be a number between 120 and 230.",
-  time: "Enter your race time as h:mm:ss, like 2:00:00 or 55:30.",
+  time: "Enter your race time. Minutes and seconds go up to 59.",
   pace: "That time works out to an unusual pace. Check the race distance and time.",
 };
 
@@ -47,6 +47,18 @@ export function parseTime(s: string): number | null {
   if (sec > 59 || (parts.length === 3 && m > 59)) return null;
   const total = h * 3600 + m * 60 + sec;
   return total > 0 ? total : null;
+}
+
+/** "2:00:00" → ["2", "00", "00"]; "55:30" → ["", "55", "30"]; anything else → empty boxes. */
+export function splitTime(t: string): [string, string, string] {
+  const p = t.trim().split(":").map(x => x.replace(/\D/g, ""));
+  return p.length === 3 ? [p[0], p[1], p[2]] : p.length === 2 ? ["", p[0], p[1]] : ["", "", ""];
+}
+
+/** The three time boxes → "h:mm:ss" ("" when all are empty). */
+export function joinTime([h, m, s]: [string, string, string]): string {
+  if (!h && !m && !s) return "";
+  return `${h || 0}:${(m || "0").padStart(2, "0")}:${(s || "0").padStart(2, "0")}`;
 }
 
 /** Seconds per km → "5:41", rounded to the nearest second. */
