@@ -62,7 +62,7 @@ export function Menu({ open, onClose, items, onSelect, align = "right", header, 
 
 /* Header: the kit's signed-out and signed-in variants. */
 export const SITE_NAV: [string, string, string][] = [["squads", "Squads", "/clubs"], ["runs", "Runs", "/runs"], ["events", "Events", "/events"], ["app", "App", "/app"], ["hosts", "For hosts", "/hosts"]];
-export const MEMBER_NAV: [string, string, string][] = [["feed", "Feed", "/feed"], ["squads", "Squads", "/squads"], ["events", "Events", "/events"], ["runbuddies", "Run buddies", "/runbuddies"]];
+export const MEMBER_NAV: [string, string, string][] = [["feed", "Feed", "/feed"], ["squads", "Squads", "/squads"], ["events", "Events", "/events"], ["runbuddies", "Run buddies", "/runbuddies"], ["host", "Host", "/host"]];
 export const ACCOUNT_MENU: MenuItem[] = [
   { id: "profile", label: "Profile", icon: "user-round" }, { id: "tickets", label: "Tickets", icon: "ticket" }, { id: "routes", label: "Routes", icon: "route" },
   { id: "shoes", label: "Shoes", icon: "footprints" }, { id: "settings", label: "Settings", icon: "settings" },

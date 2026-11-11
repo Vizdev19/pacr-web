@@ -49,10 +49,10 @@ export function Home({ cities, city, runs, pics }: { cities: SiteCity[]; city: s
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/brand/pacr-wordmark-on-light.svg" alt="pacr" />
         </Link>
-        <div className="hl-nav__r">
+        <div className={"hl-nav__r" + (user ? " hl-nav__r--member" : "")}>
           <button className="hl-pill" onClick={() => setCityOpen(true)} aria-haspopup="dialog">{cityName} <Icon name="chevron-down" /></button>
           <a className="hl-pill" href={`/events/${city}`}>Events</a>
-          {user ? <Link className="hl-pill" href="/feed">Feed</Link> : <Link className="hl-pill" href="/signin">Sign in</Link>}
+          {user ? <><Link className="hl-pill" href="/feed">Feed</Link><a className="hl-pill" href="/host">Host</a></> : <Link className="hl-pill" href="/signin">Sign in</Link>}
           {STORES.map(st => <a key={st.id} className="hl-pill hl-pill--line hl-pill--icon" href={st.url} aria-label={st.label} title={st.label} target="_blank" rel="noopener"><BrandIcon name={st.id} size={16} /></a>)}
           <IconButton className="hl-only-m" icon="menu" label="Menu" onClick={() => setMenu(true)} />
         </div>

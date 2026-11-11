@@ -9,12 +9,15 @@
       and all four social networks where it had Instagram and YouTube;
    5. the logo in the nav pill 60% larger (29px, the kit's 18px);
    6. a "for hosts" row under "get the app", in the same grid, linking the
-      host dashboard.
+      host dashboard;
+   7. the frame's side margins 60% smaller than the kit's: the kit centres a
+      1280px frame, leaving (screen − 1280) / 2 a side; calc(60vw + 512px)
+      leaves 40% of that at every width (exactly 1280px on a 1280px screen).
    Everything else is the kit's CSS as written. */
 .hl-page{--lime:#E4F46A;--lime-deep:#C9DB3C;--ink:#111111;--muted:#5E5E5E;--hair:#DADADA;--fill:#F2F2F2;--frame:#FFFFFF;--page:#E9E9E9;--r-panel:30px;background:var(--page);color:var(--ink);font-family:var(--brand-font-text);min-height:100vh;padding:1px 0}
 .hl-page a{color:var(--ink);text-decoration:none}.hl-page a:hover{color:var(--muted)}
 .hl-page img.hl-fill{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
-.hl-frame{max-width:1280px;margin:32px auto;background:var(--frame);border-radius:34px;overflow:hidden}
+.hl-frame{max-width:1280px;max-width:calc(60vw + 512px);margin:32px auto;background:var(--frame);border-radius:34px;overflow:hidden}
 .hl-in{padding:0 16px}
 .hl-nav{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:16px 16px 12px}
 .hl-nav__l,.hl-nav__r{display:flex;gap:6px;align-items:center}.hl-nav__r{justify-content:flex-end}
@@ -113,6 +116,9 @@
 .hl-app__h{font-family:var(--brand-font-display);font-weight:400;font-size:24px;line-height:1.3;letter-spacing:-0.01em;margin:0 0 24px;text-wrap:pretty}
 .hl-app__row{display:flex;gap:8px;flex-wrap:wrap}
 .hl-app__grid--next{padding-top:48px}
+/* Signed in, the nav also has Feed and Host; under 1100px that crowds the logo,
+   so the store icons (also in the page and the footer) step out of the nav. */
+@media (max-width:1100px){.hl-nav__r--member .hl-pill--icon{display:none}}
 /* Scoping the kit's bare `a` rule to .hl-page made it outrank .hl-btn--dark. */
 .hl-page a.hl-btn--dark{color:#fff}.hl-page a.hl-btn--dark:hover{background:#333;color:#fff}
 .hl-foot{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:24px 0 28px;font-size:12px;color:var(--muted)}
