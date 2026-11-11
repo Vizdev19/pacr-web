@@ -21,7 +21,12 @@ name: Web
 #                 fails `vercel pull` with "Could not retrieve Project
 #                 Settings"). host.yml and pacr-admin use the same token.
 # The project's framework (Next.js) and "no Git deploys" are set in
-# apps/web/vercel.json.
+# apps/web/vercel.json, which this workflow reads (it runs in apps/web).
+# pacr-web is still linked to the GitHub repo from the static-site days, and
+# Vercel's own Git deploys read vercel.json at the repo root, not this one: with
+# nothing there, every push to main made an empty production deploy that 404'd
+# all of pacr.life for ~90 s until this workflow's deploy replaced it. The root
+# vercel.json turns those Git deploys off.
 
 on:
   pull_request:
