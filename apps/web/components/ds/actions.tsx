@@ -109,6 +109,6 @@ function fitRoute(route: MapPoint[] | null | undefined, ratio: string): MapPoint
 export function PlaceMap({ lat, lng, label, ratio = "16:9" }: { lat?: number | null; lng?: number | null; label?: string | null; ratio?: string }) {
   if (lat == null || lng == null) return <div className="pw-map pw-map--failed" style={{ "--ratio": RATIO[ratio] || ratio } as CSSProperties}><div className="pw-map__fail"><Icon name="map-pinned" size={28} /><b style={{ color: "var(--text-primary)" }}>No pin for this place</b>{label ? <span>{label}</span> : null}</div></div>;
   return <div className="pw-map" style={{ "--ratio": RATIO[ratio] || ratio, backgroundImage: "none" } as CSSProperties}>
-    <iframe title={label ? `Map: ${label}` : "Map"} src={`https://maps.google.com/maps?q=${lat},${lng}&z=15&output=embed`} loading="lazy" referrerPolicy="no-referrer-when-downgrade" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", border: 0 }} />
+    <iframe title={label ? `Map: ${label}` : "Map"} src={`https://maps.google.com/maps?q=${lat},${lng}&z=15&output=embed`} loading="lazy" referrerPolicy="no-referrer" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", border: 0 }} />
   </div>;
 }
