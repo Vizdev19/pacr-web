@@ -1,0 +1,143 @@
+name: Web
+
+# The new pacr.life (apps/web, Vercel project pacr-site): the Next.js site on
+# the pacr Web Design System that will replace the static pages. Every pull
+# request and every push to main that touches it is checked (types, lint, a
+# full production build); when the checks pass it ships to Vercel:
+#   pull request → a preview deployment on its own *.vercel.app URL
+#   push to main → production, pacr-site.vercel.app
+#
+# pacr.life itself is still the static site (site.yml, Vercel project
+# pacr-web): nothing here changes it. Moving pacr.life onto this app is a
+# separate cutover. Until then the app's catch-all rewrite (next.config.ts)
+# sends paths it doesn't have, such as /host, on to pacr.life.
+#
+# Uses the same VERCEL_TOKEN repo secret as site.yml. The project's
+# framework (Next.js) and "no Git deploys" are set in apps/web/vercel.json.
+
+on:
+  pull_request:
+    paths:
+      - 'apps/web/**'
+      - '.github/workflows/web.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'apps/web/**'
+      - '.github/workflows/web.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  NODE_VERSION: '24'
+  # 53.4.0 (pacr-admin's) refuses the projects' Node 26.x at `vercel build`.
+  VERCEL_CLI_VERSION: '65.3.1'
+  NEXT_TELEMETRY_DISABLED: '1'
+
+defaults:
+  run:
+    working-directory: apps/web
+
+jobs:
+  check:
+    name: Types, lint, build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Set up Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      # PageProps / LayoutProps are global types Next generates from the
+      # routes; a fresh checkout doesn't have them until typegen runs.
+      - name: Type-check
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Restore Next build cache
+        uses: actions/cache@v4
+        with:
+          path: apps/web/.next/cache
+          key: next-${{ runner.os }}-${{ hashFiles('apps/web/package-lock.json') }}-${{ hashFiles('apps/web/app/**', 'apps/web/components/**', 'apps/web/design-system/**', 'apps/web/lib/**', 'apps/web/*.ts') }}
+          restore-keys: |
+            next-${{ runner.os }}-${{ hashFiles('apps/web/package-lock.json') }}-
+
+      # Public pages read with the anon key, which lib/config.ts carries, so
+      # the build needs no env.
+      - name: Build
+        run: npm run build
+
+  deploy:
+    name: Deploy to Vercel (${{ github.event_name == 'pull_request' && 'preview' || 'production' }})
+    needs: check
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # Forked PRs get no secrets, so they stop after the checks.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    environment:
+      name: ${{ github.event_name == 'pull_request' && 'web-preview' || 'web-production' }}
+      url: ${{ steps.deploy.outputs.url }}
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: team_i37ev2MiSqBfbsdrn6ZuQHle
+      VERCEL_PROJECT_ID: prj_nDUWPeB5RNlGRfnSCnibr5H3u40d
+      VERCEL_ENV: ${{ github.event_name == 'pull_request' && 'preview' || 'production' }}
+      PROD_FLAG: ${{ github.event_name != 'pull_request' && '--prod' || '' }}
+    steps:
+      # Checkout first: every run step starts in apps/web (defaults above),
+      # which doesn't exist until the repository is checked out.
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Check Vercel token
+        run: |
+          if [ -z "$VERCEL_TOKEN" ]; then
+            echo "::error::Missing repo secret VERCEL_TOKEN (see the top of .github/workflows/site.yml)"
+            exit 1
+          fi
+
+      - name: Set up Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel@${{ env.VERCEL_CLI_VERSION }}
+
+      # Run from apps/web: the project's root directory is "." and this
+      # folder is that root, so the upload is just the app.
+      - name: Pull Vercel settings and env
+        run: vercel pull --yes --environment="$VERCEL_ENV" --token="$VERCEL_TOKEN"
+
+      - name: Build
+        run: vercel build $PROD_FLAG --token="$VERCEL_TOKEN"
+
+      - name: Deploy
+        id: deploy
+        run: |
+          url=$(vercel deploy --prebuilt $PROD_FLAG --token="$VERCEL_TOKEN")
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+          {
+            echo "### Web deployed to $VERCEL_ENV"
+            echo
+            echo "$url"
+          } >> "$GITHUB_STEP_SUMMARY"

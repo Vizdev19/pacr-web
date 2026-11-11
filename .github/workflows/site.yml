@@ -8,7 +8,8 @@ name: Site
 #
 # Vercel's own Git deploys are switched off in vercel.json, so this workflow
 # is the only thing that deploys the site, and nothing ships that failed the
-# checks. The host dashboard (apps/host) has its own workflow, host.yml.
+# checks. The host dashboard (apps/host) has its own workflow, host.yml, and
+# the new Next.js site (apps/web) has web.yml.
 #
 # One repo secret (Settings › Secrets and variables › Actions):
 #   VERCEL_TOKEN  a token from vercel.com/account/tokens, scoped to the
@@ -21,12 +22,14 @@ on:
     paths-ignore:
       - 'apps/**'
       - '.github/workflows/host.yml'
+      - '.github/workflows/web.yml'
       - '**.md'
   push:
     branches: [main]
     paths-ignore:
       - 'apps/**'
       - '.github/workflows/host.yml'
+      - '.github/workflows/web.yml'
       - '**.md'
   # Redeploy production by hand.
   workflow_dispatch:
