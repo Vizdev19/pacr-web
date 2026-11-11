@@ -45,6 +45,9 @@ export function Shell({ cities, cookieCity, children }: { cities: SiteCity[]; co
   };
   const avatar = async (id: string) => {
     if (id === "signout") { await signOut(); router.push("/"); router.refresh(); return; }
+    // /host is another app (apps/host, behind a rewrite): load it in full.
+    // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- /host is apps/host, not a page here
+    if (id === "host") { window.location.assign("/host"); return; }
     router.push("/" + id);
   };
   const footerCities = cities.filter(c => c.squads > 0 || c.events_upcoming > 0);

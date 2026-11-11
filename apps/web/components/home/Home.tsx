@@ -5,8 +5,8 @@
 import { useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Icon, IconButton } from "@/components/ds/core";
-import { CityPicker, MobileMenuSheet, StoreBadges } from "@/components/ds/nav";
+import { Avatar, Icon, IconButton } from "@/components/ds/core";
+import { ACCOUNT_MENU, CityPicker, Menu, MobileMenuSheet, StoreBadges } from "@/components/ds/nav";
 import { rememberCity, useSessionUser } from "@/components/site/session";
 import { SOCIALS } from "@/lib/config";
 import { BrandIcon, STORES } from "@/components/ds/brands";
@@ -19,6 +19,7 @@ export function Home({ cities, city, runs, pics }: { cities: SiteCity[]; city: s
   const router = useRouter();
   const [cityOpen, setCityOpen] = useState(false);
   const [menu, setMenu] = useState(false);
+  const [account, setAccount] = useState(false);
   const [user, signOut] = useSessionUser();
   const [peek, setPeek] = useState<{ top: number; src: string } | null>(null);
   const runsRef = useRef<HTMLElement>(null);
@@ -34,6 +35,15 @@ export function Home({ cities, city, runs, pics }: { cities: SiteCity[]; city: s
     const hit = q && cities.find(c => c.name.toLowerCase().startsWith(q.toLowerCase()) || c.id === q.toLowerCase());
     if (hit) { rememberCity(hit.id); router.push(`/clubs/${hit.id}`); return; }
     router.push(`/clubs/${city}${q ? `?q=${encodeURIComponent(q)}` : ""}`);
+  };
+  // The account menu, as in the site header. /host is another app, so it
+  // gets a full page load rather than a client-side push.
+  const onAccount = async (id: string) => {
+    setAccount(false);
+    if (id === "signout") { await signOut(); router.refresh(); return; }
+    // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- /host is apps/host, not a page here
+    if (id === "host") { window.location.assign("/host"); return; }
+    router.push("/" + id);
   };
   const pick = (id: string) => { rememberCity(id); setCityOpen(false); setMenu(false); router.refresh(); };
   const showPeek = (tr: HTMLTableRowElement, src: string) => {
@@ -54,6 +64,10 @@ export function Home({ cities, city, runs, pics }: { cities: SiteCity[]; city: s
           <a className="hl-pill" href={`/events/${city}`}>Events</a>
           {user ? <><Link className="hl-pill" href="/feed">Feed</Link><a className="hl-pill" href="/host">Host</a></> : <Link className="hl-pill" href="/signin">Sign in</Link>}
           {STORES.map(st => <a key={st.id} className="hl-pill hl-pill--line hl-pill--icon" href={st.url} aria-label={st.label} title={st.label} target="_blank" rel="noopener"><BrandIcon name={st.id} size={16} /></a>)}
+          {user ? <Menu open={account} onClose={() => setAccount(false)} align="right" items={ACCOUNT_MENU} onSelect={onAccount}
+            header={<div><div style={{ fontWeight: 600 }}>{user.name}</div>{user.handle ? <div className="t-caption">@{user.handle}</div> : null}</div>}>
+            <button className="hl-acct" aria-haspopup="menu" aria-expanded={account} aria-label="Your account" onClick={() => setAccount(!account)}><Avatar name={user.name} src={user.avatar} size={38} /></button>
+          </Menu> : null}
           <IconButton className="hl-only-m" icon="menu" label="Menu" onClick={() => setMenu(true)} />
         </div>
       </header>
