@@ -8,8 +8,12 @@ name: Web
 #   push to main → production, pacr.life
 #
 # The host dashboard (apps/host) is its own project, deployed by host.yml;
-# apps/web/next.config.ts rewrites /host to it. The old static pages at the
-# repo root are no longer deployed.
+# apps/web/next.config.ts rewrites /host to it. The old static site that used
+# to live at the repo root was removed; baf59d5 is the last commit with it.
+#
+# Server rendering runs in bom1 (Mumbai), next to Supabase (ap-south-1):
+# "regions" in apps/web/vercel.json, applied when the deployment is created.
+# Vercel's default, iad1, put an India-to-US round trip on every query.
 #
 # One repo secret (Settings › Secrets and variables › Actions):
 #   VERCEL_TOKEN  a token from vercel.com/account/tokens, scoped to the
