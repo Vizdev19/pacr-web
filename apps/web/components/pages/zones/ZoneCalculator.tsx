@@ -3,8 +3,8 @@
 // fast" reel). The maths runs in the browser; nothing is stored. The story
 // picture is drawn by /zones/story from the same numbers in its address.
 import Script from "next/script";
-import { useEffect, useRef, useState, type CSSProperties, type FocusEvent, type KeyboardEvent, type MouseEvent } from "react";
-import { Button, Card } from "@/components/ds/core";
+import { useEffect, useRef, useState, type CSSProperties, type FocusEvent, type KeyboardEvent, type MouseEvent, type ReactNode } from "react";
+import { Badge, Button, Card } from "@/components/ds/core";
 import { FieldMessage, Input } from "@/components/ds/forms";
 import { StoreBadges } from "@/components/ds/nav";
 import { calculate, fmtPace, joinTime, raceKm, RACES, splitTime, type ZoneErrors, type ZoneForm, type ZoneResult } from "@/lib/zones";
@@ -31,6 +31,12 @@ function zoneQuery(f: ZoneForm): Record<string, string> {
   return q;
 }
 
+/** Same max HR, half marathon pace and zones (to the second and the bpm). */
+function sameZones(a: ZoneResult, b: ZoneResult): boolean {
+  return a.maxHr === b.maxHr && fmtPace(a.hmPace) === fmtPace(b.hmPace)
+    && a.zones.every((z, i) => z.bpm[0] === b.zones[i].bpm[0] && z.bpm[1] === b.zones[i].bpm[1] && z.paceText === b.zones[i].paceText);
+}
+
 /** Instagram's and Facebook's in-app browsers: no file sharing and no downloads. */
 const inAppBrowser = () => /Instagram|FBAN|FBAV/i.test(navigator.userAgent);
 
@@ -39,6 +45,44 @@ const tabular: CSSProperties = { fontVariantNumeric: "tabular-nums" };
 function hatch(color: string): string {
   const c = `color-mix(in oklab, ${color} 18%, transparent)`;
   return `repeating-linear-gradient(135deg, ${c} 0 6px, transparent 6px 13px)`;
+}
+
+/**
+ * Highlights its children for a moment whenever `value` changes, so a number
+ * that moved after an edit is easy to spot: a lime wash that fades (or, on
+ * something already lime, an ink ring), with a small pop unless the runner
+ * has reduced motion on. Web Animations, so the design system's CSS stays as is.
+ */
+function Flash({ value, ring = false, children }: { value: string; ring?: boolean; children: ReactNode }) {
+  const ref = useRef<HTMLSpanElement>(null);
+  const last = useRef(value);
+  useEffect(() => {
+    if (last.current === value) return;
+    last.current = value;
+    const el = ref.current;
+    if (!el?.animate) return;
+    const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const css = getComputedStyle(el);
+    const pop = still ? "none" : "scale(1.06)";
+    const frames: Keyframe[] = ring
+      ? [{ boxShadow: `0 0 0 3px ${css.getPropertyValue("--text-primary").trim() || "#111"}`, transform: pop },
+        { boxShadow: "0 0 0 3px transparent", transform: "none" }]
+      : [{ backgroundColor: css.getPropertyValue("--accent").trim() || "#E4F46A", transform: pop },
+        { backgroundColor: css.getPropertyValue("--accent").trim() || "#E4F46A", transform: "none", offset: 0.4 },
+        { backgroundColor: "transparent", transform: "none" }];
+    el.animate(frames, { duration: 1800, easing: "ease-out" });
+  }, [value, ring]);
+  return <span ref={ref} style={{ display: "inline-block", borderRadius: "var(--radius-sm)", ...(ring ? {} : { padding: "0 4px", margin: "0 -4px" }) }}>{children}</span>;
+}
+
+/** "Updated" for a couple of seconds after the numbers change. */
+function UpdatedTag({ show }: { show: boolean }) {
+  return show ? <Badge tone="accent" variant="solid" size="sm" icon="check">Updated</Badge> : null;
+}
+
+/** Zones on screen that no longer match the form, while an entry is wrong. */
+function staleStyle(stale: boolean): CSSProperties {
+  return stale ? { opacity: 0.4, filter: "grayscale(1)", transition: "opacity var(--dur-fast)" } : { transition: "opacity var(--dur-fast)" };
 }
 
 function ZoneRowCard({ z }: { z: ZoneResult["zones"][number] }) {
@@ -56,9 +100,9 @@ function ZoneRowCard({ z }: { z: ZoneResult["zones"][number] }) {
       </div>
       <div style={{ flex: "0 0 auto", ...tabular }}>
         <div style={{ fontSize: "var(--text-h3)", lineHeight: "var(--lh-h3)", fontWeight: "var(--weight-bold)" as CSSProperties["fontWeight"] }}>
-          {z.bpm[0]}–{z.bpm[1]} <span className="t-body-s t-muted" style={{ fontWeight: "var(--weight-regular)" as CSSProperties["fontWeight"] }}>bpm</span>
+          <Flash value={`${z.bpm[0]}-${z.bpm[1]}`}>{z.bpm[0]}–{z.bpm[1]}</Flash> <span className="t-body-s t-muted" style={{ fontWeight: "var(--weight-regular)" as CSSProperties["fontWeight"] }}>bpm</span>
         </div>
-        <div className="t-body-s t-secondary">{z.paceText} /km</div>
+        <div className="t-body-s t-secondary"><Flash value={z.paceText}>{z.paceText}</Flash> /km</div>
       </div>
     </div>
   </Card>;
@@ -68,12 +112,15 @@ function HmPaceLine({ pace }: { pace: number }) {
   return <div role="separator" aria-label={`Half marathon pace ${fmtPace(pace)} per km`}
     style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", margin: "var(--space-1) 0" }}>
     <span style={{ flex: 1, height: 3, background: "var(--accent)", borderRadius: "var(--radius-pill)" }} />
-    <span className="t-caption" style={{ background: "var(--accent)", color: "var(--on-accent)", padding: "4px var(--space-3)", borderRadius: "var(--radius-pill)", fontWeight: "var(--weight-semibold)" as CSSProperties["fontWeight"], whiteSpace: "nowrap", ...tabular }}>
-      Half marathon pace {fmtPace(pace)} /km
-    </span>
+    <Flash value={fmtPace(pace)} ring>
+      <span className="t-caption" style={{ display: "inline-block", background: "var(--accent)", color: "var(--on-accent)", padding: "4px var(--space-3)", borderRadius: "var(--radius-pill)", fontWeight: "var(--weight-semibold)" as CSSProperties["fontWeight"], whiteSpace: "nowrap", ...tabular }}>
+        Half marathon pace {fmtPace(pace)} /km
+      </span>
+    </Flash>
     <span style={{ flex: 1, height: 3, background: "var(--accent)", borderRadius: "var(--radius-pill)" }} />
   </div>;
 }
+
 
 const selectAll = (e: FocusEvent<HTMLInputElement>) => e.target.select();
 const digits = (v: string, n: number) => v.replace(/\D/g, "").slice(0, n);
@@ -131,19 +178,30 @@ function TimeField({ parts, onChange, error }: { parts: [string, string, string]
 }
 
 /** The answer most people came for, right under the form. */
-function EasyAnswer({ result }: { result: ZoneResult }) {
+function EasyAnswer({ result, before, updated, stale }: { result: ZoneResult; before: ZoneResult | null; updated: boolean; stale: boolean }) {
   const easy = result.zones[1];
+  const was = before?.zones[1];
+  const wasText = was ? `${was.bpm[0]}–${was.bpm[1]} bpm · ${was.paceText} /km` : null;
+  const nowText = `${easy.bpm[0]}–${easy.bpm[1]} bpm · ${easy.paceText} /km`;
   return <Card variant="outline" pad={false} style={{ marginTop: "var(--space-4)", padding: "var(--space-4) var(--space-5)", borderLeft: `6px solid ${easy.color}` }}>
-    <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "var(--space-3) var(--space-6)" }} aria-live="polite">
-      <div style={{ flex: "1 1 200px", ...tabular }}>
-        <p className="t-overline" style={{ margin: 0, color: "var(--text-muted)" }}>Your easy runs</p>
-        <div style={{ fontSize: "var(--text-h3)", lineHeight: "var(--lh-h3)", fontWeight: "var(--weight-bold)" as CSSProperties["fontWeight"], margin: "2px 0" }}>
-          {easy.bpm[0]}–{easy.bpm[1]} <span className="t-body-s t-muted" style={{ fontWeight: "var(--weight-regular)" as CSSProperties["fontWeight"] }}>bpm</span>
+    <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "var(--space-3) var(--space-6)" }}>
+      <div style={{ flex: "1 1 200px", ...tabular, ...staleStyle(stale) }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", minHeight: 22 }}>
+          <p className="t-overline" style={{ margin: 0, color: "var(--text-muted)" }}>Your easy runs</p>
+          <UpdatedTag show={updated && !stale} />
         </div>
-        <div className="t-body-s t-secondary">{easy.paceText} /km</div>
+        <div style={{ fontSize: "var(--text-h3)", lineHeight: "var(--lh-h3)", fontWeight: "var(--weight-bold)" as CSSProperties["fontWeight"], margin: "2px 0" }}>
+          <Flash value={`${easy.bpm[0]}-${easy.bpm[1]}`}>{easy.bpm[0]}–{easy.bpm[1]}</Flash> <span className="t-body-s t-muted" style={{ fontWeight: "var(--weight-regular)" as CSSProperties["fontWeight"] }}>bpm</span>
+        </div>
+        <div className="t-body-s t-secondary"><Flash value={easy.paceText}>{easy.paceText}</Flash> /km</div>
+        {wasText && wasText !== nowText
+          ? <div className="t-caption t-muted" style={{ marginTop: "var(--space-1)" }}>Before: <s>{wasText}</s></div>
+          : null}
       </div>
       <Button variant="ghost" size="sm" href="#z-ladder" iconRight="arrow-down">All five zones</Button>
     </div>
+    {stale ? <div style={{ marginTop: "var(--space-3)" }}><FieldMessage tone="warning">These are your last numbers. Fix the entry above to update them.</FieldMessage></div> : null}
+    <span className="sr-only" aria-live="polite">{stale ? "" : `Easy runs: ${nowText.replace(/–/g, " to ")}`}</span>
   </Card>;
 }
 
@@ -154,6 +212,10 @@ export function ZoneCalculator({ initial }: { initial: ZoneForm }) {
   const [time, setTime] = useState<[string, string, string]>(() => splitTime(initial.t));
   // The numbers behind the chart on screen (the last valid ones).
   const [shown, setShown] = useState<ZoneForm>(initial);
+  // The zones before the last change, and whether that change just happened.
+  const [before, setBefore] = useState<ZoneResult | null>(null);
+  const [updated, setUpdated] = useState(0);
+  const current = useRef(result);
   const [copied, setCopied] = useState(false);
   const [saving, setSaving] = useState(false);
   const story = useRef<{ url: string; blob: Promise<Blob> } | null>(null);
@@ -168,12 +230,27 @@ export function ZoneCalculator({ initial }: { initial: ZoneForm }) {
       const r = calculate(form);
       if ("errors" in r) { setErrors(r.errors); return; } // keep the last good chart
       setErrors({});
-      setResult(r.result);
+      const prev = current.current;
+      if (!prev || !sameZones(prev, r.result)) {
+        if (prev) { setBefore(prev); setUpdated(n => n + 1); }
+        setResult(r.result);
+        current.current = r.result;
+      }
       setShown(form);
       if (edited.current && !calculatedSent.current) { calculatedSent.current = true; track("zones_calculated"); }
     }, DELAY_MS);
     return () => window.clearTimeout(id);
   }, [form]);
+
+  // "Updated" shows for 2.5 s after each change.
+  const [showUpdated, setShowUpdated] = useState(false);
+  useEffect(() => {
+    if (!updated) return;
+    const on = window.setTimeout(() => setShowUpdated(true), 0);
+    const off = window.setTimeout(() => setShowUpdated(false), 2500);
+    return () => { window.clearTimeout(on); window.clearTimeout(off); };
+  }, [updated]);
+  const stale = Object.keys(errors).length > 0;
 
   const storyUrl = "/zones/story?" + new URLSearchParams(zoneQuery(shown)).toString();
 
@@ -286,16 +363,22 @@ export function ZoneCalculator({ initial }: { initial: ZoneForm }) {
           </form>
           {errors.pace ? <div style={{ marginTop: "var(--space-4)" }}><FieldMessage tone="error">{errors.pace}</FieldMessage></div> : null}
         </Card>
-        {result ? <EasyAnswer result={result} /> : null}
+        {result ? <EasyAnswer result={result} before={before} updated={showUpdated} stale={stale} /> : null}
       </div>
     </section>
 
     {result ? <section className="sec" style={{ paddingTop: 0, scrollMarginTop: 80 }} aria-labelledby="z-ladder">
       <div className="pw-reading">
-        <h2 id="z-ladder" className="t-h2" style={{ margin: "0 0 var(--space-2)", scrollMarginTop: 88 }}>Your zones</h2>
+        <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", margin: "0 0 var(--space-2)" }}>
+          <h2 id="z-ladder" className="t-h2" style={{ margin: 0, scrollMarginTop: 88 }}>Your zones</h2>
+          <UpdatedTag show={showUpdated && !stale} />
+        </div>
+        {stale ? <div style={{ margin: "0 0 var(--space-4)" }}><FieldMessage tone="warning">These are your last numbers. Fix the entry above to update them.</FieldMessage></div> : null}
+        <div style={staleStyle(stale)}>
         <p className="t-body t-secondary" style={{ margin: "0 0 var(--space-6)", ...tabular }}>
-          {result.maxEntered ? `Using your max heart rate of ${result.maxHr} bpm` : `Estimated max heart rate: ${result.maxHr} bpm`}
-          {" · "}Half marathon pace {fmtPace(result.hmPace)} /km
+          {result.maxEntered ? "Using your max heart rate of " : "Estimated max heart rate: "}
+          <Flash value={String(result.maxHr)}>{result.maxHr}</Flash> bpm
+          {" · "}Half marathon pace <Flash value={fmtPace(result.hmPace)}>{fmtPace(result.hmPace)}</Flash> /km
         </p>
 
         <div className="stack" style={{ gap: "var(--space-3)" }}>
@@ -303,6 +386,7 @@ export function ZoneCalculator({ initial }: { initial: ZoneForm }) {
             {z.n === 4 ? <HmPaceLine pace={result.hmPace} /> : null}
             <ZoneRowCard z={z} />
           </div>)}
+        </div>
         </div>
 
         <ul className="t-body t-secondary" style={{ margin: "var(--space-8) 0 0", paddingLeft: "var(--space-5)", display: "grid", gap: "var(--space-2)" }}>
