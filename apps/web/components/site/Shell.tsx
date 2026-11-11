@@ -11,7 +11,7 @@ const CITY_SECTIONS = ["clubs", "runs", "events"] as const;
 // Which header link / tab a path lights up.
 const ACTIVE: Record<string, string> = {
   clubs: "squads", s: "squads", squads: "squads", runs: "runs", events: "events", e: "events", feed: "feed", p: "feed",
-  runbuddies: "runbuddies", tickets: "tickets", notifications: "notifications", profile: "profile", activity: "profile", app: "app", hosts: "hosts",
+  runbuddies: "runbuddies", tickets: "tickets", notifications: "notifications", profile: "profile", activity: "profile", routes: "profile", shoes: "profile", settings: "profile", app: "app", hosts: "hosts",
 };
 
 /**

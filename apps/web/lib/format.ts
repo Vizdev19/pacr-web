@@ -18,7 +18,8 @@ export function istParts(iso: string | Date): Parts {
   return {
     dow: p.weekday,
     day: p.day,
-    month: p.month,
+    // en-GB writes September as "Sept" in newer ICU; the design system uses three letters.
+    month: p.month === "Sept" ? "Sep" : p.month,
     time: `${p.hour}:${p.minute} ${(p.dayPeriod || "").toLowerCase()}`.trim(),
     ymd,
   };

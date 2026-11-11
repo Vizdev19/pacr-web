@@ -10,8 +10,9 @@ import { getSupabase } from "./supabase";
 //   post-images    posts.image_path
 //   club-avatars   circles.avatar_path / cover_path (public squads also have /s/<slug>/photo)
 //   event-covers   events.cover_path (public events also have /e/<ref>/poster)
+//   shoe-photos    a shoe pair's own photo (user_data pacr_shoes)
 
-export type Bucket = "avatars" | "post-images" | "club-avatars" | "event-covers";
+export type Bucket = "avatars" | "post-images" | "club-avatars" | "event-covers" | "shoe-photos";
 const cache = new Map<string, string>();
 const TTL = 60 * 60 * 6;
 
