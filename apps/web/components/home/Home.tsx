@@ -51,7 +51,7 @@ export function Home({ cities, city, runs, pics }: { cities: SiteCity[]; city: s
         <div className="hl-nav__r">
           <button className="hl-pill" onClick={() => setCityOpen(true)} aria-haspopup="dialog">{cityName} <Icon name="chevron-down" /></button>
           <a className="hl-pill" href={`/events/${city}`}>Events</a>
-          {user ? <a className="hl-pill" href="/feed">Feed</a> : <a className="hl-pill" href="/signin">Sign in</a>}
+          {user ? <Link className="hl-pill" href="/feed">Feed</Link> : <Link className="hl-pill" href="/signin">Sign in</Link>}
           <a className="hl-pill hl-pill--line" href="/download">Get the app</a>
           <IconButton className="hl-only-m" icon="menu" label="Menu" onClick={() => setMenu(true)} />
         </div>

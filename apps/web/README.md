@@ -42,24 +42,24 @@ The session is shared with `/signin` and `/host` through the `pacr.web.auth` loc
 
 ## Built
 
-| Route | What |
+Every page on pacr.life except the host dashboard (`/host`, plus its event editor at `/host/new`, `/host/e/*` and `/host/apply`, which keep their own design system).
+
+| Area | Routes |
 |---|---|
-| `/` | Home (lime design): real city list, squad photos, this week's runs |
-| `/clubs`, `/clubs/<city>` | Squad directory: search, day, time, women only, verified and open filters, load more |
-| `/runs`, `/runs/<city>` | Runs this week, grouped by day |
-| `/events`, `/events/<city>` | Events: type, when and price filters |
+| Discover | `/`, `/clubs/<city>`, `/runs/<city>`, `/events/<city>` |
+| Share pages | `/s/<slug>` (`?run=`, `?invite=`), `/e/<ref>`, `/p/<ref>`, `/u/<handle>`, `/live?t=` |
+| Pictures | `/s/<slug>/photo`, `/cover`, `/card`, `/e/<ref>/poster`, `/course`, `/p/<ref>/photo`, `/avatar`, `/u/<handle>/photo` |
+| Signed in | `/feed`, `/feed/<ref>`, `/profile` (`?r=`), `/activity/<ref>`, `/squads`, `/tickets`, `/notifications`, `/runbuddies`, `/routes`, `/shoes`, `/settings` |
+| Static | `/signin`, `/download`, `/support`, `/app`, `/hosts`, `/safety`, `/about`, `/plans/<distance>`, `/privacy`, `/terms`, `/community-rules` |
 
-## Not built yet
+The old URLs `/*-training-plan`, `/running-coach-app`, `/social` and `/downloads` redirect (`next.config.ts`).
 
-These are in the kit or the brief:
-- the squad page `/s/<slug>`
-- the run page
-- the event page and checkout
-- the feed and the other signed-in pages
-- `/app`, `/hosts`, `/safety` and `/about`
-- the map view on the directory
+## Not built yet (needs a decision or a deploy)
 
-Until those exist, the cards link to the current share pages on pacr.life.
+- **Squad member view:** feed, chat, announcements, leaderboard and members tabs. Members are pointed to the app for now.
+- **Paid event checkout:** needs CORS on the `event-checkout` edge function and Razorpay on the web. Free tickets work.
+- **Directory map view.**
+- **Analytics:** PostHog is not in this app yet.
 
 ## Deploying
 

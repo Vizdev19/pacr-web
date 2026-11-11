@@ -1,7 +1,6 @@
 "use client";
 // components/navigation/* and components/actions/StoreBadges of the pacr Web
-// Design System, ported to TSX. The header and footer list only pages that
-// exist; the kit's /app, /hosts, /about pages aren't built yet.
+// Design System, ported to TSX.
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { APP_STORE_URL, INSTAGRAM_URL, PLAY_STORE_URL } from "@/lib/config";
 import { Avatar, Button, Icon, IconButton, Logo } from "./core";
@@ -69,8 +68,8 @@ export const ACCOUNT_MENU: MenuItem[] = [
   { id: "host", label: "Host dashboard", icon: "layout-dashboard", meta: "/host" }, "-", { id: "signout", label: "Sign out", icon: "log-out" },
 ];
 export type HeaderUser = { name: string; handle?: string | null; avatar?: string | null };
-export function SiteHeader({ active, cityName, onCity, onMenu, user, unread = 0, onAvatarAction }:
-  { active?: string; cityName: string; onCity: () => void; onMenu: () => void; user: HeaderUser | null; unread?: number; onAvatarAction: (id: string) => void }) {
+export function SiteHeader({ active, signin = "/signin", cityName, onCity, onMenu, user, unread = 0, onAvatarAction }:
+  { active?: string; signin?: string; cityName: string; onCity: () => void; onMenu: () => void; user: HeaderUser | null; unread?: number; onAvatarAction: (id: string) => void }) {
   const [menu, setMenu] = useState(false);
   const nav = user ? MEMBER_NAV : SITE_NAV;
   return (
@@ -92,7 +91,7 @@ export function SiteHeader({ active, cityName, onCity, onMenu, user, unread = 0,
           </span>
           <IconButton className="pw-header__menu" icon="menu" label="Menu" onClick={onMenu} />
         </div> : <div className="pw-header__actions">
-          <span className="pw-header__d"><Button variant="ghost" size="sm" href="/signin">Sign in</Button></span>
+          <span className="pw-header__d"><Button variant="ghost" size="sm" href={signin}>Sign in</Button></span>
           <Button size="sm" href="/download">Get the app</Button>
           <IconButton className="pw-header__menu" icon="menu" label="Menu" onClick={onMenu} />
         </div>}
@@ -104,8 +103,8 @@ export function SiteHeader({ active, cityName, onCity, onMenu, user, unread = 0,
 /* MobileMenuSheet */
 const MOBILE_OUT: [string, string, string][] = [["squads", "Squads", "/clubs"], ["runs", "Runs this week", "/runs"], ["events", "Events", "/events"], ["app", "The app", "/app"], ["hosts", "For hosts", "/hosts"], ["safety", "Safety", "/safety"]];
 const MOBILE_IN: [string, string, string][] = [["feed", "Feed", "/feed"], ["squads", "Your squads", "/squads"], ["clubs", "Find squads", "/clubs"], ["runs", "Runs this week", "/runs"], ["events", "Events", "/events"], ["runbuddies", "Run buddies", "/runbuddies"], ["tickets", "Tickets", "/tickets"], ["profile", "Profile", "/profile"], ["settings", "Settings", "/settings"]];
-export function MobileMenuSheet({ open, onClose, active, cityName, onCity, user, onSignOut }:
-  { open: boolean; onClose: () => void; active?: string; cityName: string; onCity: () => void; user: HeaderUser | null; onSignOut: () => void }) {
+export function MobileMenuSheet({ open, onClose, active, signin = "/signin", cityName, onCity, user, onSignOut }:
+  { open: boolean; onClose: () => void; active?: string; signin?: string; cityName: string; onCity: () => void; user: HeaderUser | null; onSignOut: () => void }) {
   useEscape(open, onClose);
   if (!open) return null;
   const items = user ? MOBILE_IN : MOBILE_OUT;
@@ -116,7 +115,7 @@ export function MobileMenuSheet({ open, onClose, active, cityName, onCity, user,
       {items.map(([id, l, h]) => <a key={id} href={h} className="pw-listrow pw-listrow--big" aria-current={active === id ? "page" : undefined}>{l}</a>)}
     </div>
     <div className="pw-sheet__foot"><Button block size="lg" href="/download">Get the app</Button>
-      {user ? <Button block size="lg" variant="secondary" onClick={onSignOut}>Sign out</Button> : <Button block size="lg" variant="secondary" href="/signin">Sign in</Button>}</div>
+      {user ? <Button block size="lg" variant="secondary" onClick={onSignOut}>Sign out</Button> : <Button block size="lg" variant="secondary" href={signin}>Sign in</Button>}</div>
   </div>;
 }
 

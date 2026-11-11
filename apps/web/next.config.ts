@@ -9,6 +9,22 @@ import type { NextConfig } from "next";
 // pacr.life, so a local or preview build shows the real pages and the real
 // /s/<slug>/photo pictures.
 const nextConfig: NextConfig = {
+  // Old static-site URLs (permanent): the training-plan and coach pages moved
+  // to /plans/<distance> and /app; /social and /downloads keep pacr.life's
+  // vercel.json behaviour, tagging /download with ?via= for attribution.
+  async redirects() {
+    return [
+      { source: "/5k-training-plan", destination: "/plans/5k", permanent: true },
+      { source: "/10k-training-plan", destination: "/plans/10k", permanent: true },
+      { source: "/half-marathon-training-plan", destination: "/plans/half-marathon", permanent: true },
+      { source: "/marathon-training-plan", destination: "/plans/marathon", permanent: true },
+      { source: "/running-coach-app", destination: "/app", permanent: true },
+      // No plans index yet: the first distance stands in for it.
+      { source: "/plans", destination: "/plans/5k", permanent: false },
+      { source: "/social", destination: "/download?via=social", permanent: true },
+      { source: "/downloads", destination: "/download?via=downloads", permanent: true },
+    ];
+  },
   async rewrites() {
     return { beforeFiles: [], afterFiles: [], fallback: [{ source: "/:path*", destination: "https://pacr.life/:path*" }] };
   },

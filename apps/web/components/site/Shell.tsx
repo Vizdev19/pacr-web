@@ -11,7 +11,7 @@ const CITY_SECTIONS = ["clubs", "runs", "events"] as const;
 // Which header link / tab a path lights up.
 const ACTIVE: Record<string, string> = {
   clubs: "squads", s: "squads", squads: "squads", runs: "runs", events: "events", e: "events", feed: "feed", p: "feed",
-  runbuddies: "runbuddies", tickets: "tickets", notifications: "notifications", profile: "profile", activity: "profile", routes: "profile", shoes: "profile", settings: "profile", app: "app", hosts: "hosts",
+  runbuddies: "runbuddies", tickets: "tickets", notifications: "notifications", profile: "profile", activity: "profile", routes: "profile", shoes: "profile", settings: "profile", app: "app", plans: "app", download: "app", hosts: "hosts",
 };
 
 /**
@@ -33,6 +33,8 @@ export function Shell({ cities, cookieCity, children }: { cities: SiteCity[]; co
   const [user, signOut] = useSessionUser();
   const unread = useUnread(!!user);
   const active = ACTIVE[seg] ?? undefined;
+  // Sign in brings you back here (but not back to /signin itself).
+  const signin = seg === "signin" ? "/signin" : `/signin?next=${encodeURIComponent(path)}`;
 
   useEffect(() => { if (section && urlCity && city === urlCity) rememberCity(urlCity); }, [section, urlCity, city]);
 
@@ -48,11 +50,11 @@ export function Shell({ cities, cookieCity, children }: { cities: SiteCity[]; co
   const footerCities = cities.filter(c => c.squads > 0 || c.events_upcoming > 0);
 
   return <ToastProvider><div className="site" style={user ? { paddingBottom: 0 } : undefined}>
-    <SiteHeader active={active} cityName={cityName} onCity={() => setCityOpen(true)} onMenu={() => setMenu(true)} user={user} unread={unread} onAvatarAction={avatar} />
+    <SiteHeader active={active} signin={signin} cityName={cityName} onCity={() => setCityOpen(true)} onMenu={() => setMenu(true)} user={user} unread={unread} onAvatarAction={avatar} />
     <main>{children}</main>
     <SiteFooter cities={footerCities.length ? footerCities : cities.slice(0, 6)} />
     {user ? <div className="only-md"><div style={{ height: "var(--tabbar-h)" }} /><BottomTabBar active={active} /></div> : null}
     <CityPicker open={cityOpen} city={city} cities={cities} onClose={() => setCityOpen(false)} onSelect={pick} />
-    <MobileMenuSheet open={menu} onClose={() => setMenu(false)} active={active} cityName={cityName} onCity={() => { setMenu(false); setCityOpen(true); }} user={user} onSignOut={async () => { await signOut(); setMenu(false); router.push("/"); router.refresh(); }} />
+    <MobileMenuSheet signin={signin} open={menu} onClose={() => setMenu(false)} active={active} cityName={cityName} onCity={() => { setMenu(false); setCityOpen(true); }} user={user} onSignOut={async () => { await signOut(); setMenu(false); router.push("/"); router.refresh(); }} />
   </div></ToastProvider>;
 }
