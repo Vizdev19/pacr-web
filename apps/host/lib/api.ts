@@ -24,6 +24,10 @@ const REASONS = [
   "checkin_closed", "unknown_code", "not_a_run", "cooldown", "already_verified", "hidden_beyond_squad",
   "squad_not_verified", "payout_account_required", "incomplete", "schedule_locked", "has_upcoming_events",
   "email_required", "rate_limited", "signed_out", "invalid_name", "places_unavailable", "places_limit",
+  // A host's refund (refund_event_ticket): worded by refundFailText.
+  "payout_settled", "already_refunded", "free_ticket", "no_ticket", "too_long", "not_found",
+  // Payout details (set_host_payout_account): worded by payoutFailText.
+  "destination_required", "name_required", "invalid_vpa", "invalid_account", "invalid_ifsc", "invalid_pan",
 ] as const;
 
 function reasonOf(message: string | undefined | null): string {
@@ -58,6 +62,30 @@ const FAIL: Record<string, string> = {
 };
 /** A sentence for a failure, in the design system's voice. */
 export const failText = (e: unknown) => FAIL[e instanceof ApiError ? e.reason : "error"] ?? FAIL.error;
+
+const REFUND_FAIL: Record<string, string> = {
+  not_found: "This event isn’t there any more.",
+  not_allowed: "Only the event’s host can refund tickets. Co-hosts can’t.",
+  too_long: "Keep the note to 300 characters.",
+  blocked_content: "That note isn’t allowed. Try different words.",
+  payout_settled: "This event’s payout has been sent, or is being sent, so only pacr can refund now. Write to support@pacr.life.",
+  no_ticket: "That booking isn’t active any more. It may have been given up or cancelled.",
+  already_refunded: "That booking has already been refunded.",
+  free_ticket: "That’s a free booking, so there’s nothing to refund.",
+};
+/** A refund_event_ticket refusal, in plain words. */
+export const refundFailText = (e: unknown) => (e instanceof ApiError ? REFUND_FAIL[e.reason] : undefined) ?? failText(e);
+
+const PAYOUT_FAIL: Record<string, string> = {
+  destination_required: "Choose UPI or a bank account.",
+  name_required: "Add the account holder’s name as the bank has it, 2 to 80 characters.",
+  invalid_vpa: "Check the UPI ID. It looks like name@bank.",
+  invalid_account: "A bank account number is 9 to 18 digits.",
+  invalid_ifsc: "An IFSC is 11 characters, like HDFC0001234.",
+  invalid_pan: "A PAN is 10 characters, like ABCDE1234F. You can leave it out.",
+};
+/** A set_host_payout_account refusal, in plain words (not_allowed is worded by the page: it knows whose details these are). */
+export const payoutFailText = (e: unknown) => (e instanceof ApiError ? PAYOUT_FAIL[e.reason] : undefined) ?? failText(e);
 
 const sb = (): SupabaseClient => getSupabase();
 
@@ -707,36 +735,108 @@ export type HostedEvent = {
 export const hostedEvents = (includePast = true) =>
   rpc<HostedEvent[] | null>("my_hosted_events", { p_include_past: includePast }).then(r => r ?? []);
 
+/** A booking's refund: queued, being sent to Razorpay, back with the runner, or failed (event-jobs tries again). */
+export type RefundStatus = "requested" | "processing" | "done" | "failed";
 export type Attendee = {
-  user_id: string; name: string | null; avatar_path: string | null; tier_name: string | null; ticket_status: string;
-  checked_in_at: string | null; registered_at: string; total_minor: number | null; refund_status: string | null;
+  user_id: string | null; name: string | null; avatar_path: string | null; tier_name: string | null;
+  /** valid | cancelled (given up, or a free seat on a cancelled event) | refunded. A booking's seats share it. */
+  ticket_status: string;
+  /** registered_at is the booking's (its order's created_at); total_minor its whole total, fee and GST included. */
+  checked_in_at: string | null; registered_at: string; total_minor: number | null; refund_status: RefundStatus | null;
   ticket_id: string; seq: number; qty: number;
 };
-/** One row per seat: who holds it, its tier and whether it's checked in. */
+/** One row per seat: who holds it, its tier and whether it's checked in. The event's host and co-hosts. */
 export const eventAttendees = (eventId: string) =>
   rpc<Attendee[] | null>("list_event_attendees", { p_event_id: eventId }).then(r => r ?? []);
 
+/**
+ * Refund a whole booking, named by any one of its seats (a buyer who deleted
+ * their account has no user id): the ticket price, pacr's fee and the GST go
+ * back, and every seat in it is cancelled. The event's host only, not
+ * co-hosts, and only until the event's payout is being paid (payout_settled).
+ * The runner gets a notice, with the note if there is one (300 characters).
+ */
+export const refundBooking = (eventId: string, ticketId: string, note: string) =>
+  rpc<{ refund_minor: number } | null>("refund_event_ticket", { p_event_id: eventId, p_ticket_id: ticketId, p_note: note.trim() || null })
+    .then(r => Number(r?.refund_minor ?? 0));
+
+/** pending (ready to pay) · hold (see hold_reason) · paying (pacr is transferring it) · paid · void (nothing to pay). */
+export type PayoutStatus = "pending" | "hold" | "paying" | "paid" | "void";
+/** Why a payout waits: refund_in_progress · no_payout_account · dispute_open · host_suspended. */
+export type PayoutLine = { status: PayoutStatus; hold_reason: string | null; net_minor: number; paid_at: string | null; reference: string | null };
+
 export type EventSales = {
   tiers: { name: string; price_minor: number; capacity: number | null; sold: number; refunded: number }[];
-  sold: number; ticket_gross_minor: number; ticket_refunded_minor: number; net_minor: number; fee_minor: number; gst_minor: number;
+  /** Seats sold and kept. */
+  sold: number;
+  /** Ticket prices only (pacr's fee and GST are the runner's, on top). net_minor = what the host is owed for tickets kept. */
+  ticket_gross_minor: number; ticket_refunded_minor: number; net_minor: number; fee_minor: number; gst_minor: number;
+  /** Refunds not finished: queued, sending or failed. */
   refunds_open: number; payout_ready: boolean;
-  payout: { status: string; hold_reason: string | null; net_minor: number; paid_at: string | null; reference: string | null } | null;
+  /** Only from a day after the event ends. */
+  payout: PayoutLine | null;
 };
-/** Sales for one event. The event's host only (not co-hosts). */
+/** Sales for one event, live from the first sale. The event's host only (not co-hosts). */
 export const eventSales = (eventId: string) => rpc<EventSales>("event_sales_summary", { p_event_id: eventId });
+
+/**
+ * Live sales for each of a host's paid events (the hosting list, then
+ * event_sales_summary a few at a time). Payout rows only exist from a day
+ * after an event ends; these figures are there from the first sale.
+ */
+export async function hostSales(kind: "squad" | "organizer", hostId: string): Promise<{ event: HostedEvent; sales: EventSales }[]> {
+  const paid = (await hostedEvents(true))
+    .filter(e => e.host?.kind === kind && e.host?.id === hostId && e.is_paid && e.status !== "draft");
+  const out: ({ event: HostedEvent; sales: EventSales } | null)[] = paid.map(() => null);
+  let next = 0;
+  const worker = async () => {
+    while (next < paid.length) {
+      const i = next++;
+      try {
+        out[i] = { event: paid[i], sales: await eventSales(paid[i].id) };
+      } catch (e) {
+        // An event this person no longer hosts (a role changed meanwhile) is left out, not an error.
+        if (!(e instanceof ApiError && e.reason === "not_allowed")) throw e;
+      }
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(6, paid.length) }, worker));
+  return out.filter((x): x is { event: HostedEvent; sales: EventSales } => x !== null);
+}
 
 export type Payout = {
   event_id: string; title: string; starts_at: string; tickets: number; ticket_gross_minor: number; ticket_refunded_minor: number;
-  net_minor: number; status: "pending" | "hold" | "paid" | "void"; hold_reason: string | null; paid_at: string | null; reference: string | null;
+  net_minor: number; status: PayoutStatus; hold_reason: string | null; paid_at: string | null; reference: string | null;
 };
-/** One payout line per event for a squad or organizer account. */
+/** One payout line per event for a squad or organizer account, from a day after each event ends. */
 export const myPayouts = (kind: "squad" | "organizer", hostId: string) =>
   rpc<Payout[] | null>("my_payouts", { p_host_kind: kind, p_host_id: hostId }).then(r => r ?? []);
 
-export type PayoutAccount = { ready: boolean; can_edit: boolean; account: Record<string, string | null> | null };
-/** The payout account on file, masked. */
+/** Where pacr pays a host, as the host may see it: never the full UPI ID or account number. */
+export type MaskedPayout = {
+  method: "upi" | "bank"; account_name: string; upi: string | null; account_last4: string | null; ifsc: string | null;
+  has_pan: boolean; updated_at: string | null;
+};
+export type PayoutAccount = { ready: boolean; can_edit: boolean; account: MaskedPayout | null };
+/**
+ * Whether payout details are on file (anyone who hosts as this squad or
+ * organizer), and, for who may change them (the squad's owner, the
+ * organizer's owner), the details masked.
+ */
 export const payoutAccount = (kind: "squad" | "organizer", hostId: string) =>
   rpc<PayoutAccount>("my_payout_account", { p_host_kind: kind, p_host_id: hostId });
+
+export type PayoutDetails =
+  | { method: "upi"; account_name: string; upi: string; pan?: string }
+  | { method: "bank"; account_name: string; account_number: string; ifsc: string; pan?: string };
+/**
+ * Replace the payout details (the squad's owner or the organizer's owner).
+ * What is typed goes to the server once and is never read back: the answer is
+ * the masked view. A squad's other owners get a notice of every change, and
+ * payouts held for want of details go ahead.
+ */
+export const setPayoutAccount = (kind: "squad" | "organizer", hostId: string, details: PayoutDetails) =>
+  rpc<MaskedPayout>("set_host_payout_account", { p_host_kind: kind, p_host_id: hostId, p_details: details });
 
 export type EventPricing = { paid_allowed: boolean; fee_bps: number; gst_bps: number };
 /** pacr's fee (5%) and the GST on it (18%), as the database has them. */
