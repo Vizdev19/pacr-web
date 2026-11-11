@@ -64,7 +64,7 @@ export function Menu({ open, onClose, items, onSelect, align = "right", header, 
 export const SITE_NAV: [string, string, string][] = [["squads", "Squads", "/clubs"], ["runs", "Runs", "/runs"], ["events", "Events", "/events"], ["app", "App", "/app"], ["hosts", "For hosts", "/hosts"]];
 /** Drops the Feed entry while the feed is app-only (FEED_ON_WEB). */
 const feedGate = <T extends [string, ...string[]]>(items: T[]) => items.filter(([id]) => FEED_ON_WEB || id !== "feed");
-export const MEMBER_NAV: [string, string, string][] = feedGate([["feed", "Feed", "/feed"], ["squads", "Squads", "/squads"], ["events", "Events", "/events"], ["runbuddies", "Run buddies", "/runbuddies"], ["host", "Host", "/host"]]);
+export const MEMBER_NAV: [string, string, string][] = feedGate([["feed", "Feed", "/feed"], ["squads", "Squads", "/squads"], ["events", "Events", "/events"], ["host", "Host", "/host"]]);
 export const ACCOUNT_MENU: MenuItem[] = [
   { id: "profile", label: "Profile", icon: "user-round" }, { id: "tickets", label: "Tickets", icon: "ticket" }, { id: "routes", label: "Routes", icon: "route" },
   { id: "shoes", label: "Shoes", icon: "footprints" }, { id: "settings", label: "Settings", icon: "settings" },
@@ -105,7 +105,7 @@ export function SiteHeader({ active, signin = "/signin", cityName, onCity, onMen
 
 /* MobileMenuSheet */
 const MOBILE_OUT: [string, string, string][] = [["squads", "Squads", "/clubs"], ["runs", "Runs this week", "/runs"], ["events", "Events", "/events"], ["app", "The app", "/app"], ["hosts", "For hosts", "/hosts"], ["safety", "Safety", "/safety"]];
-const MOBILE_IN: [string, string, string][] = feedGate([["feed", "Feed", "/feed"], ["squads", "Your squads", "/squads"], ["clubs", "Find squads", "/clubs"], ["runs", "Runs this week", "/runs"], ["events", "Events", "/events"], ["runbuddies", "Run buddies", "/runbuddies"], ["tickets", "Tickets", "/tickets"], ["profile", "Profile", "/profile"], ["settings", "Settings", "/settings"], ["host", "Host dashboard", "/host"]]);
+const MOBILE_IN: [string, string, string][] = feedGate([["feed", "Feed", "/feed"], ["squads", "Your squads", "/squads"], ["clubs", "Find squads", "/clubs"], ["runs", "Runs this week", "/runs"], ["events", "Events", "/events"], ["tickets", "Tickets", "/tickets"], ["profile", "Profile", "/profile"], ["settings", "Settings", "/settings"], ["host", "Host dashboard", "/host"]]);
 export function MobileMenuSheet({ open, onClose, active, signin = "/signin", cityName, onCity, user, onSignOut }:
   { open: boolean; onClose: () => void; active?: string; signin?: string; cityName: string; onCity: () => void; user: HeaderUser | null; onSignOut: () => void }) {
   useEscape(open, onClose);

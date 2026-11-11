@@ -25,6 +25,9 @@ const nextConfig: NextConfig = {
       { source: "/running-coach-app", destination: "/app", permanent: true },
       // No plans index yet: the first distance stands in for it.
       { source: "/plans", destination: "/plans/5k", permanent: false },
+      // Run buddies is app-only: the web explains it on /safety and doesn't
+      // list or open runs. Old links (incl. ?run=) land on that explainer.
+      { source: "/runbuddies", destination: "/safety#run-buddies", permanent: false },
       // /social and /downloads tag /download with ?via= for attribution.
       { source: "/social", destination: "/download?via=social", permanent: true },
       { source: "/downloads", destination: "/download?via=downloads", permanent: true },

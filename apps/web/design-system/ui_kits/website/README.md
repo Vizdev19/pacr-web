@@ -16,5 +16,5 @@ Build pages with the TSX ports in `components/ds/`.
 
 Not in the kit (design from the brief + these patterns): city SEO intro, post page,
 live run page (LiveRunPanel exists), runner profile, /app, /plans, /hosts, /safety,
-about/help/download, legal reading template, run buddies, your squads, own profile,
+about/help/download, legal reading template, your squads, own profile,
 activity detail, routes, shoes, settings, notifications, 404.
