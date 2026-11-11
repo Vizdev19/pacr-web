@@ -5,6 +5,15 @@
 export const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://zrnoioagjnmetnzwneks.supabase.co";
 export const SUPABASE_KEY = "sb_publishable_Bx3sahSCZxbK3lvnWcOu4Q_aD__9yqZ";
 
+/**
+ * The feed is app-only for now (user decision, 2026-11-11). The web feed
+ * (/feed, /feed/<ref>, components/pages/feed) stays in the code but is hidden:
+ * no nav entry, /feed redirects to Your squads, /feed/<ref> to the public
+ * post page /p/<ref>, and post links everywhere go to /p/<ref>. Set this to
+ * true to bring it back.
+ */
+export const FEED_ON_WEB: boolean = false;
+
 export const APP_STORE_URL = "https://apps.apple.com/in/app/pacr-run-training-splits/id6804190286";
 export const PLAY_STORE_URL = "https://play.google.com/store/apps/details?id=life.pacr.app";
 export const INSTAGRAM_URL = "https://www.instagram.com/pacr.running/";

@@ -3,6 +3,7 @@
 // as a page, on list_notifications and mark_notifications_read. Grouped by
 // day in IST; a row marks itself read, then opens what it's about.
 import { useEffect, useMemo, useState, type CSSProperties, type MouseEvent } from "react";
+import { FEED_ON_WEB } from "@/lib/config";
 import { Avatar, Badge, Button, Icon } from "@/components/ds/core";
 import { EmptyState, ErrorState, Skeleton } from "@/components/ds/feedback";
 import { LoadMore } from "@/components/ds/nav";
@@ -82,7 +83,7 @@ function Inbox() {
       {anyUnread ? <Button variant="ghost" size="sm" icon="check-check" onClick={() => void markAll()}>Mark all read</Button> : null}</div>
     {failed && !items ? <ErrorState title="We couldn't load your notifications" body="Check your connection, then try again." onRetry={() => setKey(k => k + 1)} />
       : !items ? <div className="stack">{[0, 1, 2, 3].map(i => <Skeleton key={i} variant="runner" />)}</div>
-      : !items.length ? <EmptyState boxed icon="bell" title="No notifications yet." body="Kudos, comments and squad news land here." action="Go to your feed" href="/feed" />
+      : !items.length ? <EmptyState boxed icon="bell" title="No notifications yet." body="Kudos, comments and squad news land here." action={FEED_ON_WEB ? "Go to your feed" : "Your squads"} href={FEED_ON_WEB ? "/feed" : "/squads"} />
       : <>
         {groups.map(g => <section key={g.label} className="block" aria-label={g.label} style={{ gap: 4, marginBottom: "var(--space-6)" }}>
           <h2 className="t-overline" style={{ margin: "0 0 4px" }}>{g.label}</h2>

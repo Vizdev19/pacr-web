@@ -2,7 +2,7 @@
 // components/navigation/* and components/actions/StoreBadges of the pacr Web
 // Design System, ported to TSX.
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { APP_STORE_URL, PLAY_STORE_URL } from "@/lib/config";
+import { APP_STORE_URL, FEED_ON_WEB, PLAY_STORE_URL } from "@/lib/config";
 import { SocialIcons, StoreIcons } from "./brands";
 import { Avatar, Button, Icon, IconButton, Logo } from "./core";
 import { useEscape } from "./feedback";
@@ -62,7 +62,9 @@ export function Menu({ open, onClose, items, onSelect, align = "right", header, 
 
 /* Header: the kit's signed-out and signed-in variants. */
 export const SITE_NAV: [string, string, string][] = [["squads", "Squads", "/clubs"], ["runs", "Runs", "/runs"], ["events", "Events", "/events"], ["app", "App", "/app"], ["hosts", "For hosts", "/hosts"]];
-export const MEMBER_NAV: [string, string, string][] = [["feed", "Feed", "/feed"], ["squads", "Squads", "/squads"], ["events", "Events", "/events"], ["runbuddies", "Run buddies", "/runbuddies"], ["host", "Host", "/host"]];
+/** Drops the Feed entry while the feed is app-only (FEED_ON_WEB). */
+const feedGate = <T extends [string, ...string[]]>(items: T[]) => items.filter(([id]) => FEED_ON_WEB || id !== "feed");
+export const MEMBER_NAV: [string, string, string][] = feedGate([["feed", "Feed", "/feed"], ["squads", "Squads", "/squads"], ["events", "Events", "/events"], ["runbuddies", "Run buddies", "/runbuddies"], ["host", "Host", "/host"]]);
 export const ACCOUNT_MENU: MenuItem[] = [
   { id: "profile", label: "Profile", icon: "user-round" }, { id: "tickets", label: "Tickets", icon: "ticket" }, { id: "routes", label: "Routes", icon: "route" },
   { id: "shoes", label: "Shoes", icon: "footprints" }, { id: "settings", label: "Settings", icon: "settings" },
@@ -103,7 +105,7 @@ export function SiteHeader({ active, signin = "/signin", cityName, onCity, onMen
 
 /* MobileMenuSheet */
 const MOBILE_OUT: [string, string, string][] = [["squads", "Squads", "/clubs"], ["runs", "Runs this week", "/runs"], ["events", "Events", "/events"], ["app", "The app", "/app"], ["hosts", "For hosts", "/hosts"], ["safety", "Safety", "/safety"]];
-const MOBILE_IN: [string, string, string][] = [["feed", "Feed", "/feed"], ["squads", "Your squads", "/squads"], ["clubs", "Find squads", "/clubs"], ["runs", "Runs this week", "/runs"], ["events", "Events", "/events"], ["runbuddies", "Run buddies", "/runbuddies"], ["tickets", "Tickets", "/tickets"], ["profile", "Profile", "/profile"], ["settings", "Settings", "/settings"], ["host", "Host dashboard", "/host"]];
+const MOBILE_IN: [string, string, string][] = feedGate([["feed", "Feed", "/feed"], ["squads", "Your squads", "/squads"], ["clubs", "Find squads", "/clubs"], ["runs", "Runs this week", "/runs"], ["events", "Events", "/events"], ["runbuddies", "Run buddies", "/runbuddies"], ["tickets", "Tickets", "/tickets"], ["profile", "Profile", "/profile"], ["settings", "Settings", "/settings"], ["host", "Host dashboard", "/host"]]);
 export function MobileMenuSheet({ open, onClose, active, signin = "/signin", cityName, onCity, user, onSignOut }:
   { open: boolean; onClose: () => void; active?: string; signin?: string; cityName: string; onCity: () => void; user: HeaderUser | null; onSignOut: () => void }) {
   useEscape(open, onClose);
@@ -121,7 +123,7 @@ export function MobileMenuSheet({ open, onClose, active, signin = "/signin", cit
 }
 
 /* BottomTabBar (signed in, under 1024 px) */
-const TABS: [string, string, string, string][] = [["feed", "Feed", "house", "/feed"], ["squads", "Squads", "users-round", "/squads"], ["events", "Events", "calendar-days", "/events"], ["tickets", "Tickets", "ticket", "/tickets"], ["profile", "Profile", "circle-user-round", "/profile"]];
+const TABS: [string, string, string, string][] = feedGate([["feed", "Feed", "house", "/feed"], ["squads", "Squads", "users-round", "/squads"], ["events", "Events", "calendar-days", "/events"], ["tickets", "Tickets", "ticket", "/tickets"], ["profile", "Profile", "circle-user-round", "/profile"]]);
 export function BottomTabBar({ active, fixed = true, dots = {} }: { active?: string; fixed?: boolean; dots?: Record<string, boolean> }) {
   return <nav className={"pw-tabbar" + (fixed ? " pw-tabbar--fixed" : "")} aria-label="Main">
     {TABS.map(([id, l, ic, href]) => <a key={id} href={href} className="pw-tabbar__item" aria-current={active === id ? "page" : undefined}>

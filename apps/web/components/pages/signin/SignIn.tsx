@@ -7,6 +7,7 @@
 // straight on to ?next= (same-site paths only) or /feed and never sees the
 // form. Otherwise: Apple, Google, or email and a six-digit code.
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
+import { FEED_ON_WEB } from "@/lib/config";
 import { Button, Card, Logo } from "@/components/ds/core";
 import { Skeleton } from "@/components/ds/feedback";
 import { CodeInput, FieldMessage, Input } from "@/components/ds/forms";
@@ -21,7 +22,7 @@ type Msg = { tone: "hint" | "error" | "success"; text: string } | null;
 /** Where a signed-in visitor goes: ?next= when it's a same-site path that isn't sign-in, else the feed. */
 function land() {
   const next = nextFromQuery();
-  window.location.replace(next && !isSigninPath(next) ? next : "/feed");
+  window.location.replace(next && !isSigninPath(next) ? next : FEED_ON_WEB ? "/feed" : "/squads");
 }
 
 /* Apple's own logo and Google's own "G", as their sign-in rules ask (the kit's Lucide glyphs are stand-ins). */

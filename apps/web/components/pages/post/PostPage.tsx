@@ -3,6 +3,7 @@
 // Kudos and comments happen in the feed: a signed-in runner goes to
 // /feed/<ref>, a visitor is asked to sign in first.
 import { useRouter } from "next/navigation";
+import { FEED_ON_WEB } from "@/lib/config";
 import { PostCard } from "@/components/ds/content";
 import { Badge, Button } from "@/components/ds/core";
 import { EmptyState } from "@/components/ds/feedback";
@@ -21,10 +22,12 @@ export function PostPage({ post, refStr }: { post: PostView | null; refStr: stri
 
   if (!post) return <div className="pw-reading sec"><div className="stack" style={{ alignItems: "center", gap: "var(--space-4)" }}>
     <EmptyState icon="lock" title="Open it in pacr" body="This post is shared with a squad or the runner's followers, or it is no longer up. If you can see it, it opens in the app." />
-    {signedIn ? <Button href={feed} icon="newspaper">See it in your feed</Button> : <OpenInAppButton path={`p/${refStr}`} />}
+    {signedIn && FEED_ON_WEB ? <Button href={feed} icon="newspaper">See it in your feed</Button> : <OpenInAppButton path={`p/${refStr}`} />}
   </div></div>;
 
   const kudos = () => {
+    // The feed is app-only for now: kudos happen there.
+    if (!FEED_ON_WEB) { toast({ title: "Kudos are in the app", message: `Give ${post.first} kudos in the pacr app.`, tone: "neutral" }); return; }
     if (signedIn) { router.push(feed); return; }
     toast({ title: "Sign in to give kudos", message: `Or give ${post.first} kudos in the app.`, tone: "neutral", action: "Sign in", onAction: () => router.push(signinHref(feed)) });
   };
@@ -36,8 +39,8 @@ export function PostPage({ post, refStr }: { post: PostView | null; refStr: stri
       time={post.date ?? ""} context={context} title={post.title}
       body={post.body ? <MentionText body={post.body} /> : undefined}
       photo={post.photo ? { src: post.photo, mode: "story" } : null} photoAlt={`Photo by ${post.author}`}
-      run={post.run} kudos={post.kudos} comments={post.comments} commentHref={signedIn ? feed : signinHref(feed)} onKudos={kudos} />
-    {signedIn ? <Button variant="secondary" href={feed} icon="newspaper">See it in your feed</Button> : null}
+      run={post.run} kudos={post.kudos} comments={post.comments} commentHref={FEED_ON_WEB ? (signedIn ? feed : signinHref(feed)) : undefined} onKudos={kudos} />
+    {signedIn && FEED_ON_WEB ? <Button variant="secondary" href={feed} icon="newspaper">See it in your feed</Button> : null}
     <OpenInAppCard path={`p/${refStr}`} sub={`Give ${post.first} kudos, comment and follow along in the app.`} />
   </div></div>;
 }

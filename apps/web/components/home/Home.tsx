@@ -8,7 +8,7 @@ import { useRouter } from "next/navigation";
 import { Avatar, Icon, IconButton } from "@/components/ds/core";
 import { ACCOUNT_MENU, CityPicker, Menu, MobileMenuSheet, StoreBadges } from "@/components/ds/nav";
 import { rememberCity, useSessionUser } from "@/components/site/session";
-import { SOCIALS } from "@/lib/config";
+import { FEED_ON_WEB, SOCIALS } from "@/lib/config";
 import { BrandIcon, STORES } from "@/components/ds/brands";
 import type { SiteCity } from "@/lib/cities";
 
@@ -62,7 +62,7 @@ export function Home({ cities, city, runs, pics }: { cities: SiteCity[]; city: s
         <div className={"hl-nav__r" + (user ? " hl-nav__r--member" : "")}>
           <button className="hl-pill" onClick={() => setCityOpen(true)} aria-haspopup="dialog">{cityName} <Icon name="chevron-down" /></button>
           <a className="hl-pill" href={`/events/${city}`}>Events</a>
-          {user ? <><Link className="hl-pill" href="/feed">Feed</Link><a className="hl-pill" href="/host">Host</a></> : <Link className="hl-pill" href="/signin">Sign in</Link>}
+          {user ? <>{FEED_ON_WEB ? <Link className="hl-pill" href="/feed">Feed</Link> : null}<a className="hl-pill" href="/host">Host</a></> : <Link className="hl-pill" href="/signin">Sign in</Link>}
           {STORES.map(st => <a key={st.id} className="hl-pill hl-pill--line hl-pill--icon" href={st.url} aria-label={st.label} title={st.label} target="_blank" rel="noopener"><BrandIcon name={st.id} size={16} /></a>)}
           {user ? <Menu open={account} onClose={() => setAccount(false)} align="right" items={ACCOUNT_MENU} onSelect={onAccount}
             header={<div><div style={{ fontWeight: 600 }}>{user.name}</div>{user.handle ? <div className="t-caption">@{user.handle}</div> : null}</div>}>

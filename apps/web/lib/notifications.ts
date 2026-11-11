@@ -12,6 +12,7 @@
 // no readable slug, so that row doesn't link (it doesn't open anything in the
 // app either).
 import { getSupabase } from "./supabase";
+import { FEED_ON_WEB } from "./config";
 import { signedUrls } from "./storage";
 import { encodeRef } from "./refs";
 import { dayLine, istParts } from "./format";
@@ -82,7 +83,7 @@ const squadHref = (n: Note) => (n.circleSlug ? `/s/${n.circleSlug}` : null);
 export function hrefOf(n: Note): string | null {
   switch (n.kind) {
     case "kudos": case "comment": case "reply": case "mention":
-      return n.postId ? `/feed/${encodeRef(n.postId)}` : squadHref(n);
+      return n.postId ? `${FEED_ON_WEB ? "/feed" : "/p"}/${encodeRef(n.postId)}` : squadHref(n);
     case "follow":
       return n.actorId ? `/profile?r=${encodeRef(n.actorId)}` : null;
     case "join_request": case "owner_invite": case "owner_accepted":
