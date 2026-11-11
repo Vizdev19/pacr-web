@@ -1,0 +1,7 @@
+# https://pacr.life/robots.txt
+# Everything public is crawlable. Signed-in pages carry their own noindex.
+
+User-agent: *
+Allow: /
+
+Sitemap: https://pacr.life/sitemap.xml

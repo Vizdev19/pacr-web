@@ -1,0 +1,29 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": [
+          "ZFRNX7TP65.life.pacr.app"
+        ],
+        "components": [
+          {
+            "/": "/s/*",
+            "comment": "Squad share and invite links open in the app"
+          },
+          {
+            "/": "/u/*",
+            "comment": "Profile links open the runner in the app"
+          },
+          {
+            "/": "/p/*",
+            "comment": "Post share links open the post in the app"
+          },
+          {
+            "/": "/e/*",
+            "comment": "Event share links open the event in the app"
+          }
+        ]
+      }
+    ]
+  }
+}
