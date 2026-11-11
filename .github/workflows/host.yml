@@ -7,13 +7,14 @@ name: Host
 #   pull request → a preview deployment on its own *.vercel.app URL
 #   push to main → production, pacr-host.vercel.app
 #
-# pacr.life's vercel.json rewrites /host/_next/* and the paths this app owns
-# (today /host/squads) to pacr-host.vercel.app, so a production deploy here is
-# live on pacr.life at once. Everything else under /host is still host.html.
+# pacr.life (apps/web, web.yml) rewrites /host and everything under it to
+# pacr-host.vercel.app in apps/web/next.config.ts, so a production deploy here
+# is live on pacr.life at once. /host/new, /host/apply and /host/e/* are the
+# exception: the legacy event editor, served by apps/web from public/legacy.
 # A preview deploy is on another origin, so it can't see a pacr.life sign-in:
 # signed-in pages there send you to a /signin that doesn't exist.
 #
-# Uses the same VERCEL_TOKEN repo secret as site.yml. The project's
+# Uses the same VERCEL_TOKEN repo secret as web.yml. The project's
 # framework (Next.js) and "no Git deploys" are set in apps/host/vercel.json.
 
 on:
@@ -109,7 +110,7 @@ jobs:
       - name: Check Vercel token
         run: |
           if [ -z "$VERCEL_TOKEN" ]; then
-            echo "::error::Missing repo secret VERCEL_TOKEN (see the top of .github/workflows/site.yml)"
+            echo "::error::Missing repo secret VERCEL_TOKEN (see the top of .github/workflows/web.yml)"
             exit 1
           fi
 

@@ -1,19 +1,23 @@
 name: Web
 
-# The new pacr.life (apps/web, Vercel project pacr-site): the Next.js site on
-# the pacr Web Design System that will replace the static pages. Every pull
-# request and every push to main that touches it is checked (types, lint, a
-# full production build); when the checks pass it ships to Vercel:
+# pacr.life: the Next.js site on the pacr Web Design System (apps/web, Vercel
+# project pacr-web). It replaced the static site on 11 November 2026. Every
+# pull request and every push to main that touches it is checked (types,
+# lint, a full production build); when the checks pass it ships to Vercel:
 #   pull request → a preview deployment on its own *.vercel.app URL
-#   push to main → production, pacr-site.vercel.app
+#   push to main → production, pacr.life
 #
-# pacr.life itself is still the static site (site.yml, Vercel project
-# pacr-web): nothing here changes it. Moving pacr.life onto this app is a
-# separate cutover. Until then the app's catch-all rewrite (next.config.ts)
-# sends paths it doesn't have, such as /host, on to pacr.life.
+# The host dashboard (apps/host) is its own project, deployed by host.yml;
+# apps/web/next.config.ts rewrites /host to it. The old static pages at the
+# repo root are no longer deployed.
 #
-# Uses the same VERCEL_TOKEN repo secret as site.yml. The project's
-# framework (Next.js) and "no Git deploys" are set in apps/web/vercel.json.
+# One repo secret (Settings › Secrets and variables › Actions):
+#   VERCEL_TOKEN  a token from vercel.com/account/tokens, scoped to the
+#                 "Vishnu Prasath's projects" team (a project-scoped token
+#                 fails `vercel pull` with "Could not retrieve Project
+#                 Settings"). host.yml and pacr-admin use the same token.
+# The project's framework (Next.js) and "no Git deploys" are set in
+# apps/web/vercel.json.
 
 on:
   pull_request:
@@ -97,7 +101,7 @@ jobs:
     env:
       VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
       VERCEL_ORG_ID: team_i37ev2MiSqBfbsdrn6ZuQHle
-      VERCEL_PROJECT_ID: prj_nDUWPeB5RNlGRfnSCnibr5H3u40d
+      VERCEL_PROJECT_ID: prj_npHcwWHBThm4hhG6vuvI70eUT92t
       VERCEL_ENV: ${{ github.event_name == 'pull_request' && 'preview' || 'production' }}
       PROD_FLAG: ${{ github.event_name != 'pull_request' && '--prod' || '' }}
     steps:
@@ -109,7 +113,7 @@ jobs:
       - name: Check Vercel token
         run: |
           if [ -z "$VERCEL_TOKEN" ]; then
-            echo "::error::Missing repo secret VERCEL_TOKEN (see the top of .github/workflows/site.yml)"
+            echo "::error::Missing repo secret VERCEL_TOKEN (see the top of .github/workflows/web.yml)"
             exit 1
           fi
 
