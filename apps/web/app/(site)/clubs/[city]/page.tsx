@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Directory } from "@/components/pages/Directory";
-import { getCities, getDirectory } from "@/lib/data";
+import { getCities, getCityRuns, getDirectory } from "@/lib/data";
 
 export const dynamic = "force-dynamic";
 
@@ -13,7 +13,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!c) return {};
   return {
     title: `Running clubs in ${c.name}`,
-    description: `${c.squads ? `${c.squads} running squads` : "Running squads"} in ${c.name} post their weekly group runs on pacr. Find one near you and run with them this week.`,
+    description: `${c.squads ? `${c.squads} running squads` : "Running squads"} in ${c.name} on pacr. See where they meet and when they run, and join one near you.`,
     alternates: { canonical: `/clubs/${c.id}` },
   };
 }
@@ -24,7 +24,9 @@ export default async function Page({ params, searchParams }: Props) {
   const c = cities.find(x => x.id === city);
   if (!c) notFound();
   const query = (q || "").slice(0, 60);
-  const rows = await getDirectory(c.id, { query });
-  return <Directory city={c.id} cityName={c.name} initial={rows} initialQuery={query}
+  // The week's runs (city_runs, as on /runs) give the honest "N running this week".
+  const [rows, week] = await Promise.all([getDirectory(c.id, { query }), getCityRuns(c.id, 7).catch(() => [])]);
+  const runningThisWeek = new Set(week.map(r => r.squad_slug)).size;
+  return <Directory city={c.id} cityName={c.name} initial={rows} initialQuery={query} runningThisWeek={runningThisWeek}
     otherCities={[...cities].sort((a, b) => b.squads - a.squads).map(x => ({ id: x.id, name: x.name, squads: x.squads }))} />;
 }

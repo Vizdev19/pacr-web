@@ -30,3 +30,12 @@
 
 /* A page title row: heading + supporting line on the left, controls on the right. */
 .pw-page { padding-top: 24px; padding-bottom: 64px; }
+
+/* A squad card without a cover photo: lime with the wordmark's slash as a
+   quiet stripe, so a page of new squads doesn't read as missing pictures. */
+.pw-squad__fallback {
+  background:
+    repeating-linear-gradient(115deg, transparent 0 26px, color-mix(in oklab, var(--accent) 60%, var(--surface-1)) 26px 29px),
+    color-mix(in oklab, var(--accent) 38%, var(--surface-1));
+}
+

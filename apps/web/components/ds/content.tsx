@@ -2,7 +2,7 @@
 // components/content/* (DateTile, SquadCard, RunCard, EventCard) and
 // components/data/WeekList, plus the post, comment, runner, stat, achievement,
 // order, ticket and live-run components, of the pacr Web Design System, ported to TSX.
-import { useState, type ReactNode } from "react";
+import { useState, type CSSProperties, type ReactNode } from "react";
 import { Avatar, AvatarGroup, Badge, Button, Card, Icon, IconButton, Media, TrustTag, VerifiedMark } from "./core";
 import { MapEmbed, QRBlock, type MapPoint } from "./actions";
 import { Menu, type MenuItem } from "./nav";
@@ -31,7 +31,10 @@ export function SquadCard({ layout = "grid", name, href, cover, photo, verified 
     {children ? <div style={{ flex: "none" }}>{children}</div> : null}
   </Card>;
   return <Card href={href} pad={false} interactive className="pw-squad">
-    <div className="pw-squad__cover"><Media ratio="5:2" src={cover} alt="" label={null} /><div className="pw-squad__tile"><Media ratio="1:1" tile src={photo} alt="" /></div></div>
+    <div className="pw-squad__cover">{cover ? <Media ratio="5:2" src={cover} alt="" label={null} />
+      // No cover photo: the brand's lime and slash, not an empty picture frame.
+      : <div className="pw-media pw-squad__fallback" style={{ "--ratio": "5 / 2" } as CSSProperties} aria-hidden="true" />}
+      <div className="pw-squad__tile"><Media ratio="1:1" tile src={photo} alt="" /></div></div>
     <div className="pw-squad__body">
       <h3 className="pw-squad__name">{name}{verified ? <VerifiedMark /> : null}</h3>
       <div className="pw-meta">{where ? <span><Icon name="map-pin" size={15} />{where}</span> : null}{count ? <span><Icon name="users-round" size={15} />{count}</span> : null}</div>

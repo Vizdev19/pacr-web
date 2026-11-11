@@ -28,11 +28,18 @@ function args(city: string, q: string, f: string[], offset: number) {
   };
 }
 
-export function Directory({ city, cityName, initial, initialQuery, otherCities }:
-  { city: string; cityName: string; initial: DirectoryRow[]; initialQuery: string; otherCities: { id: string; name: string; squads: number }[] }) {
+/** Squads with the soonest next run first, then the ones with nothing on the calendar (stable within each). */
+function soonestFirst(rows: DirectoryRow[]): DirectoryRow[] {
+  // ISO times compare as plain strings; "~" sorts after every digit (localeCompare wouldn't).
+  const when = (r: DirectoryRow) => r.next_runs?.[0]?.starts_at ?? "~";
+  return [...rows].sort((a, b) => (when(a) < when(b) ? -1 : when(a) > when(b) ? 1 : 0));
+}
+
+export function Directory({ city, cityName, initial, initialQuery, otherCities, runningThisWeek }:
+  { city: string; cityName: string; initial: DirectoryRow[]; initialQuery: string; otherCities: { id: string; name: string; squads: number }[]; runningThisWeek: number }) {
   const [q, setQ] = useState(initialQuery);
   const [f, setF] = useState<string[]>([]);
-  const [rows, setRows] = useState(initial);
+  const [rows, setRows] = useState(() => soonestFirst(initial));
   const [total, setTotal] = useState(initial[0]?.total ?? 0);
   const [loading, setLoading] = useState(false);
   const [more, setMore] = useState(false);
@@ -49,7 +56,7 @@ export function Directory({ city, cityName, initial, initialQuery, otherCities }
       setLoading(false);
       if (error) { setFailed(true); return; }
       const list = (data ?? []) as DirectoryRow[];
-      setRows(list); setTotal(list[0]?.total ?? 0);
+      setRows(soonestFirst(list)); setTotal(list[0]?.total ?? 0);
     }, q ? 250 : 0);
     return () => { alive = false; clearTimeout(t); };
   }, [city, q, f]);
@@ -58,14 +65,16 @@ export function Directory({ city, cityName, initial, initialQuery, otherCities }
     setMore(true);
     const { data } = await getSupabase().rpc("directory_clubs", args(city, q, f, rows.length));
     setMore(false);
-    setRows(r => [...r, ...((data ?? []) as DirectoryRow[])]);
+    setRows(r => soonestFirst([...r, ...((data ?? []) as DirectoryRow[])]));
   };
 
   const filtered = q.trim() !== "" || f.length > 0;
   const nearest = otherCities.filter(c => c.id !== city && c.squads > 0).slice(0, 1)[0];
-  const lead = total
-    ? `${total} squad${total === 1 ? "" : "s"} post${total === 1 ? "s" : ""} their weekly runs on pacr. Join one and run with them this week.`
-    : `No squads in ${cityName} yet.`;
+  // Say what's true: how many squads, and how many actually run this week.
+  const squads = `${total} squad${total === 1 ? "" : "s"} in ${cityName}`;
+  const lead = !total ? `No squads in ${cityName} yet.`
+    : runningThisWeek ? `${squads}, ${runningThisWeek} running this week. Join one and run with them.`
+    : `${squads}. Their runs show up here as the organisers post them.`;
 
   return <div className="pw-container pw-page">
     <Breadcrumbs items={[{ label: "Squads", href: "/clubs" }, { label: cityName }]} />
