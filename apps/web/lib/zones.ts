@@ -19,16 +19,17 @@ export const DEFAULTS = { age: "30", max: "", d: String(HM_KM), t: "2:00:00" };
 export type ZoneForm = typeof DEFAULTS;
 
 type Pace = { kind: "plus"; from: number; to: number } | { kind: "times"; from: number; to: number } | { kind: "5k" };
-export type ZoneDef = { n: number; name: string; lo: number; hi: number; pace: Pace; color: string; use: string };
+export type ZoneDef = { n: number; name: string; lo: number; hi: number; pace: Pace; color: string; hex: string; use: string };
 
+// `hex` is the same role's light-theme value, for the story image (no CSS there).
 // Colours are the design system's colour-blind-safe data roles, picked to sit
 // close to the brief's zone colours (blue, green, grey, amber, red-orange).
 export const ZONES: ZoneDef[] = [
-  { n: 1, name: "Recovery", lo: 0.55, hi: 0.65, pace: { kind: "plus", from: 90, to: 120 }, color: "var(--data-6)", use: "Warm-ups, cool-downs and very easy days." },
-  { n: 2, name: "Easy", lo: 0.65, hi: 0.75, pace: { kind: "plus", from: 60, to: 90 }, color: "var(--data-3)", use: "Most of your running. Easy runs and long runs." },
-  { n: 3, name: "The grey zone", lo: 0.75, hi: 0.85, pace: { kind: "plus", from: 15, to: 55 }, color: "var(--data-8)", use: "Steady, medium effort. Avoid it on easy days." },
-  { n: 4, name: "Threshold", lo: 0.85, hi: 0.9, pace: { kind: "times", from: 0.955, to: 0.97 }, color: "var(--data-2)", use: "Comfortably hard. Cruise intervals." },
-  { n: 5, name: "Hard", lo: 0.9, hi: 1, pace: { kind: "5k" }, color: "var(--data-4)", use: "4×4s, hill repeats, 30/30s. A few words at most." },
+  { n: 1, name: "Recovery", lo: 0.55, hi: 0.65, pace: { kind: "plus", from: 90, to: 120 }, color: "var(--data-6)", hex: "#3F9FD6", use: "Warm-ups, cool-downs and very easy days." },
+  { n: 2, name: "Easy", lo: 0.65, hi: 0.75, pace: { kind: "plus", from: 60, to: 90 }, color: "var(--data-3)", hex: "#009E73", use: "Most of your running. Easy runs and long runs." },
+  { n: 3, name: "The grey zone", lo: 0.75, hi: 0.85, pace: { kind: "plus", from: 15, to: 55 }, color: "var(--data-8)", hex: "#6A6A66", use: "Steady, medium effort. Avoid it on easy days." },
+  { n: 4, name: "Threshold", lo: 0.85, hi: 0.9, pace: { kind: "times", from: 0.955, to: 0.97 }, color: "var(--data-2)", hex: "#D98E00", use: "Comfortably hard. Cruise intervals." },
+  { n: 5, name: "Hard", lo: 0.9, hi: 1, pace: { kind: "5k" }, color: "var(--data-4)", hex: "#D55E00", use: "4×4s, hill repeats, 30/30s. A few words at most." },
 ];
 
 export const MSG = {

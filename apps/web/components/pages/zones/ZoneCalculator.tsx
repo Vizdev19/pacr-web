@@ -1,7 +1,7 @@
 "use client";
 // pacr.life/zones: the zone calculator (lead magnet for the "easy runs are too
-// fast" reel). Everything runs in the browser; nothing is stored or sent
-// except the four PostHog events below.
+// fast" reel). The maths runs in the browser; nothing is stored. The story
+// picture is drawn by /zones/story from the same numbers in its address.
 import Script from "next/script";
 import { useEffect, useRef, useState, type CSSProperties, type FocusEvent, type KeyboardEvent, type MouseEvent } from "react";
 import { Button, Card } from "@/components/ds/core";
@@ -12,15 +12,27 @@ import { calculate, fmtPace, joinTime, raceKm, RACES, splitTime, type ZoneErrors
 type PH = { capture: (event: string, props?: Record<string, unknown>, opts?: Record<string, unknown>) => void };
 
 /** PostHog event, carrying the visit's UTM source and campaign. */
-function track(event: string, beacon = false) {
+function track(event: string, beacon = false, extra: Record<string, string> = {}) {
   if (typeof window === "undefined") return;
   const q = new URLSearchParams(window.location.search);
-  const props: Record<string, string> = {};
+  const props: Record<string, string> = { ...extra };
   for (const k of ["utm_source", "utm_medium", "utm_campaign"]) { const v = q.get(k); if (v) props[k] = v; }
   (window as unknown as { posthog?: PH }).posthog?.capture(event, props, beacon ? { transport: "sendBeacon" } : undefined);
 }
 
 const DELAY_MS = 180;
+
+/** The inputs as the share link's and the story picture's query. */
+function zoneQuery(f: ZoneForm): Record<string, string> {
+  const q: Record<string, string> = { age: f.age.trim() };
+  if (f.max.trim()) q.max = f.max.trim();
+  q.d = String(raceKm(f.d));
+  q.t = f.t.trim();
+  return q;
+}
+
+/** Instagram's and Facebook's in-app browsers: no file sharing and no downloads. */
+const inAppBrowser = () => /Instagram|FBAN|FBAV/i.test(navigator.userAgent);
 
 const tabular: CSSProperties = { fontVariantNumeric: "tabular-nums" };
 
@@ -140,7 +152,12 @@ export function ZoneCalculator({ initial }: { initial: ZoneForm }) {
   const [errors, setErrors] = useState<ZoneErrors>(() => { const r = calculate(initial); return "errors" in r ? r.errors : {}; });
   const [result, setResult] = useState<ZoneResult | null>(() => { const r = calculate(initial); return "result" in r ? r.result : null; });
   const [time, setTime] = useState<[string, string, string]>(() => splitTime(initial.t));
+  // The numbers behind the chart on screen (the last valid ones).
+  const [shown, setShown] = useState<ZoneForm>(initial);
   const [copied, setCopied] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const story = useRef<{ url: string; blob: Promise<Blob> } | null>(null);
+  const saveBtn = useRef<HTMLDivElement>(null);
   const edited = useRef(false);
   const calculatedSent = useRef(false);
   const first = useRef(true);
@@ -152,10 +169,71 @@ export function ZoneCalculator({ initial }: { initial: ZoneForm }) {
       if ("errors" in r) { setErrors(r.errors); return; } // keep the last good chart
       setErrors({});
       setResult(r.result);
+      setShown(form);
       if (edited.current && !calculatedSent.current) { calculatedSent.current = true; track("zones_calculated"); }
     }, DELAY_MS);
     return () => window.clearTimeout(id);
   }, [form]);
+
+  const storyUrl = "/zones/story?" + new URLSearchParams(zoneQuery(shown)).toString();
+
+  // Draw the picture ahead, once the save button is on screen and the numbers
+  // have settled, so tapping it can open the share sheet straight away
+  // (Safari only allows that right after the tap).
+  useEffect(() => {
+    const el = saveBtn.current;
+    if (!el || story.current?.url === storyUrl) return;
+    let timer = 0;
+    const obs = new IntersectionObserver(([e]) => {
+      window.clearTimeout(timer);
+      if (!e.isIntersecting) return;
+      timer = window.setTimeout(() => {
+        const blob = fetch(storyUrl).then(r => (r.ok ? r.blob() : Promise.reject(new Error(String(r.status)))));
+        blob.catch(() => { if (story.current?.url === storyUrl) story.current = null; });
+        story.current = { url: storyUrl, blob };
+      }, 600);
+    });
+    obs.observe(el);
+    return () => { obs.disconnect(); window.clearTimeout(timer); };
+  }, [storyUrl]);
+
+  async function saveStory() {
+    if (inAppBrowser()) {
+      track("zones_story_saved", true, { method: "open" });
+      // The picture itself, to long-press and save (it's an image, not a page).
+      window.location.href = new URL(storyUrl, window.location.origin).href;
+      return;
+    }
+    setSaving(true);
+    try {
+      if (story.current?.url !== storyUrl) {
+        const blob = fetch(storyUrl).then(r => (r.ok ? r.blob() : Promise.reject(new Error(String(r.status)))));
+        story.current = { url: storyUrl, blob };
+      }
+      const file = new File([await story.current.blob], "pacr-zones.png", { type: "image/png" });
+      if (navigator.canShare?.({ files: [file] })) {
+        try {
+          await navigator.share({ files: [file] });
+          track("zones_story_saved", false, { method: "share" });
+          return;
+        } catch (e) {
+          if ((e as Error).name === "AbortError") return;
+          // NotAllowedError (the tap was too long ago) and the rest: download instead.
+        }
+      }
+      const href = URL.createObjectURL(file);
+      const a = document.createElement("a");
+      a.href = href; a.download = "pacr-zones.png";
+      document.body.appendChild(a); a.click(); a.remove();
+      window.setTimeout(() => URL.revokeObjectURL(href), 10_000);
+      track("zones_story_saved", false, { method: "download" });
+    } catch {
+      track("zones_story_saved", false, { method: "open" });
+      window.open(storyUrl, "_blank");
+    } finally {
+      setSaving(false);
+    }
+  }
 
   const set = (k: keyof ZoneForm) => (v: string) => { edited.current = true; setForm(f => ({ ...f, [k]: v })); };
   const setParts = (p: [string, string, string]) => { setTime(p); set("t")(joinTime(p)); };
@@ -170,10 +248,7 @@ export function ZoneCalculator({ initial }: { initial: ZoneForm }) {
   async function copyLink() {
     const url = new URL(window.location.href);
     for (const k of ["age", "max", "d", "t"]) url.searchParams.delete(k);
-    url.searchParams.set("age", form.age.trim());
-    if (form.max.trim()) url.searchParams.set("max", form.max.trim());
-    url.searchParams.set("d", String(raceKm(form.d)));
-    url.searchParams.set("t", form.t.trim());
+    for (const [k, v] of Object.entries(zoneQuery(shown))) url.searchParams.set(k, v);
     const text = url.toString();
     try { await navigator.clipboard.writeText(text); }
     catch {
@@ -236,7 +311,8 @@ export function ZoneCalculator({ initial }: { initial: ZoneForm }) {
           <li><b style={{ color: "var(--text-primary)" }}>Save Threshold and Hard</b> for one or two sessions a week.</li>
         </ul>
 
-        <div className="row" style={{ marginTop: "var(--space-6)", gap: "var(--space-3)", alignItems: "center" }}>
+        <div ref={saveBtn} className="row" style={{ marginTop: "var(--space-6)", gap: "var(--space-3)", alignItems: "center", flexWrap: "wrap" }}>
+          <Button icon="share-2" loading={saving} onClick={saveStory}>Save for your story</Button>
           <Button variant="secondary" icon={copied ? "check" : "copy"} onClick={copyLink}>{copied ? "Link copied" : "Copy link to my zones"}</Button>
           <span className="sr-only" role="status">{copied ? "Link copied" : ""}</span>
         </div>
