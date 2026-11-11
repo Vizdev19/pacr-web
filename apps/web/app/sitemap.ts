@@ -9,7 +9,7 @@ export const revalidate = 3600;
 const SITE = "https://pacr.life";
 const PAGES = [
   "/", "/clubs", "/runs", "/events", "/app", "/hosts", "/safety", "/about", "/support", "/download",
-  "/plans/5k", "/plans/10k", "/plans/half-marathon", "/plans/marathon",
+  "/plans/5k", "/plans/10k", "/plans/half-marathon", "/plans/marathon", "/zones",
   "/community-rules", "/terms", "/privacy",
 ];
 
