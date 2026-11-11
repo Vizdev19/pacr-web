@@ -14,8 +14,8 @@ import { useToast } from "@/components/ds/overlays";
 import { signinHref } from "@/lib/auth";
 import { istParts } from "@/lib/format";
 import { getSupabase } from "@/lib/supabase";
-import { decodeRef, squadQuery, type Squad, type SquadEventCard, type SquadRun } from "@/lib/squad";
-import { InviteCard, JoinSheet, useAppLink, type JoinState } from "./parts";
+import { SITE, decodeRef, squadQuery, type Squad, type SquadEventCard, type SquadRun } from "@/lib/squad";
+import { GetAppSheet, InviteCard, JoinSheet, useAppLink, type JoinState } from "./parts";
 import { RunView } from "./RunView";
 import { SquadView } from "./SquadView";
 import { useSquad } from "./useSquad";
@@ -44,6 +44,8 @@ export function SquadPage({ slug, invite, runRef, initial, events: initialEvents
   const [sheet, setSheet] = useState(false);
   const [busy, setBusy] = useState(false);
   const [share, setShare] = useState<null | "squad" | "run">(null);
+  // Signed out, Join and RSVP open this: both happen in the app.
+  const [getApp, setGetApp] = useState<null | "join" | "rsvp">(null);
   const pending = useRef(new Set<string>());
 
   const query = squadQuery(invite, runRef);
@@ -114,7 +116,7 @@ export function SquadPage({ slug, invite, runRef, initial, events: initialEvents
   }
 
   async function rsvp(r: SquadRun) {
-    if (!signedIn || !auth.uid) { window.location.assign(signin); return; }
+    if (!signedIn || !auth.uid) { setGetApp("rsvp"); return; }
     if (!viewer.ready) return;
     if (!viewer.isMember) {
       const canJoin = ["open", "request", "invite-code"].includes(joinState);
@@ -168,13 +170,16 @@ export function SquadPage({ slug, invite, runRef, initial, events: initialEvents
     {runRef
       ? <RunView squad={squad} run={picked} today={today} signedIn={signedIn} authLoading={auth.status === "loading"} invited={invited}
         joinState={joinState} busy={busy} onJoin={startJoin} signin={signin} squadHref={squadHref} runHref={runHref}
-        canRsvp={x => !(x.womenOnly && notWoman)} onRsvp={x => void rsvp(x)} onShare={() => setShare("run")} canShare={canShare} myName={viewer.name} appHref={appHref} />
+        canRsvp={x => !(x.womenOnly && notWoman)} onRsvp={x => void rsvp(x)} onShare={() => setShare("run")} canShare={canShare} myName={viewer.name} appHref={appHref}
+        onGetApp={() => setGetApp("rsvp")} />
       : <SquadView squad={squad} events={events} today={today} signedIn={signedIn} invited={invited} joinState={joinState} busy={busy}
-        onJoin={startJoin} signin={signin} appHref={appHref} staff={viewer.role === "owner" || viewer.role === "organiser"}
+        onJoin={startJoin} onGetApp={() => setGetApp("join")} signin={signin} appHref={appHref} staff={viewer.role === "owner" || viewer.role === "organiser"}
         followNames={viewer.followNames} followCount={viewer.followCount} runHref={runHref}
         rsvpOf={x => (signedIn && viewer.isMember ? (x.goingByMe ? "going" : x.womenOnly && notWoman ? "blocked" : "none") : "none")}
         onRsvp={x => void rsvp(x)} onShare={() => setShare("squad")} canShare={canShare} />}
     {joinSheet}
+    <GetAppSheet open={!!getApp && !signedIn} onClose={() => setGetApp(null)} name={squad.name} action={getApp ?? "join"} subject={runRef ? "run" : "squad"}
+      signin={signin} appHref={appHref} pageUrl={`${SITE}/s/${slug}${query}`} />
     <ShareMenu open={!!share && canShare} onClose={() => setShare(null)} url={shareUrl}
       title={share === "run" ? "Share this run" : "Share this squad"}
       text={share === "run" && picked ? `${picked.title} with ${squad.name} on pacr` : `${squad.name} on pacr`} />

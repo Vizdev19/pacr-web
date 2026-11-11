@@ -15,7 +15,7 @@ const POLICY_TAG = { open: "open", request: "ask", invite: "invite" } as const;
 
 export type SquadViewProps = {
   squad: Squad; events: SquadEventCard[]; today: string; signedIn: boolean; invited: boolean;
-  joinState: JoinState; busy: boolean; onJoin: () => void; signin: string; appHref: string; staff: boolean;
+  joinState: JoinState; busy: boolean; onJoin: () => void; onGetApp: () => void; signin: string; appHref: string; staff: boolean;
   followNames: string[]; followCount: number; runHref: (ref: string) => string;
   rsvpOf: (r: SquadRun) => RunCardProps["rsvp"]; onRsvp: (r: SquadRun) => void; onShare: () => void; canShare: boolean;
 };
@@ -68,7 +68,7 @@ export function SquadView(p: SquadViewProps) {
           <TrustTag kind={POLICY_TAG[s.joinPolicy]} />{s.womenOnly ? <TrustTag kind="women-only" /> : null}{s.verified ? <TrustTag kind="verified" /> : null}
         </div>
       </div>
-      <div className="hide-md" style={{ paddingBottom: "var(--space-1)" }}><JoinAction state={joinState} policy={s.joinPolicy} signin={p.signin} onJoin={p.onJoin} busy={p.busy} /></div>
+      <div className="hide-md" style={{ paddingBottom: "var(--space-1)" }}><JoinAction state={joinState} policy={s.joinPolicy} signin={p.signin} onJoin={p.onJoin} onGetApp={p.onGetApp} busy={p.busy} /></div>
     </div>
 
     {member ? <div style={{ marginTop: "var(--space-6)" }}><MemberBanner appHref={p.appHref} /></div> : null}
@@ -91,8 +91,8 @@ export function SquadView(p: SquadViewProps) {
 
       <aside className="stack sticky">
         <Card className="hide-md"><div className="stack">
-          <JoinAction state={joinState} policy={s.joinPolicy} signin={p.signin} onJoin={p.onJoin} busy={p.busy} block />
-          {note ? <span className="t-caption">{note}</span> : null}
+          <JoinAction state={joinState} policy={s.joinPolicy} signin={p.signin} onJoin={p.onJoin} onGetApp={p.onGetApp} busy={p.busy} block />
+          {note ? <span className="t-caption">{note}{joinState === "signed-out" ? <> Already on pacr? <a href={p.signin}>Sign in</a>.</> : null}</span> : null}
         </div></Card>
         {hasPlace ? <Card><div className="stack">
           <PlaceMap lat={s.homeLat} lng={s.homeLng} label={where} />
@@ -114,7 +114,7 @@ export function SquadView(p: SquadViewProps) {
 
     {!member ? <div className="only-md mbar" style={{ bottom: p.signedIn ? "var(--tabbar-h)" : 0, zIndex: 31 }}>
       <div><b>{s.name}</b><div className="t-caption">{plural(s.memberCount, "member")}{next ? ` · Next ${whenLine(next.startsAt)}` : ""}</div></div>
-      <JoinAction state={joinState} policy={s.joinPolicy} signin={p.signin} onJoin={p.onJoin} busy={p.busy} />
+      <JoinAction state={joinState} policy={s.joinPolicy} signin={p.signin} onJoin={p.onJoin} onGetApp={p.onGetApp} busy={p.busy} />
     </div> : null}
   </div>;
 }

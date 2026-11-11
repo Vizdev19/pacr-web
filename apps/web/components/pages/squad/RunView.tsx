@@ -22,6 +22,7 @@ const POLL_MS = 4000;
 
 export type RunViewProps = {
   squad: Squad; run: SquadRun | null; today: string; signedIn: boolean; authLoading: boolean; invited: boolean;
+  onGetApp: () => void;
   joinState: JoinState; busy: boolean; onJoin: () => void; signin: string; appHref: string; squadHref: string; runHref: (ref: string) => string;
   /** False for a women-only run when the runner's profile says they aren't a woman. */
   canRsvp: (r: SquadRun) => boolean; onRsvp: (r: SquadRun) => void; onShare: () => void; canShare: boolean; myName: string | null;
@@ -94,12 +95,12 @@ export function RunView(p: RunViewProps) {
 
   const rsvpButton = (size: "md" | "lg") => {
     if (p.authLoading || (p.signedIn && joinState === "loading")) return <Button size={size} block loading>RSVP</Button>;
-    if (!p.signedIn) return <Button size={size} block icon="log-in" href={p.signin}>Sign in to RSVP</Button>;
-    if (!member) return <JoinAction state={joinState} policy={s.joinPolicy} signin={p.signin} onJoin={p.onJoin} busy={p.busy} block />;
+    if (!p.signedIn) return <Button size={size} block icon="smartphone" onClick={p.onGetApp}>{size === "lg" ? "RSVP in the pacr app" : "RSVP in the app"}</Button>;
+    if (!member) return <JoinAction state={joinState} policy={s.joinPolicy} signin={p.signin} onJoin={p.onJoin} onGetApp={p.onGetApp} busy={p.busy} block />;
     if (!allowed && !going) return <Button size={size} block variant="secondary" icon="shield-check" disabled>Women only</Button>;
     return <Button size={size} block variant={going ? "secondary" : "primary"} className="pw-rsvp" aria-pressed={going} icon={going ? "check" : "calendar-plus"} onClick={() => p.onRsvp(r)}>{going ? "Going" : "RSVP"}</Button>;
   };
-  const rsvpNote = !p.signedIn ? "RSVP is free. Sign in with the account you use in the app."
+  const rsvpNote = !p.signedIn ? "RSVP is free, in the pacr app."
     : !member ? (joinState === "banned" ? null : `Join ${s.name} to RSVP to its runs.`)
     : !allowed && !going ? "This run is for women, by the squad's rules in the app."
     : going ? null : "RSVP is free.";
@@ -144,7 +145,7 @@ export function RunView(p: RunViewProps) {
           <span className="t-body-s"><b className="num">{n}</b> going</span>
           {rsvpButton("lg")}
           {going && pinned ? <DirectionsLink address={r.meetingPoint} lat={r.lat} lng={r.lng} placeId={r.placeId} /> : null}
-          {rsvpNote ? <span className="t-caption">{rsvpNote}</span> : null}
+          {rsvpNote ? <span className="t-caption">{rsvpNote}{!p.signedIn ? <> Already on pacr? <a href={p.signin}>Sign in</a>.</> : null}</span> : null}
         </div></Card>
         {showQr ? <Card><div className="stack" style={{ alignItems: "center", textAlign: "center" }}>
           {checkin?.checkedIn ? <TrustTag kind="checked-in" /> : <TrustTag kind="checkin-open" />}

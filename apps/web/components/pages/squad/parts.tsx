@@ -3,26 +3,32 @@
 // state, the Join / Ask to join sheet, the invite card, the members' "it's in
 // the app" banner and the run card props.
 import { useEffect, useState } from "react";
+import { QRBlock } from "@/components/ds/actions";
 import { Button, Card, Media, VerifiedMark } from "@/components/ds/core";
 import type { RunCardProps } from "@/components/ds/content";
 import { BottomSheet } from "@/components/ds/feedback";
 import { Checkbox, TextArea } from "@/components/ds/forms";
 import { StoreBadges } from "@/components/ds/nav";
 import { Banner } from "@/components/ds/overlays";
+import { APP_STORE_URL, PLAY_STORE_URL } from "@/lib/config";
 import { istParts, km, pace, TZ } from "@/lib/format";
 import { appLink, plural, type Policy, type Squad, type SquadRun } from "@/lib/squad";
 
 export type JoinState = "loading" | "signed-out" | "member" | "sent" | "banned" | "invite-only" | "open" | "request" | "invite-code";
 
 /** The kit's JoinAction, with the states the app has: signed out, banned, an invite code. */
-export function JoinAction({ state, policy, signin, onJoin, busy = false, block = false }:
-  { state: JoinState; policy: Policy; signin: string; onJoin: () => void; busy?: boolean; block?: boolean }) {
+export function JoinAction({ state, policy, signin, onJoin, onGetApp, busy = false, block = false }:
+  { state: JoinState; policy: Policy; signin: string; onJoin: () => void; onGetApp?: () => void; busy?: boolean; block?: boolean }) {
   const size = block ? "lg" : "md";
   if (state === "member") return <Button variant="secondary" icon="check" block={block} size={size} aria-disabled="true">Member</Button>;
   if (state === "sent") return <Button variant="secondary" icon="clock" disabled block={block} size={size}>Request sent</Button>;
   if (state === "banned") return <div className="stack" style={{ gap: 6 }}><Button variant="secondary" icon="lock" disabled block={block} size={size}>You can&apos;t join</Button><span className="t-caption">Its organisers have closed it to you.</span></div>;
   if (state === "invite-only") return <div className="stack" style={{ gap: 6 }}><Button variant="secondary" icon="lock" disabled block={block} size={size}>Invite only</Button><span className="t-caption">Members join by invite from the organisers.</span></div>;
-  if (state === "signed-out") return <Button icon="log-in" href={signin} block={block} size={size}>Sign in to join</Button>;
+  // Signed out, joining happens in the app: the web can't make accounts, so
+  // "Sign in" was a dead end for anyone new. GetAppSheet still offers sign-in.
+  if (state === "signed-out") return onGetApp
+    ? <Button icon="smartphone" onClick={onGetApp} block={block} size={size}>{block ? "Join in the pacr app" : "Join in the app"}</Button>
+    : <Button icon="log-in" href={signin} block={block} size={size}>Sign in to join</Button>;
   const ask = state === "request" || (state === "loading" && policy === "request");
   return <Button icon={ask ? "message-circle-question" : "user-plus"} onClick={onJoin} loading={busy || state === "loading"} block={block} size={size}>{ask ? "Ask to join" : "Join squad"}</Button>;
 }
@@ -35,7 +41,7 @@ export function joinNote(state: JoinState, squad: Squad): string | null {
     ? `The organisers will see your answers to ${plural(squad.joinQuestions.length, "short question")}.`
     : "The organisers approve each new member.") + women;
   if (state === "invite-code") return "You were invited, so you're in straight away." + women;
-  if (state === "signed-out") return "Free. Sign in with the account you use in the app." + women;
+  if (state === "signed-out") return "Joining is free, in the pacr app." + women;
   if (state === "sent") return `${squad.organiserName ?? "The organiser"} will review your request.`;
   return null;
 }
@@ -60,6 +66,46 @@ export function JoinSheet({ open, onClose, name, organiser, questions, rules, re
         <ol className="rules">{rules.map((r, i) => <li key={i}>{r}</li>)}</ol>
         <Checkbox label="I agree to the squad's rules" checked={agreed} onChange={setAgreed} />
       </div> : null}
+    </div>
+  </BottomSheet>;
+}
+
+export type Platform = "ios" | "android" | "desktop";
+
+/** Which phone the page is on, if any. Only the browser knows, so it's set after mount. */
+export function usePlatform(): Platform {
+  const [platform, setPlatform] = useState<Platform>("desktop");
+  useEffect(() => {
+    const ua = navigator.userAgent;
+    const ios = /iPhone|iPad|iPod/i.test(ua) || (/Macintosh/i.test(ua) && navigator.maxTouchPoints > 1);
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- the user agent is only known in the browser
+    setPlatform(/Android/i.test(ua) ? "android" : ios ? "ios" : "desktop");
+  }, []);
+  return platform;
+}
+
+/**
+ * Where every signed-out Join and RSVP goes. Joining needs a pacr account, and
+ * accounts are made in the app, so this leads with the app: on a phone, its
+ * store and "open in pacr"; on a computer, a QR code for the phone and both
+ * store badges. Runners who already have pacr can still sign in on the web.
+ */
+export function GetAppSheet({ open, onClose, name, action, subject, signin, appHref, pageUrl }:
+  { open: boolean; onClose: () => void; name: string; action: "join" | "rsvp"; subject: "squad" | "run"; signin: string; appHref: string; pageUrl: string }) {
+  const platform = usePlatform();
+  return <BottomSheet open={open} onClose={onClose} title={action === "rsvp" ? "RSVP in the pacr app" : `Join ${name} in the pacr app`}>
+    <div className="stack" style={{ gap: 16 }}>
+      <p className="t-secondary" style={{ margin: 0 }}>Joining is free. Squads, runs and RSVPs live in the pacr app, so you&apos;ll need it on your phone.</p>
+      {platform === "desktop"
+        ? <div className="stack" style={{ gap: 14, alignItems: "center", textAlign: "center" }}>
+          <QRBlock value={pageUrl} size={168} caption={`Scan with your phone's camera to open this ${subject}`} />
+          <StoreBadges size="sm" />
+        </div>
+        : <div className="stack" style={{ gap: 8 }}>
+          <Button block size="lg" href={platform === "ios" ? APP_STORE_URL : PLAY_STORE_URL}>{platform === "ios" ? "Get pacr on the App Store" : "Get pacr on Google Play"}</Button>
+          <Button block variant="secondary" icon="smartphone" href={appHref}>I have pacr: open this {subject}</Button>
+        </div>}
+      <span className="t-caption">Already on pacr? <a href={signin}>Sign in to {action === "rsvp" ? "RSVP" : "join"} here</a>.</span>
     </div>
   </BottomSheet>;
 }
