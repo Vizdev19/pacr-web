@@ -3,7 +3,7 @@ import type { RoleKey } from "@/lib/host";
 
 export type PageId =
   | "overview" | "calendar" | "runs" | "events" | "members" | "requests" | "messages" | "moderation"
-  | "money" | "insights" | "team" | "settings";
+  | "leaderboard" | "money" | "insights" | "team" | "settings";
 
 export const PAGES: Record<PageId, { label: string; icon: IconName; href: string; group?: string }> = {
   overview: { label: "Overview", icon: "layout-grid", href: "/" },
@@ -12,6 +12,7 @@ export const PAGES: Record<PageId, { label: string; icon: IconName; href: string
   events: { label: "Events", icon: "ticket", href: "/events", group: "Plan" },
   members: { label: "Members", icon: "users", href: "/members", group: "People" },
   requests: { label: "Join requests", icon: "user-plus", href: "/requests", group: "People" },
+  leaderboard: { label: "Leaderboard", icon: "trophy", href: "/leaderboard", group: "People" },
   messages: { label: "Messages", icon: "megaphone", href: "/messages", group: "Talk" },
   moderation: { label: "Moderation", icon: "shield-alert", href: "/moderation", group: "Talk" },
   money: { label: "Money", icon: "wallet", href: "/money", group: "Business" },
@@ -20,19 +21,20 @@ export const PAGES: Record<PageId, { label: string; icon: IconName; href: string
   settings: { label: "Settings", icon: "settings", href: "/settings", group: "Setup" },
 };
 export const ORDER: (PageId | string)[] = [
-  "overview", "Plan", "calendar", "runs", "events", "People", "members", "requests", "Talk", "messages", "moderation",
+  "overview", "Plan", "calendar", "runs", "events", "People", "members", "requests", "leaderboard", "Talk", "messages", "moderation",
   "Business", "money", "insights", "Setup", "team", "settings",
 ];
 
 // Pages each role cannot open, following what the database allows:
 // run leaders schedule and check in runs and can host events, but members,
 // announcements, reports and settings need an owner or organiser (rank 2+);
-// an organizer account has events and money only.
+// an organizer account has events and money only. The leaderboard is open to
+// run leaders: every member sees it in the app.
 export const LOCKED: Record<RoleKey, PageId[]> = {
   owner: [],
   organiser: [],
   leader: ["members", "requests", "messages", "moderation", "money", "insights", "team", "settings"],
-  organizer: ["runs", "members", "requests", "messages", "moderation", "insights", "team"],
+  organizer: ["runs", "members", "requests", "leaderboard", "messages", "moderation", "insights", "team"],
 };
 export const WHO: Partial<Record<RoleKey, string>> = {
   leader: "Run leaders schedule runs, run check-in and see who’s coming. Members, messages and settings are for the owner and organisers.",

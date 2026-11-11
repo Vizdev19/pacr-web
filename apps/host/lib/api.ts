@@ -352,6 +352,62 @@ export async function membersLite(circleId: string): Promise<MemberLite[]> {
   const week = await rpc<MemberWeekRow[] | null>("squad_members_week", { p_circle_id: circleId, p_week_key: currentWeekKey() });
   return (week ?? []).map(m => ({ userId: m.user_id, name: m.display_name ?? "Runner", avatarPath: m.avatar_path, role: m.role, joinedAt: m.joined_at, isSelf: m.is_self }));
 }
+// ── Leaderboard ────────────────────────────────────────────────────────────
+// The app's squad board (pacr src/components/squads/Leaderboard.tsx +
+// services/squadScreen.ts leaderboardTotals), with the same rules: week by
+// distance is squad_members_week (so it matches the app's KM THIS WEEK tile);
+// any other window totals run_summaries (readable by co-members). Pace counts
+// runs no faster than 2:30 /km, once they add up to 1 km.
+
+export const MIN_PACE_SEC = 150;
+export const PACE_MIN_KM = 1;
+
+export type BoardMember = {
+  userId: string; name: string; handle: string | null; avatarPath: string | null; role: SquadRole; title: string | null;
+  isSelf: boolean; weekKm: number; weekRuns: number;
+};
+/** Everyone in the squad with this week's km (the app's week key), handles added. */
+export async function boardMembers(circleId: string): Promise<BoardMember[]> {
+  const week = (await rpc<MemberWeekRow[] | null>("squad_members_week", { p_circle_id: circleId, p_week_key: currentWeekKey() })) ?? [];
+  const ids = week.map(m => m.user_id);
+  const handles = new Map<string, string | null>();
+  for (let i = 0; i < ids.length; i += 200) {
+    const batch = await rows<{ id: string; handle: string | null }>("users", sb().from("users").select("id, handle").in("id", ids.slice(i, i + 200)));
+    for (const h of batch) handles.set(h.id, h.handle);
+  }
+  return week.map(m => ({
+    userId: m.user_id, name: m.display_name ?? "Runner", handle: handles.get(m.user_id) ?? null, avatarPath: m.avatar_path,
+    role: m.role, title: m.title, isSelf: m.is_self, weekKm: Number(m.week_km ?? 0), weekRuns: Number(m.run_count ?? 0),
+  }));
+}
+
+export type BoardTotal = { km: number; runs: number; paceSec: number; paceKm: number };
+export type BoardRange = { weekKey: string } | { from: Date; to: Date };
+/** Each member's km, runs and believable pace time in the window, from run_summaries. */
+export async function boardTotals(userIds: string[], range: BoardRange): Promise<Map<string, BoardTotal>> {
+  const ids = [...new Set(userIds)];
+  const out = new Map<string, BoardTotal>();
+  for (let i = 0; i < ids.length; i += 200) {
+    const batch = ids.slice(i, i + 200);
+    for (let page = 0; page < 20; page++) {
+      let q = sb().from("run_summaries").select("id, user_id, distance_km, duration_sec").in("user_id", batch);
+      q = "weekKey" in range ? q.eq("week_key", range.weekKey) : q.gte("started_at", range.from.toISOString()).lt("started_at", range.to.toISOString());
+      const data = await rows<{ user_id: string; distance_km: number | string | null; duration_sec: number | string | null }>(
+        "run_summaries", q.order("id").range(page * 1000, page * 1000 + 999));
+      for (const r of data) {
+        const k = Number(r.distance_km ?? 0), sec = Number(r.duration_sec ?? 0);
+        const t = out.get(r.user_id) ?? { km: 0, runs: 0, paceSec: 0, paceKm: 0 };
+        t.km += k;
+        t.runs += 1;
+        if (k > 0 && sec > 0 && sec / k >= MIN_PACE_SEC) { t.paceSec += sec; t.paceKm += k; }
+        out.set(r.user_id, t);
+      }
+      if (data.length < 1000) break;
+    }
+  }
+  return out;
+}
+
 /** owner 3, organiser 2, run_leader 1, member 0: staff may only act on people ranked below them. */
 export const roleRank = (role: SquadRole | null | undefined) => ({ owner: 3, organiser: 2, run_leader: 1, member: 0 }[role ?? "member"] ?? -1);
 
