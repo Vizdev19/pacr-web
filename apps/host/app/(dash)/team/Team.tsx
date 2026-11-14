@@ -22,7 +22,10 @@ const PERMS: [string, Tone[]][] = [
   ["Post announcements", [1, 1, 0, 0]],
   ["Moderate reports", [1, 1, 0, 0]],
   ["Edit squad profile, rules & join questions", [1, 1, 0, 0]],
-  ["See sales & payouts", [1, 1, 0, 1]],
+  // Whoever can host an event for the squad (run leaders too) sees its sales
+  // and payouts and can refund a booking: the database's own rule
+  // (can_host_as). Only where the money is paid to is the owner's alone.
+  ["See sales & payouts, refund bookings", [1, 1, 1, 1]],
   ["Payout account", [1, 0, 0, 1]],
   ["Instagram, home base & verification", [1, 0, 0, 0]],
   ["Add co-owners / delete squad", [1, 0, 0, 0]],

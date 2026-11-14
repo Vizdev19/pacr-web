@@ -131,7 +131,7 @@ const validSeats = (b: Booking) => b.seats.filter(s => s.ticket_status === "vali
 function bookingTag(b: Booking, eventCancelled: boolean): { status: string; label: string; note?: string } {
   if (b.refund) return { ...refundTag(b.refund), note: b.refund === "failed" ? RETRYING : undefined };
   if (b.status === "refunded") return { status: "Refunded", label: "Refunded" };
-  if (b.status === "cancelled") return { status: "Cancelled", label: eventCancelled ? "Event cancelled" : "Gave up" };
+  if (b.status === "cancelled") return { status: "Cancelled", label: eventCancelled ? "Event cancelled" : "Cancelled" };
   if (b.checkedIn === 0) return { status: "Draft", label: "Not yet" };
   const n = validSeats(b);
   return { status: "Checked in", label: b.checkedIn >= n ? "Checked in" : `${num(b.checkedIn)} of ${num(n)} in` };
@@ -140,7 +140,7 @@ function bookingTag(b: Booking, eventCancelled: boolean): { status: string; labe
 /** One seat, for the CSV. */
 function seatLabel(s: Seat, eventCancelled: boolean): string {
   if (s.ticket_status === "refunded") return s.refund_status ? refundTag(s.refund_status).label : "Refunded";
-  if (s.ticket_status !== "valid") return eventCancelled ? "Event cancelled" : "Gave up";
+  if (s.ticket_status !== "valid") return eventCancelled ? "Event cancelled" : "Cancelled";
   return s.checked_in_at ? "Checked in" : "Not yet";
 }
 const seatOf = (s: Seat) => (s.qty > 1 ? `${s.seq} of ${s.qty}` : "1 of 1");
@@ -242,7 +242,7 @@ function Attendees({ event: e, seats, sales }: { event: api.HostedEvent; seats: 
         <SegmentChip label="All bookings" count={all.length} active={f === "all"} onClick={() => setF("all")} />
         <SegmentChip label="Checked in" count={cnt.in} active={f === "in"} onClick={() => setF("in")} />
         <SegmentChip label="Not yet" count={cnt.not} active={f === "not"} onClick={() => setF("not")} />
-        <SegmentChip label="Gave up or refunded" count={cnt.gone} active={f === "gone"} onClick={() => setF("gone")} />
+        <SegmentChip label="Cancelled or refunded" count={cnt.gone} active={f === "gone"} onClick={() => setF("gone")} />
         <div style={{ flex: 1 }} />
         <Button variant="secondary" icon="download" onClick={exportCsv} disabled={rows.length === 0}>Export CSV</Button>
       </Toolbar>
@@ -279,7 +279,7 @@ function Attendees({ event: e, seats, sales }: { event: api.HostedEvent; seats: 
               { key: "seats", header: "Seats", render: b => num(b.qty) },
               { key: "tier", header: "Ticket", render: b => b.tier ?? "—" },
               { key: "reg", header: "Booked", render: b => day(b.registeredAt) },
-              { key: "paid", header: "Paid", align: "right", render: paid },
+              { key: "paid", header: "Runner paid", align: "right", render: paid },
               { key: "status", header: "Status", align: "right", render: tag },
               ...(refundable ? [{ key: "act", header: "", align: "right" as const, render: refundButton }] : []),
             ]}
@@ -288,6 +288,7 @@ function Attendees({ event: e, seats, sales }: { event: api.HostedEvent; seats: 
       )}
       <div style={{ ...kMuted, marginTop: 10 }}>
         {plural(seatsLive, "seat")} in {plural(live.length, "booking")} · {num(seatsIn)} checked in. Each seat has its own QR.
+        {anyPaid ? " “Runner paid” is the whole charge: the ticket price, which is yours, plus pacr’s fee and GST on top." : ""}
         {isHost && anyPaid && !settled ? " A refund covers the whole booking: the ticket price, pacr’s fee and GST go back, and all its seats are cancelled." : ""}
       </div>
       {asking ? (

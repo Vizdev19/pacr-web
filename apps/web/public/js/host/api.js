@@ -39,6 +39,7 @@ const COPY = {
   cooldown: 'You can ask again 24 hours after the last answer.',
   name_required: 'Give your organisation a name.',
   name_locked: 'Your name was approved as it is. Write to support@pacr.life to change it.',
+  instagram_locked: 'Your Instagram was approved as it is. Write to support@pacr.life to change it.',
   invalid_instagram: 'That Instagram handle doesn’t look right.',
   title_required: 'Give the event a title.',
   too_long: 'Something is too long — check the title, description and notes.',
