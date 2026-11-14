@@ -763,7 +763,16 @@ export const refundBooking = (eventId: string, ticketId: string, note: string) =
 /** pending (ready to pay) · hold (see hold_reason) · paying (pacr is transferring it) · paid · void (nothing to pay). */
 export type PayoutStatus = "pending" | "hold" | "paying" | "paid" | "void";
 /** Why a payout waits: refund_in_progress · no_payout_account · dispute_open · host_suspended. */
-export type PayoutLine = { status: PayoutStatus; hold_reason: string | null; net_minor: number; paid_at: string | null; reference: string | null };
+/**
+ * Bookings kept out of a payout while a runner's bank dispute on them is open
+ * (pacr 20270111120000; absent before it): what is held, what the host won and
+ * pacr is about to pay, and what was paid that way. net_minor leaves all three out.
+ */
+export type PayoutDispute = { held_minor: number; due_minor: number; paid_minor: number };
+export type PayoutLine = {
+  status: PayoutStatus; hold_reason: string | null; net_minor: number; paid_at: string | null; reference: string | null;
+  dispute?: PayoutDispute | null;
+};
 
 export type EventSales = {
   tiers: { name: string; price_minor: number; capacity: number | null; sold: number; refunded: number }[];
@@ -807,6 +816,7 @@ export async function hostSales(kind: "squad" | "organizer", hostId: string): Pr
 export type Payout = {
   event_id: string; title: string; starts_at: string; tickets: number; ticket_gross_minor: number; ticket_refunded_minor: number;
   net_minor: number; status: PayoutStatus; hold_reason: string | null; paid_at: string | null; reference: string | null;
+  dispute?: PayoutDispute | null;
 };
 /** One payout line per event for a squad or organizer account, from a day after each event ends. */
 export const myPayouts = (kind: "squad" | "organizer", hostId: string) =>

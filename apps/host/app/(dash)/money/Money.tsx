@@ -90,7 +90,7 @@ function Overview({ account, onAccount }: { account: AccountLoad; onAccount: () 
       lines.push({
         eventId: p.event_id, title: p.title, startsAt: p.starts_at, endsAt: null, cancelled: false,
         gross: Number(p.ticket_gross_minor), refunded: Number(p.ticket_refunded_minor), net: Number(p.net_minor),
-        payout: { status: p.status, hold_reason: p.hold_reason, net_minor: Number(p.net_minor), paid_at: p.paid_at, reference: p.reference },
+        payout: { status: p.status, hold_reason: p.hold_reason, net_minor: Number(p.net_minor), paid_at: p.paid_at, reference: p.reference, dispute: p.dispute },
         listed: false,
       });
     }

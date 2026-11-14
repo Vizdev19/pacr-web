@@ -3,8 +3,8 @@
 import type { ReactNode } from "react";
 import { GlassCard } from "@/components/ds";
 import { kMuted } from "@/components/shell/kit";
-import type { PayoutLine } from "@/lib/api";
-import { day } from "@/lib/format";
+import type { PayoutDispute, PayoutLine } from "@/lib/api";
+import { day, paise } from "@/lib/format";
 
 export type SummaryCell = { label: string; value: ReactNode; note?: ReactNode; hero?: boolean };
 
@@ -46,7 +46,7 @@ export function payoutTag(status: string): { status: string; label: string } {
 const HOLD: Record<string, string> = {
   refund_in_progress: "Waiting for a refund to go through. It’s paid once every refund is done.",
   no_payout_account: "Waiting for payout details. The owner adds them under Money → Payout account.",
-  dispute_open: "A runner disputed a payment with their bank. It’s paid once that’s settled.",
+  dispute_open: "A runner disputed their payment with their bank, and it’s the only booking to pay out. It’s paid once that’s settled.",
   host_suspended: "Hosting is paused for this account. Write to support@pacr.life.",
 };
 
@@ -57,8 +57,31 @@ export function holdText(reason: string | null | undefined): string {
   return s ? s[0].toUpperCase() + s.slice(1) : "";
 }
 
-/** One line on where a payout stands: the hold reason, or when it was paid and its reference. */
-export function payoutNote(p: Pick<PayoutLine, "status" | "hold_reason" | "paid_at" | "reference">): string {
+/**
+ * What a bank dispute is keeping out of a payout, in plain words: the rest of
+ * the payout goes ahead, and a disputed booking is paid if the bank sides with
+ * the event.
+ */
+export function disputeNote(d: PayoutDispute | null | undefined): string {
+  if (!d) return "";
+  const held = Number(d.held_minor) || 0, due = Number(d.due_minor) || 0, paid = Number(d.paid_minor) || 0;
+  return [
+    held > 0 ? `${paise(held)} is kept back while a runner’s bank dispute is open; it’s paid if the bank sides with you.` : null,
+    due > 0 ? `${paise(due)} from a settled dispute is on its way.` : null,
+    paid > 0 ? `${paise(paid)} from a settled dispute was paid separately.` : null,
+  ].filter(Boolean).join(" ");
+}
+
+/** One line on where a payout stands: the hold reason, or when it was paid and its reference; then what a dispute is keeping back. */
+export function payoutNote(p: Pick<PayoutLine, "status" | "hold_reason" | "paid_at" | "reference" | "dispute">): string {
+  // A payout on hold for its dispute already says so.
+  const extra = p.status === "hold" && p.hold_reason === "dispute_open" ? "" : disputeNote(p.dispute);
+  const stands = payoutStands(p);
+  if (!extra || !stands) return stands || extra;
+  return `${stands}${/[.!?]$/.test(stands) ? " " : " · "}${extra}`;
+}
+
+function payoutStands(p: Pick<PayoutLine, "status" | "hold_reason" | "paid_at" | "reference">): string {
   switch (p.status) {
     case "paid": return [p.paid_at ? `Paid ${day(p.paid_at)}` : "Paid", p.reference ? `ref ${p.reference}` : null].filter(Boolean).join(" · ");
     case "paying": return "pacr is transferring it now.";
