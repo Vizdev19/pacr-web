@@ -10,7 +10,7 @@ import { day, paise } from "@/lib/format";
 import { useHost } from "@/lib/host";
 import { useLoad, useViewport } from "@/lib/hooks";
 import { encodeRef } from "@/lib/refs";
-import { Summary, payoutNote, payoutTag } from "./Summary";
+import { Summary, owedNote, payoutNote, payoutTag } from "./Summary";
 
 type Tab = "overview" | "account";
 type AccountLoad = ReturnType<typeof useLoad<api.PayoutAccount>>;
@@ -72,11 +72,13 @@ function Overview({ account, onAccount }: { account: AccountLoad; onAccount: () 
   const { phone } = useViewport();
   const router = useRouter();
   const d = useLoad(async () => {
-    const [live, rows, pricing] = await Promise.all([
+    const [live, rows, pricing, owes] = await Promise.all([
       api.hostSales(host.kind, host.id),
       // Only for events the live list can't reach: never worth failing the page over.
       api.myPayouts(host.kind, host.id).catch(() => [] as api.Payout[]),
       api.eventPricing().catch(() => null),
+      // Null when it can't be read (an older server): nothing owed to show.
+      api.hostOwes(host.kind, host.id),
     ]);
     const lines: Line[] = live.map(({ event: e, sales: s }) => ({
       eventId: e.id, title: e.title, startsAt: e.starts_at, endsAt: e.ends_at, cancelled: e.status === "cancelled",
@@ -90,13 +92,16 @@ function Overview({ account, onAccount }: { account: AccountLoad; onAccount: () 
       lines.push({
         eventId: p.event_id, title: p.title, startsAt: p.starts_at, endsAt: null, cancelled: false,
         gross: Number(p.ticket_gross_minor), refunded: Number(p.ticket_refunded_minor), net: Number(p.net_minor),
-        payout: { status: p.status, hold_reason: p.hold_reason, net_minor: Number(p.net_minor), paid_at: p.paid_at, reference: p.reference, dispute: p.dispute },
+        payout: {
+          status: p.status, hold_reason: p.hold_reason, net_minor: Number(p.net_minor), paid_at: p.paid_at, reference: p.reference, dispute: p.dispute,
+          owed_deducted_minor: p.owed_deducted_minor,
+        },
         listed: false,
       });
     }
     const shown = lines.filter(l => !(l.cancelled && l.gross === 0))
       .sort((a, b) => new Date(b.startsAt).getTime() - new Date(a.startsAt).getTime());
-    return { lines: shown, pricing, now: Date.now() };
+    return { lines: shown, pricing, owes, now: Date.now() };
   }, `money:${host.key}`);
 
   if (d.status === "loading") {
@@ -109,12 +114,16 @@ function Overview({ account, onAccount }: { account: AccountLoad; onAccount: () 
   }
   if (d.status === "error") return <LoadError what="ticket money" error={d.error} onRetry={d.reload} />;
 
-  const { lines, pricing, now } = d.data;
+  const { lines, pricing, owes, now } = d.data;
+  // Only while something is owed, or is coming out of a payout being sent.
+  const owed = owes && (owes.open_minor > 0 || owes.rows.some(r => r.taking)) ? <Owed owes={owes} /> : null;
   if (lines.length === 0) {
-    return (
+    const none = (
       <EmptyState icon="wallet" title="No paid events yet" message="Ticket money shows here from the first sale. pacr pays it out a day after each event ends."
         style={{ padding: "56px 24px" }} action={{ label: "Go to events", variant: "secondary", onClick: () => router.push("/events") }} />
     );
+    // What is owed outlives its event, so it can be all there is to show.
+    return owed ? <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>{owed}{none}</div> : none;
   }
   const canEdit = account.status === "ready" && account.data.can_edit;
   const sum = (xs: Line[], f: (l: Line) => number) => xs.reduce((a, l) => a + f(l), 0);
@@ -133,6 +142,7 @@ function Overview({ account, onAccount }: { account: AccountLoad; onAccount: () 
           Runners pay the ticket price plus a {pricing.fee_bps / 100}% pacr fee and {pricing.gst_bps / 100}% GST on that fee. You receive the ticket price.
         </div>
       ) : null}
+      {owed}
       <div style={{ display: "grid", gridTemplateColumns: phone ? "minmax(0,1fr)" : "minmax(0,1.2fr) minmax(0,1fr)", gap: 12, alignItems: "start" }}>
         <GlassCard title="Ticket sales by event" subtitle="Gross, latest events with sales">
           {sold.length === 0 ? (
@@ -150,6 +160,8 @@ function Overview({ account, onAccount }: { account: AccountLoad; onAccount: () 
               const paid = l.payout?.status === "paid";
               const quiet = l.payout?.status === "void" || l.cancelled;
               const needsDetails = l.payout?.status === "hold" && l.payout.hold_reason === "no_payout_account";
+              // The amount above is already after it.
+              const taken = owedNote(l.payout);
               const body = (
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
@@ -158,6 +170,7 @@ function Overview({ account, onAccount }: { account: AccountLoad; onAccount: () 
                   <div style={{ ...kMuted, marginTop: 2 }}>{l.title} · {day(l.startsAt)}</div>
                   <div style={kMuted}>Ticket sales {paise(l.gross)}{l.refunded > 0 ? ` · ${paise(l.refunded)} refunded` : ""}</div>
                   <div style={kMuted}>{lineNote(l, now)}</div>
+                  {taken ? <div style={kMuted}>{taken}</div> : null}
                 </div>
               );
               return (
@@ -177,6 +190,56 @@ function Overview({ account, onAccount }: { account: AccountLoad; onAccount: () 
         </GlassCard>
       </div>
     </div>
+  );
+}
+
+// ── What the host owes pacr ────────────────────────────────────────────────
+
+const OWED_KIND: Record<string, string> = {
+  refund_charges: "Payment charges on refunds",
+  refund_after_payout: "Refunded after you were paid",
+  chargeback_after_payout: "Chargeback after you were paid",
+};
+/** A kind this page doesn't know yet still reads as words. */
+function owedKind(kind: string): string {
+  if (OWED_KIND[kind]) return OWED_KIND[kind];
+  const s = String(kind ?? "").replace(/[_-]+/g, " ").trim();
+  return s ? s[0].toUpperCase() + s.slice(1) : "Owed to pacr";
+}
+
+/**
+ * What this host owes pacr, and what a payout being sent is taking: Razorpay's
+ * fee on refunds they caused, and tickets refunded or charged back after a
+ * payout. It comes off their next payout by itself. Owing too much beyond what
+ * pacr holds for them pauses new paid events; the database decides that
+ * (`blocked`), this only says so.
+ */
+function Owed({ owes }: { owes: api.HostOwes }) {
+  return (
+    <GlassCard title={owes.open_minor > 0 ? `You owe pacr ${paise(owes.open_minor)}` : "Coming out of your payout"}>
+      {owes.blocked ? (
+        <div style={{ display: "flex", gap: 10, alignItems: "flex-start", padding: 12, borderRadius: 12, background: "var(--warning-soft)", marginBottom: 8 }}>
+          <Icon name="triangle-alert" size={16} color="var(--orange-700)" style={{ marginTop: 1, flex: "none" }} />
+          <div style={{ flex: 1, font: "400 13px/1.45 var(--font-sans)", color: "var(--text-strong)" }}>
+            New paid events are paused until this is under {paise(owes.block_over_minor)} more than pacr is holding for you. Write to support@pacr.life to settle it.
+          </div>
+        </div>
+      ) : null}
+      {owes.rows.map((r, i) => {
+        const about = [r.event_title, r.taking ? "coming out of the payout being sent" : null].filter(Boolean).join(" · ");
+        return (
+          <KV key={`${r.kind}:${r.event_id}:${i}`}
+            k={<>
+              <span style={{ ...kStrong, display: "block" }}>{owedKind(r.kind)}</span>
+              {about ? <span style={{ ...kMuted, display: "block", marginTop: 2 }}>{about}</span> : null}
+            </>}
+            v={<span style={kStrong}>{paise(r.amount_minor)}</span>} />
+        );
+      })}
+      <div style={{ ...kMuted, marginTop: 12 }}>
+        It comes off your next payout. Razorpay keeps its fee, about 2.4%, on a refunded payment, and refunds you make or events you cancel carry it.
+      </div>
+    </GlassCard>
   );
 }
 

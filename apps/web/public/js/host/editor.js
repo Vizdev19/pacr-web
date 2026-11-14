@@ -35,7 +35,7 @@
 
 import { openModal } from '../modal.js';
 import {
-  myHosting, getEventForEdit, createEvent, updateEvent, publishEvent, deleteDraft, cancelEvent,
+  myHosting, getEventForEdit, createEvent, updateEvent, publishEvent, deleteDraft, cancelEvent, eventRefundCost,
   uploadImage, removeImages, imageUrls, avatarUrls, failText,
 } from './api.js';
 import {
@@ -356,9 +356,19 @@ export async function renderEditor(app, { id }) {
     const refunds = paid && going
       ? ' Every paid booking is refunded in full: the ticket price, PACR’s fee and the GST go back the way they paid.'
       : '';
+    // Razorpay keeps its fee on a refunded payment, and where this event's own
+    // rule has the host pay it, the question says what cancelling costs. Asked
+    // briefly: with no answer (or an older server) the question goes without it.
+    const cost = paid && going
+      ? await Promise.race([eventRefundCost(e.id), new Promise((done) => setTimeout(() => done(null), 1500))])
+      : null;
+    const charge = cost?.ok && cost.value?.payer === 'host' ? Number(cost.value.charge_minor) || 0 : 0;
+    const costs = charge > 0
+      ? ` It also costs you ₹${(charge / 100).toLocaleString('en-IN', { maximumFractionDigits: 2 })} in payment charges, which Razorpay keeps; that comes off your next payout.`
+      : '';
     const ask = openModal({
       title: 'Cancel this event?',
-      body: `<p>${going ? `${going} ${going === 1 ? 'person has a ticket' : 'people have tickets'}. Each gets a notification that it’s off.` : 'Nobody has a ticket yet.'}${refunds} This can’t be undone.</p>
+      body: `<p>${going ? `${going} ${going === 1 ? 'person has a ticket' : 'people have tickets'}. Each gets a notification that it’s off.` : 'Nobody has a ticket yet.'}${refunds}${costs} This can’t be undone.</p>
         <label class="field"><span>Tell them why <i>optional</i></span><textarea id="cancelWhy" maxlength="300" rows="2" placeholder="Heavy rain forecast — we’ll run it on the 22nd instead."></textarea></label>`,
       options: [{ label: 'Cancel event', value: true, primary: true }, { label: 'Keep it', value: false }],
     });

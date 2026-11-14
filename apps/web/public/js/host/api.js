@@ -59,6 +59,8 @@ const COPY = {
   tier_has_orders: 'That ticket type already has runners on it, so it can’t be removed.',
   payout_account_required: 'A paid event needs payout details before it goes live. The squad’s owner, or the organizer, adds them under Money on pacr.life/host.',
   paid_not_open: 'Paid tickets aren’t open on PACR yet, so an event with priced tickets can’t go live. Keep it as a draft for now, or make its tickets free in the PACR app.',
+  // A host owing too much can't put a paid event on sale (pacr 20270117120000).
+  host_owes: 'You owe PACR more than ₹500 beyond what it is holding for you, from payment charges on refunds or refunds on earlier events. Write to support@pacr.life to settle it, and you can publish paid events again.',
   incomplete: 'Add a place from the search before publishing.',
   already_published: 'It’s already published.',
   not_draft: 'Only a draft nobody has a ticket for can be deleted.',
@@ -144,6 +146,12 @@ export const updateEvent = (id, patch) => rpc('update_event', { p_event_id: id, 
 export const publishEvent = (id) => rpc('publish_event', { p_event_id: id });
 export const deleteDraft = (id) => rpc('delete_draft_event', { p_event_id: id });
 export const cancelEvent = (id, reason) => rpc('cancel_event', { p_event_id: id, p_reason: reason || null });
+/**
+ * What refunding every paid booking costs the host in payment charges, which
+ * is what cancelling does: { payer: 'host' | 'pacr', bookings, charge_minor }
+ * (pacr 20270117120000). The rule is the event's own, so it is asked.
+ */
+export const eventRefundCost = (id) => rpc('event_refund_cost', { p_event_id: id });
 
 // ── Pictures ────────────────────────────────────────────────────────────────
 

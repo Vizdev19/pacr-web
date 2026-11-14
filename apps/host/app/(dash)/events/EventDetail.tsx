@@ -11,7 +11,7 @@ import { day, dayTime, firstName, num, paise, plural, tile, time } from "@/lib/f
 import { useHost } from "@/lib/host";
 import { useLoad, useViewport } from "@/lib/hooks";
 import { encodeRef, eventEditHref } from "@/lib/refs";
-import { Summary, payoutNote, payoutTag } from "../money/Summary";
+import { Summary, owedNote, payoutNote, payoutTag } from "../money/Summary";
 import { Poster, tagOf } from "./shared";
 
 type View = "attendees" | "sales";
@@ -309,6 +309,11 @@ function RefundDialog({ event: e, booking: b, onClose, onRefunded, onStale }: {
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  // Razorpay keeps its fee on a refunded payment, and on events published under
+  // that rule the host pays it. Asked as the dialog opens; the event decides,
+  // so nothing is assumed, and the refund never waits on the answer.
+  const cost = useLoad(() => api.refundCost(e.id, b.ticketId), `refund-cost:${e.id}:${b.ticketId}`);
+  const charge = cost.status === "ready" && cost.data?.payer === "host" ? cost.data.chargeMinor : 0;
   const theSeats = b.qty === 1 ? "The seat is" : `All ${num(b.qty)} seats are`;
   const go = async () => {
     setBusy(true);
@@ -337,6 +342,11 @@ function RefundDialog({ event: e, booking: b, onClose, onRefunded, onStale }: {
         That’s the whole booking: the ticket price, pacr’s fee and the GST, back the way they paid. {theSeats} cancelled
         and {b.qty === 1 ? "its QR stops" : "their QRs stop"} working. This can’t be undone.
       </p>
+      {charge > 0 ? (
+        <p style={{ font: "400 13px/1.5 var(--font-sans)", color: "var(--text-body)", margin: "0 0 14px" }}>
+          Refunding costs you <span style={{ fontWeight: 500, color: "var(--text-strong)" }}>{paise(charge)}</span> in payment charges, which Razorpay keeps. It comes off your payout.
+        </p>
+      ) : null}
       <label className="pc-field">
         <span className="pc-label">Note to {firstName(b.name)} <span style={kMuted}>optional</span></span>
         <textarea rows={2} maxLength={300} style={kTextarea} value={note} disabled={busy}
@@ -375,6 +385,10 @@ function Sales({ event: e, now, sales: s, seats }: { event: api.HostedEvent; now
   const pay = d.payout ? payoutTag(d.payout.status) : null;
   const failed = seats.status === "ready" ? bookingsOf(seats.data).filter(b => b.refund === "failed").length : null;
   const refunds = refundsLine(d.refunds_open, failed);
+  // Razorpay's fee on this event's refunds, where the host pays it (0 on events published before that rule, and on older servers).
+  const charges = Number(d.refund_charges_minor) || 0;
+  // What the payout's transfer took for money the host owed pacr: its amount is already after it.
+  const taken = owedNote(d.payout);
   const before = e.status === "cancelled"
     ? "The event was cancelled, so every paid booking is refunded and there’s nothing to pay out."
     : new Date(e.ends_at ?? e.starts_at).getTime() > now
@@ -393,6 +407,7 @@ function Sales({ event: e, now, sales: s, seats }: { event: api.HostedEvent; now
             { label: "Tickets sold", value: num(d.sold) },
             { label: "Ticket sales (gross)", value: paise(d.ticket_gross_minor) },
             { label: "Refunded", value: paise(d.ticket_refunded_minor), note: refunds ?? undefined },
+            ...(charges > 0 ? [{ label: "Refund charges", value: paise(charges), note: "Razorpay’s fee on refunds, taken from your payout" }] : []),
             { label: "pacr fee", value: paise(d.fee_minor), note: "Paid by runners on top" },
             { label: "GST on fee", value: paise(d.gst_minor), note: "Paid by runners on top" },
             { label: "You receive", value: paise(d.net_minor), note: "Ticket sales minus refunds", hero: true },
@@ -407,6 +422,7 @@ function Sales({ event: e, now, sales: s, seats }: { event: api.HostedEvent; now
             ) : (
               <span style={kMuted}>{before}</span>
             )}
+            {taken ? <div style={{ ...kMuted, marginTop: 8 }}>{taken}</div> : null}
             {refunds ? (
               <div style={{ ...kMuted, marginTop: 8, display: "flex", gap: 6, alignItems: "center", color: failed ? "var(--danger-text)" : undefined }}>
                 {failed ? <Icon name="circle-alert" size={13} /> : null}{refunds}

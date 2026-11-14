@@ -760,6 +760,35 @@ export const refundBooking = (eventId: string, ticketId: string, note: string) =
   rpc<{ refund_minor: number } | null>("refund_event_ticket", { p_event_id: eventId, p_ticket_id: ticketId, p_note: note.trim() || null })
     .then(r => Number(r?.refund_minor ?? 0));
 
+/**
+ * Who pays Razorpay's fee on a refund the host causes (a booking they refund,
+ * an event they cancel). Razorpay keeps that fee, about 2.4%, and the runner
+ * gets everything back. The rule is the event's own, fixed when it is
+ * published (pacr 20270117120000), so events already on sale keep "pacr":
+ * ask the server, never assume.
+ */
+export type RefundFeePayer = "host" | "pacr";
+
+export type RefundCost = { payer: RefundFeePayer; bookings: number; chargeMinor: number };
+/**
+ * What a refund would cost the host in payment charges (event_refund_cost):
+ * with a seat, refunding that seat's booking; without one, refunding every
+ * paid booking, which is what cancelling the event costs. chargeMinor is 0
+ * when pacr pays. The event's host and co-hosts.
+ * Null on any failure, a server without the call included: there is then no
+ * charge to show, and a refund or a cancellation never waits on this.
+ */
+export async function refundCost(eventId: string, ticketId?: string): Promise<RefundCost | null> {
+  try {
+    const d = await rpc<{ payer?: string | null; bookings?: number | string | null; charge_minor?: number | string | null } | null>(
+      "event_refund_cost", ticketId ? { p_event_id: eventId, p_ticket_id: ticketId } : { p_event_id: eventId });
+    if (!d) return null;
+    return { payer: d.payer === "host" ? "host" : "pacr", bookings: Number(d.bookings) || 0, chargeMinor: Number(d.charge_minor) || 0 };
+  } catch {
+    return null;
+  }
+}
+
 /** pending (ready to pay) · hold (see hold_reason) · paying (pacr is transferring it) · paid · void (nothing to pay). */
 export type PayoutStatus = "pending" | "hold" | "paying" | "paid" | "void";
 /** Why a payout waits: refund_in_progress · no_payout_account · dispute_open · host_suspended. */
@@ -772,6 +801,8 @@ export type PayoutDispute = { held_minor: number; due_minor: number; paid_minor:
 export type PayoutLine = {
   status: PayoutStatus; hold_reason: string | null; net_minor: number; paid_at: string | null; reference: string | null;
   dispute?: PayoutDispute | null;
+  /** Taken out of this payout for money the host owed pacr (see hostOwes); net_minor is already after it. Absent before pacr 20270117120000: 0. */
+  owed_deducted_minor?: number;
 };
 
 export type EventSales = {
@@ -782,6 +813,10 @@ export type EventSales = {
   ticket_gross_minor: number; ticket_refunded_minor: number; net_minor: number; fee_minor: number; gst_minor: number;
   /** Refunds not finished: queued, sending or failed. */
   refunds_open: number; payout_ready: boolean;
+  /** Who pays Razorpay's fee on this event's refunds. Absent before pacr 20270117120000: "pacr". */
+  refund_fee_payer?: RefundFeePayer;
+  /** Charged to the host on this event's refunds so far. Absent before pacr 20270117120000: 0. */
+  refund_charges_minor?: number;
   /** Only from a day after the event ends. */
   payout: PayoutLine | null;
 };
@@ -817,10 +852,54 @@ export type Payout = {
   event_id: string; title: string; starts_at: string; tickets: number; ticket_gross_minor: number; ticket_refunded_minor: number;
   net_minor: number; status: PayoutStatus; hold_reason: string | null; paid_at: string | null; reference: string | null;
   dispute?: PayoutDispute | null;
+  /** Taken out of this payout for money the host owed pacr; net_minor is already after it. Absent before pacr 20270117120000: 0. */
+  owed_deducted_minor?: number;
 };
 /** One payout line per event for a squad or organizer account, from a day after each event ends. */
 export const myPayouts = (kind: "squad" | "organizer", hostId: string) =>
   rpc<Payout[] | null>("my_payouts", { p_host_kind: kind, p_host_id: hostId }).then(r => r ?? []);
+
+/**
+ * refund_charges: Razorpay's fee on refunds the host caused (one open row per
+ * event). The other two: a ticket refunded, or charged back by the runner's
+ * bank, after the event's payout was paid.
+ */
+export type HostOwesKind = "refund_charges" | "refund_after_payout" | "chargeback_after_payout";
+export type HostOwesRow = {
+  kind: HostOwesKind; event_id: string; event_title: string | null; amount_minor: number; created_at: string;
+  /** It is coming out of a payout whose transfer is under way. */
+  taking: boolean;
+};
+export type HostOwes = {
+  /** Owed and not yet being taken from a payout. */
+  open_minor: number;
+  /** Ticket money pacr is still holding for this host. */
+  held_minor: number;
+  /** Owing more than this beyond held_minor is what pauses new paid events. */
+  block_over_minor: number;
+  /** They can't publish a new paid event until it is settled. */
+  blocked: boolean;
+  /** Everything not settled yet, oldest first: what is owed, and what a payout being sent is taking. */
+  rows: HostOwesRow[];
+};
+/**
+ * What a squad or organizer account owes pacr (my_host_owes): it comes off
+ * their next payout by itself. Anyone who hosts as it.
+ * Null on any failure, a server without the call included: nothing owed to show.
+ */
+export async function hostOwes(kind: "squad" | "organizer", hostId: string): Promise<HostOwes | null> {
+  try {
+    const d = await rpc<Partial<HostOwes> | null>("my_host_owes", { p_host_kind: kind, p_host_id: hostId });
+    if (!d) return null;
+    return {
+      open_minor: Number(d.open_minor) || 0, held_minor: Number(d.held_minor) || 0,
+      block_over_minor: Number(d.block_over_minor) || 0, blocked: !!d.blocked,
+      rows: (d.rows ?? []).map(r => ({ ...r, amount_minor: Number(r.amount_minor) || 0, taking: !!r.taking })),
+    };
+  } catch {
+    return null;
+  }
+}
 
 /** Where pacr pays a host, as the host may see it: never the full UPI ID or account number. */
 export type MaskedPayout = {

@@ -81,6 +81,16 @@ export function payoutNote(p: Pick<PayoutLine, "status" | "hold_reason" | "paid_
   return `${stands}${/[.!?]$/.test(stands) ? " " : " · "}${extra}`;
 }
 
+/**
+ * What came out of a payout for money the host owed pacr (payment charges on
+ * refunds, a refund or chargeback after an earlier payout), worded to sit
+ * under the payout's amount, which is already after it. Empty when nothing did.
+ */
+export function owedNote(p: Pick<PayoutLine, "owed_deducted_minor"> | null | undefined): string {
+  const taken = Number(p?.owed_deducted_minor) || 0;
+  return taken > 0 ? `${paise(taken)} taken for what you owed pacr` : "";
+}
+
 function payoutStands(p: Pick<PayoutLine, "status" | "hold_reason" | "paid_at" | "reference">): string {
   switch (p.status) {
     case "paid": return [p.paid_at ? `Paid ${day(p.paid_at)}` : "Paid", p.reference ? `ref ${p.reference}` : null].filter(Boolean).join(" · ");
