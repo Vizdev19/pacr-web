@@ -10,7 +10,7 @@ import * as api from "@/lib/api";
 import { day, dayTime, firstName, num, paise, plural, tile, time } from "@/lib/format";
 import { useHost } from "@/lib/host";
 import { useLoad, useViewport } from "@/lib/hooks";
-import { encodeRef, eventEditHref } from "@/lib/refs";
+import { encodeRef } from "@/lib/refs";
 import { Summary, owedNote, payoutNote, payoutTag } from "../money/Summary";
 import { Poster, tagOf } from "./shared";
 
@@ -58,7 +58,10 @@ export function EventDetail({ event: e, cover, now, initialTab }: { event: api.H
             {status !== "Draft" && ref ? (
               <a className="pc-btn pc-btn--secondary" href={`/e/${ref}`} style={{ textDecoration: "none" }}><Icon name="external-link" size={17} />View page</a>
             ) : null}
-            <a className="pc-btn pc-btn--primary" href={eventEditHref(e.id)} style={{ textDecoration: "none" }}><Icon name="pencil" size={17} />Edit event</a>
+            {/* A draft or a live event opens in the editor; one that has ended or was cancelled can't be changed. */}
+            {(status === "Draft" || status === "Published") && ref ? (
+              <Link className="pc-btn pc-btn--primary" href={`/events?event=${ref}&edit=1`} style={{ textDecoration: "none" }}><Icon name="pencil" size={17} />Edit event</Link>
+            ) : null}
           </div>
         </div>
       </GlassCard>

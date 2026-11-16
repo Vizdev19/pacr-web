@@ -4,12 +4,21 @@
 // a fixed frame (a rounded square for the photo, 5:2 for the cover), drag to
 // choose what shows, zoom with the slider or the wheel, turn it a quarter at a
 // time. The picture always covers the frame. Saved as JPEG at 0.85 and the
-// app's sizes (512 × 512, 1500 × 600).
+// app's sizes (512 × 512, 1500 × 600). The event editor crops its 2:3 poster
+// with the same dialog (kind "poster").
 
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent, type PointerEvent, type WheelEvent } from "react";
 import { Button, Dialog, Icon, IconButton } from "@/components/ds";
 import { kMuted } from "@/components/shell/kit";
 import { SQUAD_IMAGE, type SquadImage } from "@/lib/api";
+import { POSTER } from "@/lib/eventEditor";
+
+type CropKind = SquadImage | "poster";
+const COPY: Record<CropKind, { title: string; description: string; icon: "image" | "image-plus"; width: number; save: string }> = {
+  photo: { title: "Squad photo", description: "Shown on the squad’s page, in search and next to its runs.", icon: "image", width: 460, save: "Save photo" },
+  cover: { title: "Cover photo", description: "The wide picture across the top of the squad’s page.", icon: "image-plus", width: 640, save: "Save cover" },
+  poster: { title: "Event poster", description: "Shown on the event’s page and in the pacr app’s Events tab.", icon: "image-plus", width: 360, save: "Use poster" },
+};
 
 // The app's SquadTile corner: 18 on a 56 tile.
 const TILE_CORNER = 18 / 56;
@@ -24,12 +33,13 @@ const turned = (img: HTMLImageElement, turns: number) =>
 export function ImageCropper({ file, kind, onCancel, onSave }: {
   /** The chosen file; the dialog is open while there is one. */
   file: File | null;
-  kind: SquadImage;
+  kind: CropKind;
   onCancel: () => void;
   /** Gets the cropped JPEG; resolve when saved, throw to stay open. */
   onSave: (jpeg: Blob) => Promise<void>;
 }) {
-  const spec = SQUAD_IMAGE[kind];
+  const spec = kind === "poster" ? POSTER : SQUAD_IMAGE[kind];
+  const copy = COPY[kind];
   const [img, setImg] = useState<{ file: File; el: HTMLImageElement; url: string } | null>(null);
   const [failed, setFailed] = useState<File | null>(null);
   const [view, setView] = useState<View>({ zoom: 1, x: 0, y: 0, turns: 0 });
@@ -135,17 +145,16 @@ export function ImageCropper({ file, kind, onCancel, onSave }: {
     }
   }
 
-  const title = kind === "photo" ? "Squad photo" : "Cover photo";
   const corner = kind === "photo" ? fw * TILE_CORNER : Math.min(fw, fh) * (24 / 140);
   const bad = failed && failed === file;
   return (
-    <Dialog open={!!file} onClose={saving ? undefined : onCancel} icon={kind === "photo" ? "image" : "image-plus"} title={title}
-      description={kind === "photo" ? "Shown on the squad’s page, in search and next to its runs." : "The wide picture across the top of the squad’s page."}
-      width={kind === "photo" ? 460 : 640}
+    <Dialog open={!!file} onClose={saving ? undefined : onCancel} icon={copy.icon} title={copy.title}
+      description={copy.description}
+      width={copy.width}
       footer={
         <>
           <Button variant="ghost" onClick={onCancel} disabled={saving}>Cancel</Button>
-          <Button icon="check" onClick={save} loading={saving} disabled={!ready || !fw || !!bad}>Save {kind === "photo" ? "photo" : "cover"}</Button>
+          <Button icon="check" onClick={save} loading={saving} disabled={!ready || !fw || !!bad}>{copy.save}</Button>
         </>
       }>
       {bad ? (

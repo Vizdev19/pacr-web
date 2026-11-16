@@ -20,8 +20,7 @@ import {
 import { ago, day, firstName, km, num, plural, tile, time, until } from "@/lib/format";
 import { isStaff, useHost, type Host } from "@/lib/host";
 import { useLoad, useViewport } from "@/lib/hooks";
-import { encodeRef, eventEditHref, eventNewHref } from "@/lib/refs";
-import { goSite } from "@/lib/supabase";
+import { encodeRef } from "@/lib/refs";
 
 type Data = {
   now: number;
@@ -198,7 +197,7 @@ function Attention({ d, host, onChanged }: { d: Data; host: Host; onChanged: () 
     items.push({
       k: `draft:${encodeRef(e.id)}`, icon: "ticket", kind: "Draft event", title: `${e.title || "An untitled event"} isn’t published yet`,
       reason: `Planned for ${day(e.starts_at)}. Runners can’t see it until you publish.`,
-      primary: { label: "Finish event", onClick: () => goSite(eventEditHref(e.id)) },
+      primary: { label: "Finish event", onClick: () => router.push(`/events?event=${encodeRef(e.id)}&edit=1`) },
     });
   }
 
@@ -372,7 +371,7 @@ export default function Overview() {
     return (
       <EmptyState icon="ticket" title={`Welcome, ${firstName(host.name)}`} style={{ padding: "56px 24px", marginTop: 12 }}
         message="Events are ticketed or free one-offs: races, trail days, socials. Create one and runners can find it on pacr."
-        action={{ label: "Create your first event", icon: "plus", onClick: () => goSite(eventNewHref) }} />
+        action={{ label: "Create your first event", icon: "plus", onClick: () => router.push("/events?new=1") }} />
     );
   }
   return (

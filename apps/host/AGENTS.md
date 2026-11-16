@@ -4,6 +4,10 @@ Next.js app with `basePath: "/host"`, deployed as the Vercel project `pacr-host`
 `vercel.json` rewrites `/host` and `/host/*` to it, except `/host/new`, `/host/apply` and
 `/host/e/*`, which are still the original event pages (`host-events.html`, `js/host/`).
 
+Events are created and edited here (`app/(dash)/events/EventEditor.tsx` over `lib/eventEditor.ts`: the pacr app's
+Create event form on the web, `/events?new=1` and `/events?event=<ref>&edit=1`). The original editor is linked from it
+only for what it alone edits: an event's schedule, course, FAQ, notes and race details.
+
 ## Design system: pacr Squad Host Design System (the only one)
 
 Every screen uses the **pacr Squad Host Design System** (claude.ai/design project

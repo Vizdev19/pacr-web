@@ -9,8 +9,9 @@ import * as api from "@/lib/api";
 import { num, tile, time } from "@/lib/format";
 import { useHost } from "@/lib/host";
 import { useLoad, useViewport } from "@/lib/hooks";
-import { decodeRef, encodeRef, eventNewHref } from "@/lib/refs";
+import { decodeRef, encodeRef } from "@/lib/refs";
 import { EventDetail } from "./EventDetail";
+import { EventEditor } from "./EventEditor";
 import { kindLabel, isOver, Poster, tagOf } from "./shared";
 
 type Tab = "draft" | "up" | "past";
@@ -45,6 +46,12 @@ export function Events() {
     };
   }, [ev]);
 
+  // The editor reads the event itself (get_event_for_edit says whose it is), so a draft made a moment ago opens
+  // before this list has caught up, and the list failing to load never takes a half-typed form away. It lives inside
+  // this page so the list can be told to reload.
+  if (params.get("new") === "1") return <EventEditor eventId={null} onChanged={ev.reload} />;
+  if (focus && params.get("edit") === "1") return <EventEditor eventId={focus} onChanged={ev.reload} />;
+
   if (ev.status === "loading") return <ListSkeleton />;
   if (ev.status === "error") return <LoadError what="events" error={ev.error} onRetry={ev.reload} />;
 
@@ -52,6 +59,8 @@ export function Events() {
 
   if (params.get("event")) {
     const found = focus ? events.find(e => e.id === focus) : undefined;
+    // Just published from the editor: the list read before that may not have it yet, and is being read again.
+    if (!found && now < (Number(params.get("fresh")) || 0)) return <ListSkeleton />;
     if (!found) {
       return (
         <EmptyState
@@ -64,9 +73,9 @@ export function Events() {
   }
 
   const createButton = canCreate ? (
-    <a className="pc-btn pc-btn--primary" href={eventNewHref} style={{ textDecoration: "none" }}>
+    <Link className="pc-btn pc-btn--primary" href="/events?new=1" style={{ textDecoration: "none" }}>
       <Icon name="plus" size={17} />Create event
-    </a>
+    </Link>
   ) : null;
 
   const head = (
@@ -100,7 +109,7 @@ export function Events() {
           icon="ticket" title="No events yet"
           message="Events are ticketed or free one-offs: races, trail days, socials. Runners buy on pacr."
           style={{ padding: "56px 24px" }}
-          {...(canCreate ? { action: { label: "Create your first event", icon: "plus" as const, onClick: () => window.location.assign(eventNewHref) } } : {})}
+          {...(canCreate ? { action: { label: "Create your first event", icon: "plus" as const, onClick: () => router.push("/events?new=1") } } : {})}
         />
       </div>
     );

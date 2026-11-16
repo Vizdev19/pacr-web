@@ -26,7 +26,8 @@ export function decodeRef(ref: string | null | undefined): string | null {
   }
 }
 
-/** The original event pages on the static site (host.html): editor and attendees. */
+/** The original event pages on the static site (host.html). The dashboard has its own editor now (/events?new=1,
+ *  /events?event=<ref>&edit=1); the older one is still where an event's schedule, course, FAQ and notes are edited. */
 export const eventEditHref = (eventId: string) => `/host/e/${encodeRef(eventId)}`;
 export const eventNewHref = "/host/new";
 export const organizerApplyHref = "/host/apply";

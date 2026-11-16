@@ -12,7 +12,7 @@ import { Avatar, Badge, Button, EmptyState, HostSwitcher, Icon, IconButton, Inpu
 import { signOut } from "@/lib/api";
 import { hostOptions, isStaff, useHost, type Host } from "@/lib/host";
 import { useViewport } from "@/lib/hooks";
-import { eventNewHref, organizerApplyHref } from "@/lib/refs";
+import { organizerApplyHref } from "@/lib/refs";
 import { goSite } from "@/lib/supabase";
 import { LOCKED, ORDER, PAGES, WHO, pageOf, type PageId } from "./nav";
 
@@ -124,7 +124,7 @@ function Topbar({ page, onMenu }: { page: PageId; onMenu: () => void }) {
         <Popover open={menu === "create"} onClose={close} width={270}>
           {squad ? <MenuItem icon="footprints" label="Schedule run" sub="One-off or every week" onClick={() => { close(); router.push("/runs?new=1"); }} /> : null}
           {canHostEvents
-            ? <MenuItem icon="ticket" label="Create event" sub="Ticketed or free" href={eventNewHref} onClick={close} />
+            ? <MenuItem icon="ticket" label="Create event" sub="Ticketed or free" onClick={() => { close(); router.push("/events?new=1"); }} />
             : <MenuItem icon="ticket" label="Create event" sub={squad ? "Only verified squads host events" : "Opens once you’re approved"} onClick={() => { close(); router.push("/settings"); }} />}
           {canMembers ? <MenuItem icon="megaphone" label="New announcement" sub="Push to every member" onClick={() => { close(); router.push("/messages?new=1"); }} /> : null}
         </Popover>
