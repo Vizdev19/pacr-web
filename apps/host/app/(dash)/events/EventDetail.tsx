@@ -192,18 +192,29 @@ function Attendees({ event: e, seats, sales }: { event: api.HostedEvent; seats: 
   const seatsLive = live.reduce((n, b) => n + validSeats(b), 0);
   const seatsIn = live.reduce((n, b) => n + b.checkedIn, 0);
 
-  const exportCsv = () => {
+  const exportCsv = async () => {
     try {
       const cell = (v: string) => {
         const safe = /^[=+\-@\t\r]/.test(v) ? `'${v}` : v;
         return `"${safe.replace(/"/g, '""')}"`;
       };
-      const lines = [["Name", "Tier", "Seat", "Status", "Checked in at", "Registered"].map(cell).join(",")];
+      // Bib numbers and the answers to the registration questions, seat by seat. A database from
+      // before they existed has none, and the file is as it always was. Never a phone or an email.
+      const sheet = await api.eventSeatSheet(e.id).catch(() => null);
+      const bySeat = new Map((sheet?.seats ?? []).map(x => [x.ticket_id, x]));
+      const asked = sheet?.questions ?? [];
+      const extra = sheet ? ["Bib", ...asked.map(q => q.label)] : [];
+      const lines = [["Name", "Tier", "Seat", "Status", "Checked in at", "Registered", ...extra].map(cell).join(",")];
       for (const b of rows) {
         for (const s of b.seats) {
+          const x = bySeat.get(s.ticket_id);
           lines.push([
             s.name ?? "Runner", s.tier_name ?? "", seatOf(s), seatLabel(s, cancelled),
             s.checked_in_at ? dayTime(s.checked_in_at) : "", day(s.registered_at),
+            ...(sheet ? [x?.bib ?? "", ...asked.map((q, i) => {
+              const a = x?.answers[i];
+              return q.kind === "emergency" ? (a?.given ? "Given (held by pacr)" : "") : a?.answer ?? "";
+            })] : []),
           ].map(cell).join(","));
         }
       }
@@ -244,7 +255,7 @@ function Attendees({ event: e, seats, sales }: { event: api.HostedEvent; seats: 
         <SegmentChip label="Not yet" count={cnt.not} active={f === "not"} onClick={() => setF("not")} />
         <SegmentChip label="Cancelled or refunded" count={cnt.gone} active={f === "gone"} onClick={() => setF("gone")} />
         <div style={{ flex: 1 }} />
-        <Button variant="secondary" icon="download" onClick={exportCsv} disabled={rows.length === 0}>Export CSV</Button>
+        <Button variant="secondary" icon="download" onClick={() => { void exportCsv(); }} disabled={rows.length === 0}>Export CSV</Button>
       </Toolbar>
       {isHost && settled && anyPaid ? (
         <div style={{ ...kMuted, display: "flex", gap: 6, alignItems: "center", marginBottom: 10 }}>
@@ -407,10 +418,11 @@ function Sales({ event: e, now, sales: s, seats }: { event: api.HostedEvent; now
             { label: "Tickets sold", value: num(d.sold) },
             { label: "Ticket sales (gross)", value: paise(d.ticket_gross_minor) },
             { label: "Refunded", value: paise(d.ticket_refunded_minor), note: refunds ?? undefined },
+            ...(Number(d.charged_back_minor ?? 0) > 0 ? [{ label: "Chargebacks", value: paise(Number(d.charged_back_minor)), note: "A bank took back part of a payment; the booking stands" }] : []),
             ...(charges > 0 ? [{ label: "Refund charges", value: paise(charges), note: "Razorpay’s fee on refunds, taken from your payout" }] : []),
             { label: "pacr fee", value: paise(d.fee_minor), note: "Paid by runners on top" },
             { label: "GST on fee", value: paise(d.gst_minor), note: "Paid by runners on top" },
-            { label: "You receive", value: paise(d.net_minor), note: "Ticket sales minus refunds", hero: true },
+            { label: "You receive", value: paise(d.net_minor), note: Number(d.charged_back_minor ?? 0) > 0 ? "Ticket sales minus refunds and chargebacks" : "Ticket sales minus refunds", hero: true },
           ]} />
           <GlassCard title="Payout">
             {d.payout && pay ? (

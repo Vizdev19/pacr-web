@@ -39,7 +39,8 @@ async function load(host: Host): Promise<Data> {
   const mine = (e: HostedEvent) => e.host?.kind === host.kind && e.host?.id === host.id;
   const events = (await hostedEvents(false)).filter(mine);
   const now = Date.now();
-  if (host.kind === "organizer") {
+  // An organizer account has events only; so does a co-host, who may read nothing else of the squad.
+  if (host.kind === "organizer" || host.roleKey === "cohost") {
     return { now, detail: null, weekKm: 0, runs: [], events, requests: [], reports: [], members: [], log: [] };
   }
   const staff = isStaff(host.roleKey);
@@ -67,14 +68,15 @@ function Kpis({ d, host }: { d: Data; host: Host }) {
   const live = d.events.filter(e => e.status === "published");
   const sold = live.reduce((a, e) => a + e.sold, 0);
   const tiles: { label: string; value: number; unit?: string; icon: IconName; tone: "lime" | "sky" | "amber" | "orange"; format?: (v: number | string) => string }[] = [];
-  if (host.kind === "squad") {
+  const cohost = host.roleKey === "cohost";
+  if (host.kind === "squad" && !cohost) {
     if (isStaff(host.roleKey)) tiles.push({ label: "Members", value: d.detail?.member_count ?? d.members.length, icon: "users", tone: "lime" });
     tiles.push({ label: "Runs in the next 7 days", value: week.length, icon: "footprints", tone: "sky" });
     tiles.push({ label: "Going to those runs", value: week.reduce((a, r) => a + r.going_count, 0), icon: "user-check", tone: "amber" });
     tiles.push({ label: "Km run this week", value: d.weekKm, unit: "km", icon: "route", tone: "lime", format: v => (typeof v === "number" ? km(v) : v) });
   }
-  if (host.kind === "organizer") tiles.push({ label: "Events on sale", value: live.length, icon: "ticket", tone: "orange" });
-  if (host.kind === "organizer" || live.length) tiles.push({ label: "Tickets taken", value: sold, icon: "ticket", tone: "orange" });
+  if (host.kind === "organizer" || cohost) tiles.push({ label: cohost ? "Events you co-host, on sale" : "Events on sale", value: live.length, icon: "ticket", tone: "orange" });
+  if (host.kind === "organizer" || cohost || live.length) tiles.push({ label: "Tickets taken", value: sold, icon: "ticket", tone: "orange" });
   // Two to a row on a phone, one row on a desktop.
   return <div style={kitGrid(150)}>{tiles.map(t => <StatCard key={t.label} label={t.label} value={t.value} unit={t.unit} icon={t.icon} tone={t.tone} format={t.format} />)}</div>;
 }
@@ -112,7 +114,7 @@ function Attention({ d, host, onChanged }: { d: Data; host: Host; onChanged: () 
   const staff = isStaff(host.roleKey);
   const items: Item[] = [];
 
-  if (host.kind === "organizer" && host.status !== "approved") {
+  if (host.kind === "organizer" && host.roleKey !== "cohost" && host.status !== "approved") {
     items.push({
       k: "org", icon: "badge-check", tone: host.status === "pending" ? "accent" : "danger", kind: "Organizer account",
       title: host.status === "pending" ? "Your organizer account is in review" : "Your organizer account isn’t approved",
@@ -359,7 +361,14 @@ export default function Overview() {
   const nextEvent = data.events.filter(e => e.status === "published" && new Date(e.starts_at).getTime() > data.now).sort((a, b) => a.starts_at.localeCompare(b.starts_at))[0];
   const stacked = phone || tablet;
 
-  if (host.kind === "organizer" && !data.events.length && host.status === "approved") {
+  if (host.roleKey === "cohost" && !data.events.length) {
+    return (
+      <EmptyState icon="ticket" title="Nothing coming up" style={{ padding: "56px 24px", marginTop: 12 }}
+        message={`The events you co-host for ${host.name} are over. Past ones are under Events.`}
+        action={{ label: "Open events", variant: "secondary", onClick: () => router.push("/events") }} />
+    );
+  }
+  if (host.kind === "organizer" && host.roleKey !== "cohost" && !data.events.length && host.status === "approved") {
     return (
       <EmptyState icon="ticket" title={`Welcome, ${firstName(host.name)}`} style={{ padding: "56px 24px", marginTop: 12 }}
         message="Events are ticketed or free one-offs: races, trail days, socials. Create one and runners can find it on pacr."
@@ -374,11 +383,11 @@ export default function Overview() {
         <div style={{ display: "flex", flexDirection: "column", gap: 12, minWidth: 0, marginTop: stacked ? 0 : 44 }}>
           {data.runs[0] ? <NextRun r={data.runs[0]} d={data} /> : null}
           {nextEvent ? <NextEvent e={nextEvent} d={data} /> : null}
-          {host.kind === "squad" && !data.runs[0] && !nextEvent ? (
+          {host.kind === "squad" && host.roleKey !== "cohost" && !data.runs[0] && !nextEvent ? (
             <EmptyState compact icon="calendar" title="Nothing scheduled" message="Your next run or event shows up here."
               action={{ label: "Schedule run", icon: "plus", onClick: () => router.push("/runs?new=1") }} />
           ) : null}
-          {host.kind === "squad" ? <Activity d={data} /> : null}
+          {host.kind === "squad" && host.roleKey !== "cohost" ? <Activity d={data} /> : null}
         </div>
       </div>
     </div>

@@ -35,10 +35,13 @@ export const LOCKED: Record<RoleKey, PageId[]> = {
   organiser: [],
   leader: ["members", "requests", "messages", "moderation", "money", "insights", "team", "settings"],
   organizer: ["runs", "members", "requests", "leaderboard", "messages", "moderation", "insights", "team"],
+  // A co-host of one or more events: those events, and nothing else of the host's.
+  cohost: ["calendar", "runs", "members", "requests", "leaderboard", "messages", "moderation", "money", "insights", "team", "settings"],
 };
 export const WHO: Partial<Record<RoleKey, string>> = {
   leader: "Run leaders schedule runs, run check-in and see who’s coming. Members, messages and settings are for the owner and organisers.",
   organizer: "Organizer accounts handle events, tickets and money. Squad runs and members live in squad dashboards.",
+  cohost: "Co-hosts see the events they were added to: bookings and check-in. The rest belongs to the host.",
 };
 
 export function pageOf(pathname: string): PageId {

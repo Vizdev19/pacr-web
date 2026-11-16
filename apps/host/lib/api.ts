@@ -745,6 +745,16 @@ export type Attendee = {
   checked_in_at: string | null; registered_at: string; total_minor: number | null; refund_status: RefundStatus | null;
   ticket_id: string; seq: number; qty: number;
 };
+/**
+ * Every standing seat with its bib and its answers to the host's registration questions (pacr 20270125120000).
+ * An emergency contact comes only as "given" or not: the number is someone else's and stays with pacr.
+ */
+export type SeatSheet = {
+  questions: { label: string; kind: "choice" | "text" | "emergency" }[];
+  seats: { ticket_id: string; bib: string | null; answers: { label: string; kind: string; answer: string | null; given: boolean }[] }[];
+};
+export const eventSeatSheet = (eventId: string) => rpc<SeatSheet>("event_seat_sheet", { p_event_id: eventId });
+
 /** One row per seat: who holds it, its tier and whether it's checked in. The event's host and co-hosts. */
 export const eventAttendees = (eventId: string) =>
   rpc<Attendee[] | null>("list_event_attendees", { p_event_id: eventId }).then(r => r ?? []);
@@ -797,7 +807,8 @@ export type PayoutStatus = "pending" | "hold" | "paying" | "paid" | "void";
  * (pacr 20270111120000; absent before it): what is held, what the host won and
  * pacr is about to pay, and what was paid that way. net_minor leaves all three out.
  */
-export type PayoutDispute = { held_minor: number; due_minor: number; paid_minor: number };
+/** paid_minor is what was sent; owed_minor (absent before pacr 20270121120000) is what went against money the host owed pacr instead. */
+export type PayoutDispute = { held_minor: number; due_minor: number; paid_minor: number; owed_minor?: number };
 export type PayoutLine = {
   status: PayoutStatus; hold_reason: string | null; net_minor: number; paid_at: string | null; reference: string | null;
   dispute?: PayoutDispute | null;
@@ -811,6 +822,9 @@ export type EventSales = {
   sold: number;
   /** Ticket prices only (pacr's fee and GST are the runner's, on top). net_minor = what the host is owed for tickets kept. */
   ticket_gross_minor: number; ticket_refunded_minor: number; net_minor: number; fee_minor: number; gst_minor: number;
+  /** Ticket money a bank took back in disputes for part of a payment, on bookings that still stand; already off net_minor.
+   *  Absent before pacr 20270121120000: 0. */
+  charged_back_minor?: number;
   /** Refunds not finished: queued, sending or failed. */
   refunds_open: number; payout_ready: boolean;
   /** Who pays Razorpay's fee on this event's refunds. Absent before pacr 20270117120000: "pacr". */

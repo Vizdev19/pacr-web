@@ -65,10 +65,12 @@ export function holdText(reason: string | null | undefined): string {
 export function disputeNote(d: PayoutDispute | null | undefined): string {
   if (!d) return "";
   const held = Number(d.held_minor) || 0, due = Number(d.due_minor) || 0, paid = Number(d.paid_minor) || 0;
+  const owed = Number(d.owed_minor) || 0;
   return [
     held > 0 ? `${paise(held)} is kept back while a runner’s bank dispute is open; it’s paid if the bank sides with you.` : null,
     due > 0 ? `${paise(due)} from a settled dispute is on its way.` : null,
     paid > 0 ? `${paise(paid)} from a settled dispute was paid separately.` : null,
+    owed > 0 ? `${paise(owed)} from a settled dispute went against what you owed pacr.` : null,
   ].filter(Boolean).join(" ");
 }
 

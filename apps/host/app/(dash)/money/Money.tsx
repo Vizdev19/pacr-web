@@ -63,8 +63,13 @@ function lineTag(l: Line, now: number): { status: string; label: string } {
 function lineNote(l: Line, now: number): string {
   if (l.payout) return payoutNote(l.payout);
   if (l.cancelled) return "Cancelled: every paid booking is refunded.";
-  if (l.endsAt && new Date(l.endsAt).getTime() > now) return "Paid out a day after it ends.";
-  return "pacr works out the payout a day after the event ends.";
+  // The payout is worked out a day after the event ends, then pacr sends it: say which day that is.
+  if (!l.endsAt) return "pacr works out the payout a day after the event ends.";
+  const due = new Date(new Date(l.endsAt).getTime() + 24 * 3600000);
+  if (new Date(l.endsAt).getTime() > now) return `Payout worked out ${day(due)}, a day after it ends. pacr sends it after that.`;
+  return due.getTime() > now
+    ? `Payout worked out ${day(due)}. pacr sends it after that.`
+    : "pacr is working out the payout. It shows here within the hour.";
 }
 
 function Overview({ account, onAccount }: { account: AccountLoad; onAccount: () => void }) {

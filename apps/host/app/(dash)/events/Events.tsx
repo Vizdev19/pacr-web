@@ -29,7 +29,9 @@ export function Events() {
     return { events: mine, covers, now: Date.now() };
   }, `events:${host.key}`);
 
-  const canCreate = host.kind === "squad" ? host.verified : host.status === "approved";
+  // A co-host works on the events they were added to; creating one is the host's.
+  const cohost = host.roleKey === "cohost";
+  const canCreate = !cohost && (host.kind === "squad" ? host.verified : host.status === "approved");
   const focus = decodeRef(params.get("event"));
 
   const groups = useMemo(() => {
@@ -83,7 +85,8 @@ export function Events() {
 
   const cannot = !canCreate ? (
     <div style={{ ...kMuted, marginBottom: 12 }}>
-      {host.kind === "squad"
+      {cohost ? `These are the events you co-host for ${host.name}. Creating one is for the host.`
+        : host.kind === "squad"
         ? <>Only verified squads host events. The owner can ask for the badge in <Link href="/settings" style={{ color: "inherit", textDecoration: "underline" }}>Settings</Link>.</>
         : "You can create events once your organizer account is approved."}
     </div>

@@ -2,14 +2,18 @@
 
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
 import { EmptyState, Skeleton, Toast, ToastStack, type HostOption, type ToastTone } from "@/components/ds";
-import { countOpenReports, failText, myHosting, sessionMe, signedUrls, squadDetail, type Me, type Organizer } from "./api";
+import { countOpenReports, failText, hostedEvents, myHosting, sessionMe, signedUrls, squadDetail, type Me, type Organizer } from "./api";
 import { firstName, plural } from "./format";
 import { useLoad } from "./hooks";
 import { organizerApplyHref } from "./refs";
 import { goSite, signinHref } from "./supabase";
 
-/** What the signed-in person is in the current context. "organizer" is a brand, coach or race account. */
-export type RoleKey = "owner" | "organiser" | "leader" | "organizer";
+/**
+ * What the signed-in person is in the current context. "organizer" is a brand, coach or race account.
+ * "cohost" is someone the host added to one or more of its events and who has no other role there:
+ * they see those events here (bookings, check-in), and nothing else of the squad or account.
+ */
+export type RoleKey = "owner" | "organiser" | "leader" | "organizer" | "cohost";
 export type Host = {
   /** "squad:<id>" or "organizer:<id>": never shown. */
   key: string;
@@ -67,7 +71,9 @@ const remembered = () => { try { return localStorage.getItem(STORE); } catch { r
 async function loadShell() {
   const me = await sessionMe();
   if (!me) { window.location.replace(signinHref()); return null; }
-  const hosting = await myHosting();
+  // Events this person co-hosts come with their host's name: a co-host with no other role there
+  // gets that host in the switcher, for its events only. (A read that fails leaves the list as it was.)
+  const [hosting, events] = await Promise.all([myHosting(), hostedEvents(true).catch(() => [])]);
   const [squadPics, myPic] = await Promise.all([
     signedUrls("club-avatars", hosting.squads.map(s => s.avatar_path)),
     signedUrls("avatars", [me.avatarPath, hosting.organizer?.avatar_path]),
@@ -82,6 +88,13 @@ async function loadShell() {
     key: `organizer:${o.id}`, kind: "organizer", id: o.id, name: o.name, slug: o.slug, roleKey: "organizer", role: "Organizer",
     verified: o.status === "approved", status: o.status, avatarUrl: o.avatar_path ? myPic.get(o.avatar_path) : undefined,
   });
+  for (const e of events) {
+    if (!e.host || hosts.some(h => h.kind === e.host!.kind && h.id === e.host!.id)) continue;
+    hosts.push({
+      key: `${e.host.kind}:${e.host.id}`, kind: e.host.kind, id: e.host.id, name: e.host.name, slug: null,
+      roleKey: "cohost", role: "Co-host", verified: false,
+    });
+  }
   const hour = new Date().getHours();
   return {
     me: { ...me, avatarUrl: me.avatarPath ? myPic.get(me.avatarPath) : undefined },
