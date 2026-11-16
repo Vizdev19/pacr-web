@@ -40,7 +40,7 @@ export function signinHref(): string {
 
 /**
  * Leave the dashboard for a page on the static site ("/", "/download",
- * "/host/new"): a full navigation, since those pages are outside this app's
+ * "/host/apply"): a full navigation, since those pages are outside this app's
  * basePath and the router would prefix them with /host.
  */
 export function goSite(path: string): void {

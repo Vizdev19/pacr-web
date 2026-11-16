@@ -44,7 +44,7 @@ export function MenuItem({ icon, label, sub, onClick, href, danger }: {
     </>
   );
   const cls = "shell-menuitem" + (danger ? " is-danger" : "");
-  // Links here leave the dashboard for the static site (/host/new, /profile), so they are plain anchors.
+  // Links here leave the dashboard for the static site (/host/apply, /profile), so they are plain anchors.
   return href ? <a className={cls} href={href} onClick={onClick}>{inner}</a> : <button type="button" className={cls} onClick={onClick}>{inner}</button>;
 }
 

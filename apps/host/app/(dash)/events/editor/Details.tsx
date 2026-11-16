@@ -8,7 +8,7 @@ import { useEffect, useRef, type ReactNode } from "react";
 import { Icon, Input, RadioGroup, SegmentChip, SegmentedControl, Select } from "@/components/ds";
 import { kMuted, kStrong } from "@/components/shell/kit";
 import {
-  DESC_MAX, EVENT_KINDS, EVENT_TAGS, GENDER_LABEL, MAX_TAGS, TITLE_MAX, minAgeOf,
+  DESC_MAX, EVENT_KINDS, EVENT_TAGS, GENDER_LABEL, MAX_TAGS, TITLE_MAX, minAgeOf, withTags,
   type AgeRule, type Check, type EventForm, type EventKind, type FeeRules, type GenderRule, type Visibility,
 } from "@/lib/eventEditor";
 import { instantOf, plausibleWall, wallText, zoneChoices, zoneLabel, zoneShort, browserZone, type Wall } from "@/lib/eventZone";
@@ -16,8 +16,10 @@ import { Area, eErr, eRow, Section, shiftDay, shiftWall, SwitchRow, WhenInput } 
 
 type Props = { form: EventForm; patch: (p: Partial<EventForm>) => void; check: Check; show: boolean };
 
-export function Basics({ form, patch, show, poster, otherTags = [] }: Props & {
+export function Basics({ form, patch, show, poster, otherTags = [], galleryCount = 0 }: Props & {
   poster: ReactNode;
+  /** Past-event photos on the event: the app's to change. */
+  galleryCount?: number;
   /** Tags on the event this form doesn't offer: kept, and they count in the five. */
   otherTags?: string[];
 }) {
@@ -33,6 +35,9 @@ export function Basics({ form, patch, show, poster, otherTags = [] }: Props & {
             onChange={e => patch({ title: e.target.value })} />
           <Area label="Description" value={form.description} max={DESC_MAX} rows={5}
             placeholder="The route, pace groups, what to bring, where to meet after" onChange={v => patch({ description: v })} />
+          <span style={kMuted}>
+            {galleryCount > 0 ? `Its ${galleryCount === 1 ? "past-event photo is" : `${galleryCount} past-event photos are`} changed in the pacr app.` : "Past-event photos are added in the pacr app."}
+          </span>
         </div>
       </div>
       <div className="pc-field">
@@ -49,7 +54,11 @@ export function Basics({ form, patch, show, poster, otherTags = [] }: Props & {
             const full = form.tags.length >= max && !on;
             return (
               <SegmentChip key={tag} label={tag} active={on} style={full ? { opacity: 0.45, cursor: "not-allowed" } : undefined}
-                onClick={() => { if (!full) patch({ tags: on ? form.tags.filter(t => t !== tag) : EVENT_TAGS.filter(t => t === tag || form.tags.includes(t)) }); }} />
+                onClick={() => {
+                  if (full) return;
+                  const next = on ? form.tags.filter(t => t !== tag) : EVENT_TAGS.filter(t => t === tag || form.tags.includes(t));
+                  patch({ tags: next, details: withTags(form.details, form.tags, next) });
+                }} />
             );
           })}
         </div>

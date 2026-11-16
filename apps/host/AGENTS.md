@@ -1,12 +1,15 @@
 # pacr host — the dashboard for squad owners and event hosts (pacr.life/host)
 
 Next.js app with `basePath: "/host"`, deployed as the Vercel project `pacr-host`; pacr.life's
-`vercel.json` rewrites `/host` and `/host/*` to it, except `/host/new`, `/host/apply` and
-`/host/e/*`, which are still the original event pages (`host-events.html`, `js/host/`).
+`next.config.ts` (apps/web) rewrites `/host` and `/host/*` to it, except `/host/apply` (asking to host as an
+organizer), still an old page (`public/legacy/host-events.html`, `public/js/host/`). The old event editor is retired:
+`/host/new` redirects to `/host/events?new=1`, and `/host/e/<ref>` (the pacr app's "Manage on pacr.life") to the
+event's page, `/host/events?event=<ref>`.
 
 Events are created and edited here (`app/(dash)/events/EventEditor.tsx` over `lib/eventEditor.ts`: the pacr app's
-Create event form on the web, `/events?new=1` and `/events?event=<ref>&edit=1`). The original editor is linked from it
-only for what it alone edits: an event's schedule, course, FAQ, notes and race details.
+Create event form on the web, `/events?new=1` and `/events?event=<ref>&edit=1`), with the original editor's sections too
+(race details, event day, course, good to know, included, the meeting and refund notes). Cancelling an event is on its
+page (`EventDetail.tsx`).
 
 ## Design system: pacr Squad Host Design System (the only one)
 

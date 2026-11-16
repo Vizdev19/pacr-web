@@ -6,10 +6,11 @@ import type { NextConfig } from "next";
 //   - the share pages /s /e /p /u and their pictures are routes here;
 //   - the host dashboard /host is its own app (apps/host, Vercel project
 //     pacr-host), reached through the rewrites below;
-//   - /download and the legacy event editor (/host/new, /host/apply,
-//     /host/e/*) are the old pages, copied unchanged into public/legacy with
-//     the scripts, styles and pictures they load (public/js, public/nav.css,
-//     public/brand-acid, public/assets);
+//   - /download and /host/apply (asking to host as an organizer) are old
+//     pages, copied into public/legacy with the scripts, styles and pictures
+//     they load (public/js, public/nav.css, public/brand-acid, public/assets);
+//   - the old event editor (/host/new, /host/e/<ref>, /host/e/<ref>/attendees)
+//     is retired: those addresses redirect to the dashboard's own (apps/host);
 //   - .well-known (app links), the Google verification files, og-image.png
 //     and robots.txt are copied into public/; sitemap.xml is app/sitemap.ts.
 const HOST_APP = "https://pacr-host.vercel.app";
@@ -39,8 +40,15 @@ const nextConfig: NextConfig = {
       ...["5k", "10k", "half-marathon", "marathon"]
         .map(d => ({ source: `/${d}-training-plan.html`, destination: `/plans/${d}`, permanent: true })),
       { source: "/running-coach-app.html", destination: "/app", permanent: true },
-      { source: "/host-events.html", destination: "/host/new", permanent: true },
-      { source: "/host-events", destination: "/host/new", permanent: true },
+      // The old event editor is retired: its addresses open the dashboard's
+      // event pages. /host/e/<ref> is the pacr app's "Manage on pacr.life" link,
+      // so it lands on the event's page there (bookings, sales, Edit, Cancel).
+      // Not permanent, so a browser doesn't keep them for good.
+      { source: "/host-events.html", destination: "/host/events?new=1", permanent: false },
+      { source: "/host-events", destination: "/host/events?new=1", permanent: false },
+      { source: "/host/new", destination: "/host/events?new=1", permanent: false },
+      { source: "/host/e/:ref", destination: "/host/events?event=:ref", permanent: false },
+      { source: "/host/e/:ref/:rest*", destination: "/host/events?event=:ref", permanent: false },
       // The static site's share functions, if anything still calls them directly.
       { source: "/api/squad", has: [{ type: "query", key: "slug", value: "(?<slug>[a-z0-9-]+)" }], destination: "/s/:slug", permanent: false },
       { source: "/api/profile", has: [{ type: "query", key: "handle", value: "@?(?<handle>[A-Za-z0-9_.]+)" }], destination: "/u/:handle", permanent: false },
@@ -53,9 +61,7 @@ const nextConfig: NextConfig = {
       // In order: the legacy pages first, then the rest of /host to its app.
       beforeFiles: [
         { source: "/download", destination: "/legacy/download.html" },
-        { source: "/host/new", destination: "/legacy/host-events.html" },
         { source: "/host/apply", destination: "/legacy/host-events.html" },
-        { source: "/host/e/:path*", destination: "/legacy/host-events.html" },
         { source: "/host", destination: `${HOST_APP}/host` },
         { source: "/host/:path*", destination: `${HOST_APP}/host/:path*` },
       ],

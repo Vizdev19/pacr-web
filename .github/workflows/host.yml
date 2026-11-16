@@ -9,8 +9,9 @@ name: Host
 #
 # pacr.life (apps/web, web.yml) rewrites /host and everything under it to
 # pacr-host.vercel.app in apps/web/next.config.ts, so a production deploy here
-# is live on pacr.life at once. /host/new, /host/apply and /host/e/* are the
-# exception: the legacy event editor, served by apps/web from public/legacy.
+# is live on pacr.life at once. /host/apply is the exception: the request to
+# host as an organizer, an old page served by apps/web from public/legacy.
+# (/host/new and /host/e/*, the retired event editor, redirect into this app.)
 # A preview deploy is on another origin, so it can't see a pacr.life sign-in:
 # signed-in pages there send you to a /signin that doesn't exist.
 #

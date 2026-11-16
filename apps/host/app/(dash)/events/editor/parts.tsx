@@ -40,8 +40,10 @@ export function WhenInput({ label, value, onChange, error, hint, disabled }: {
 }
 
 /** A multi-line field with its label and a count. */
-export function Area({ label, value, onChange, max, rows = 4, placeholder, disabled }: {
+export function Area({ label, value, onChange, max, rows = 4, placeholder, disabled, hint }: {
   label: string; value: string; onChange: (v: string) => void; max: number; rows?: number; placeholder?: string; disabled?: boolean;
+  /** In place of the character count. */
+  hint?: string;
 }) {
   const id = useId();
   return (
@@ -49,7 +51,7 @@ export function Area({ label, value, onChange, max, rows = 4, placeholder, disab
       <label className="pc-label" htmlFor={id}>{label}</label>
       <textarea id={id} rows={rows} maxLength={max} style={kTextarea} value={value} disabled={disabled} placeholder={placeholder}
         onChange={e => onChange(e.target.value)} />
-      <span className="pc-hint">{value.length.toLocaleString("en-IN")} / {max.toLocaleString("en-IN")}</span>
+      <span className="pc-hint">{hint ?? `${value.length.toLocaleString("en-IN")} / ${max.toLocaleString("en-IN")}`}</span>
     </div>
   );
 }

@@ -26,6 +26,8 @@ const REASONS = [
   "email_required", "rate_limited", "signed_out", "invalid_name", "places_unavailable", "places_limit",
   // A host's refund (refund_event_ticket): worded by refundFailText.
   "payout_settled", "already_refunded", "free_ticket", "no_ticket", "too_long", "not_found",
+  // Cancelling an event (cancel_event): worded by cancelFailText.
+  "already_cancelled", "not_published", "event_over",
   // Payout details (set_host_payout_account): worded by payoutFailText.
   "destination_required", "name_required", "invalid_vpa", "invalid_account", "invalid_ifsc", "invalid_pan",
 ] as const;
@@ -75,6 +77,17 @@ const REFUND_FAIL: Record<string, string> = {
 };
 /** A refund_event_ticket refusal, in plain words. */
 export const refundFailText = (e: unknown) => (e instanceof ApiError ? REFUND_FAIL[e.reason] : undefined) ?? failText(e);
+
+const CANCEL_FAIL: Record<string, string> = {
+  not_found: "This event isn’t there any more.",
+  not_allowed: "Only the event’s host can cancel it. Co-hosts can’t.",
+  already_cancelled: "This event was already cancelled.",
+  not_published: "A draft isn’t on sale, so there’s nothing to cancel. Delete it from the editor instead.",
+  event_over: "This event has ended, so it can’t be cancelled.",
+  blocked_content: "That note isn’t allowed. Try different words.",
+};
+/** A cancel_event refusal, in plain words. */
+export const cancelFailText = (e: unknown) => (e instanceof ApiError ? CANCEL_FAIL[e.reason] : undefined) ?? failText(e);
 
 const PAYOUT_FAIL: Record<string, string> = {
   destination_required: "Choose UPI or a bank account.",
@@ -798,6 +811,15 @@ export async function refundCost(eventId: string, ticketId?: string): Promise<Re
     return null;
   }
 }
+
+/**
+ * Cancel a published event that hasn't ended (cancel_event): every booking is cancelled, every paid one refunded in
+ * full (the ticket price, pacr's fee and the GST), and the runners who booked are told, with the note if there is
+ * one (300 characters). The event's host only, not co-hosts. `notified` is how many bookings were told.
+ */
+export const cancelEvent = (eventId: string, note: string) =>
+  rpc<{ notified?: number | string | null } | null>("cancel_event", { p_event_id: eventId, p_reason: note.trim() || null })
+    .then(r => ({ notified: Number(r?.notified ?? 0) || 0 }));
 
 /** pending (ready to pay) · hold (see hold_reason) · paying (pacr is transferring it) · paid · void (nothing to pay). */
 export type PayoutStatus = "pending" | "hold" | "paying" | "paid" | "void";

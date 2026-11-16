@@ -13,7 +13,7 @@ import * as api from "@/lib/api";
 import type { EventPlace } from "@/lib/eventEditor";
 import { eBox, Section } from "./parts";
 
-export function PlaceField({ place, text, venues, error, live, onPick, onText, onClear }: {
+export function PlaceField({ place, text, venues, error, live, onPick, onText, onClear, meetNote, onMeetNote }: {
   place: EventPlace | null;
   /** What's typed while nothing is picked. */
   text: string;
@@ -23,6 +23,9 @@ export function PlaceField({ place, text, venues, error, live, onPick, onText, o
   onPick: (p: EventPlace) => void;
   onText: (t: string) => void;
   onClear: () => void;
+  /** Where exactly to meet: "Gate 2, by the bandstand". */
+  meetNote: string;
+  onMeetNote: (v: string) => void;
 }) {
   const session = useRef<string | null>(null);
   const [list, setList] = useState<{ q: string; items: api.PlaceSuggestion[] } | null>(null);
@@ -112,6 +115,8 @@ export function PlaceField({ place, text, venues, error, live, onPick, onText, o
           </span>
         </>
       )}
+      <Input label="Where to meet" value={meetNote} maxLength={120} placeholder="Gate 2, by the bandstand"
+        hint={live ? "Optional. Ticket holders are told when it changes." : "Optional."} onChange={e => onMeetNote(e.target.value)} />
     </Section>
   );
 }

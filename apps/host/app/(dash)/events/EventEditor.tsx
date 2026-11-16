@@ -9,24 +9,31 @@
 //
 //   Details        name, description, type, tags, the 2:3 poster
 //   Date and time  start, end and the time zone; fixed once the event is live
-//   Location       a Google place with a pin, or one used before
+//   Location       a Google place with a pin, or one used before; where to meet
 //   Who can see it everyone · anyone with the link · squad members only
 //   Tickets        free or paid; ticket types (name, limit, price while nobody
 //                  has bought it) and each type's sale options; a paid event
-//                  shows what the runner pays and needs payout details
+//                  shows what the runner pays and needs payout details; the
+//                  cancellation and refund note
 //   Registration   when it closes, and tickets per booking
 //   Questions      what is asked for each ticket: a choice, text, or an
 //                  emergency contact; up to six
 //   Who can join   age and gender
+//   Race details   surface, terrain, distances (the tags add theirs), chip timed
+//   Event day      the timeline: time · what happens · note, up to 12
+//   Course         a 16:9 course map and up to 6 facts
+//   Good to know   up to 8 questions and answers
+//   Included       one per line, up to 12
 //   Co-hosts       the host only
 //   Bar            what's missing · Save draft · Publish event (a draft), or
 //                  Save changes (a live event). Publishing asks first, with the
 //                  prices and pacr's fee in front of the host.
 //
-// Not here, and so never changed by a save: the past-event photos (the app),
-// and the schedule, course, FAQ, notes and race details, which are still
-// edited on the older page (/host/e/<ref>) until the owner decides where they
-// live. A database older than this page is coped with: see lib/eventEditor.ts.
+// Not here, and so never changed by a save: the past-event photos (the app's).
+// Everything the older web editor had is here, and that editor is retired: its
+// addresses redirect here (apps/web next.config.ts): /host/new to a new event,
+// /host/e/<ref> to the event's page. A database older than this page is coped with: see
+// lib/eventEditor.ts.
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -43,8 +50,10 @@ import { wallText, zoneShort } from "@/lib/eventZone";
 import { paise, plural } from "@/lib/format";
 import { useHost } from "@/lib/host";
 import { useLoad } from "@/lib/hooks";
-import { encodeRef, eventEditHref } from "@/lib/refs";
+import { encodeRef } from "@/lib/refs";
 import { Cohosts } from "./editor/Cohosts";
+import { Course, EventDay, GoodToKnow, Included, RaceDetails } from "./editor/PageSections";
+import { Area } from "./editor/parts";
 import { Basics, Registration, Visible, When, WhoCanJoin } from "./editor/Details";
 import { PlaceField } from "./editor/PlaceField";
 import { PosterField } from "./editor/PosterField";
@@ -105,7 +114,7 @@ function Form({ init, onChanged }: { init: Init; onChanged: () => void }) {
   const [saved, setSaved] = useState<Saved | null>(init.loaded?.saved ?? null);
   const [fees, setFees] = useState<FeeRules>(init.loaded?.fees ?? init.rules.fees ?? DEFAULT_FEES);
   const [features, setFeatures] = useState<Features>(init.loaded?.features ?? { saleOptions: null, questions: null });
-  const [extras, setExtras] = useState({ gallery: init.loaded?.galleryCount ?? 0, legacy: init.loaded?.hasLegacyDetails ?? false });
+  const [gallery, setGallery] = useState(init.loaded?.galleryCount ?? 0);
   const [dirty, setDirty] = useState(false);
   const [show, setShow] = useState(false);
   const [busy, setBusy] = useState<null | "draft" | "publish" | "save" | "delete">(null);
@@ -117,6 +126,7 @@ function Form({ init, onChanged }: { init: Init; onChanged: () => void }) {
   const [refused, setRefused] = useState<{ title: string; body: string } | null>(null);
 
   const patch = (p: Partial<EventForm>) => { setForm(f => ({ ...f, ...p })); setDirty(true); setRefused(null); };
+  const setDetails = (p: Partial<EventForm["details"]>) => { setForm(f => ({ ...f, details: { ...f.details, ...p } })); setDirty(true); setRefused(null); };
   const refuse = (title: string, body: string) => notify("warning", title, body);
 
   // Leaving with unsaved changes asks first: closing or reloading the tab (the browser asks), and anything in the
@@ -212,7 +222,7 @@ function Form({ init, onChanged }: { init: Init; onChanged: () => void }) {
       setSaved(fresh.saved);
       setFees(fresh.fees);
       setFeatures(fresh.features);
-      setExtras({ gallery: fresh.galleryCount, legacy: fresh.hasLegacyDetails });
+      setGallery(fresh.galleryCount);
       return true;
     } catch {
       return false;
@@ -333,16 +343,19 @@ function Form({ init, onChanged }: { init: Init; onChanged: () => void }) {
 
         {/* Nothing in the form changes while a save is on its way: what comes back replaces it. */}
         <fieldset disabled={!!busy} style={{ border: 0, padding: 0, margin: 0, minWidth: 0, display: "flex", flexDirection: "column", gap: 12 }}>
-        <Basics form={form} patch={patch} check={check} show={show} otherTags={otherTags(saved?.tags ?? [])}
+        <Basics form={form} patch={patch} check={check} show={show} otherTags={otherTags(saved?.tags ?? [])} galleryCount={gallery}
           poster={<PosterField cover={form.cover} onChange={c => patch({ cover: c })} onRefuse={refuse} />} />
         <When form={form} patch={patch} check={check} show={show} live={live} />
         <PlaceField place={form.place} text={form.placeText} venues={init.venues} live={live}
           error={show && check.noPin ? (form.placeText.trim() ? "Pick the place from the list so it has a pin." : "Runners need to know where to go.") : undefined}
-          onPick={p => patch({ place: p, placeText: "" })} onText={t => patch({ placeText: t })} onClear={() => patch({ place: null, placeText: "" })} />
+          onPick={p => patch({ place: p, placeText: "" })} onText={t => patch({ placeText: t })} onClear={() => patch({ place: null, placeText: "" })}
+          meetNote={form.details.meetNote} onMeetNote={v => setDetails({ meetNote: v })} />
         <Visible form={form} patch={patch} squadHost={evHost.kind === "squad"} hostName={evHost.name} />
 
         <Tickets form={form} patch={patch} fees={fees} check={check} show={show} paidAllowed={init.rules.paidAllowed || form.paid}
           saleOptions={features.saleOptions} live={live} refundCharged={refundCharged} onRefuse={refuse}>
+          <Area label="Cancellation and refund note (optional)" value={form.details.refundNote} max={300} rows={2}
+            placeholder="Can’t make it? Give your spot back in the app so someone else can come." onChange={v => setDetails({ refundNote: v })} />
           {form.paid ? (
             <PayoutCard state={payout.status === "loading" ? "loading" : pay} hostName={evHost.name} squad={evHost.kind === "squad"}
               need={show && check.needPayout} onCheck={reloadPayout} />
@@ -357,25 +370,13 @@ function Form({ init, onChanged }: { init: Init; onChanged: () => void }) {
         <Registration form={form} patch={patch} check={check} show={show} fees={fees} womenOnly={womenOnly} />
         <Questions form={form} patch={patch} show={show} available={features.questions} started={started} />
         <WhoCanJoin form={form} patch={patch} show={show} squadWomen={squadWomen} hostName={evHost.name} />
+        <RaceDetails details={form.details} set={setDetails} check={check} show={show} />
+        <EventDay details={form.details} set={setDetails} check={check} show={show} />
+        <Course details={form.details} set={setDetails} check={check} show={show} onRefuse={refuse} />
+        <GoodToKnow details={form.details} set={setDetails} check={check} show={show} />
+        <Included details={form.details} set={setDetails} check={check} show={show} />
         {saved?.isHost ?? true ? <Cohosts cohosts={form.cohosts} onChange={c => patch({ cohosts: c })} /> : null}
         </fieldset>
-
-        {saved ? (
-          <GlassCard title="More details" subtitle="Kept as they are when you save here">
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              <span style={{ font: "400 13px/1.5 var(--font-sans)", color: "var(--text-body)" }}>
-                The event-day schedule, the course map and facts, good to know, what’s included, the meeting note and your refund note are
-                still edited on the older page{extras.legacy ? ", where this event has some" : ""}.
-                {extras.gallery > 0 ? ` Its ${plural(extras.gallery, "past-event photo")} ${extras.gallery === 1 ? "is" : "are"} changed in the pacr app.` : " Past-event photos are added in the pacr app."}
-              </span>
-              <div>
-                <a className="pc-btn pc-btn--secondary pc-btn--sm" href={eventEditHref(saved.id)} target="_blank" rel="noreferrer">
-                  <Icon name="external-link" size={15} />Open the older editor
-                </a>
-              </div>
-            </div>
-          </GlassCard>
-        ) : null}
 
         {/* The bar stays in reach; the page's own colour under it keeps the form from showing through around it. */}
         <div style={{ position: "sticky", bottom: 0, zIndex: 10, padding: "6px 0 12px", background: "var(--surface-panel)" }}>

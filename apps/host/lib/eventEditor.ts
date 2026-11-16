@@ -21,8 +21,10 @@
 //   · A limit can't go under the seats taken (below_sold).
 //   · Visibility and the type are sent only when the host picked another.
 //   · What this editor doesn't show is never sent, so it stays as it is: the
-//     past-event photos (the app), and the schedule, course, FAQ, notes and
-//     race details (the older editor, /host/e/<ref>).
+//     past-event photos (the app's). The older web editor's sections (race
+//     details, the event-day schedule, the course map and facts, good to know,
+//     what's included, the meeting and refund notes) are here too, sent to
+//     update_event only when the host changed them.
 //   · The database may be older than this page (pacr migrations 20270119 to
 //     20270125 are not live everywhere yet): sale options and registration
 //     questions are offered only when the event's own read carries them, and a
@@ -135,7 +137,111 @@ export type EventForm = {
   gender: GenderRule;
   cover: FormImage | null;
   questions: QuestionDraft[];
+  /** The event page's own sections, as the older web editor had them. */
+  details: EventDetails;
 };
+
+// ─── The event page's sections ──────────────────────────────────────────────
+// What runners read on the event's page below the basics (Events.dc.html): the
+// race details, the event-day timeline, the course, good to know, what's
+// included, and two notes. The database's limits (event_validate,
+// event_validate_content): distances up to 6, each 0.1 to 250 km; schedule up
+// to 12 × {time 20, label 60, note 160}; course facts up to 6 × {label 20,
+// value 30}; FAQ up to 8 × {q 80, a 500}; included up to 12 × 30; terrain 40;
+// meeting note 120; refund note 300. A row without its main field is refused.
+
+export type Surface = "" | "road" | "trail" | "track" | "mixed";
+export const SURFACES: { value: Surface; label: string }[] = [
+  { value: "", label: "Not set" }, { value: "road", label: "Road" }, { value: "trail", label: "Trail" },
+  { value: "track", label: "Track" }, { value: "mixed", label: "Mixed" },
+];
+export type ScheduleRow = { key: string; time: string; label: string; note: string };
+export type FactRow = { key: string; label: string; value: string };
+export type FaqRow = { key: string; q: string; a: string };
+export type EventDetails = {
+  /** "Gate 2, by the bandstand". Ticket holders are told when it changes on a live event. */
+  meetNote: string;
+  refundNote: string;
+  surface: Surface;
+  terrain: string;
+  timed: boolean;
+  /** As typed: "5, 10, 21.1". The tags add and take away the distances they stand for. */
+  distances: string;
+  schedule: ScheduleRow[];
+  course: FactRow[];
+  faq: FaqRow[];
+  /** One per line, as typed. */
+  included: string;
+  /** The course map, 16:9. */
+  courseMap: FormImage | null;
+  /** The distances (km × 100) the tags put in, and whether the surface is the tags': only these go when a tag goes. Never sent. */
+  tagKm: number[];
+  tagSurface: boolean;
+};
+export const DETAIL_MAX = { schedule: 12, course: 6, faq: 8, included: 12, distances: 6 };
+export const emptyDetails = (): EventDetails => ({
+  meetNote: "", refundNote: "", surface: "", terrain: "", timed: false, distances: "", schedule: [], course: [], faq: [], included: "", courseMap: null,
+  tagKm: [], tagSurface: false,
+});
+
+/** "5, 10 21.1" → [5, 10, 21.1]; null when something typed isn't a number. */
+export function distancesOf(typed: string): number[] | null {
+  const nums = typed.split(/[,\s]+/).map(s => s.trim()).filter(Boolean).map(Number);
+  return nums.some(n => !Number.isFinite(n)) ? null : nums;
+}
+const kmKey = (n: number) => Math.round(n * 100);
+const fmtKm = (n: number) => String(kmKey(n) / 100);
+const includedOf = (typed: string) => typed.split("\n").map(s => s.trim()).filter(Boolean);
+
+/** The details as update_event stores them: what a save compares, key by key, with what the server has. */
+export type DetailsWire = {
+  meet_note: string; refund_note: string; surface: string | null; terrain: string; timed: boolean; distances_km: number[];
+  schedule: { time: string; label: string; note: string }[]; course_facts: { label: string; value: string }[];
+  faq: { q: string; a: string }[]; included: string[];
+};
+export function detailsWire(d: EventDetails): DetailsWire {
+  const km = distancesOf(d.distances) ?? [];
+  return {
+    meet_note: d.meetNote.trim(), refund_note: d.refundNote.trim(), surface: d.surface || null, terrain: d.terrain.trim(), timed: d.timed,
+    distances_km: [...new Set(km.map(kmKey))].sort((a, b) => a - b).map(k => k / 100),
+    // A row left wholly empty is dropped; one with only its main field missing is stopped by checkForm first.
+    schedule: d.schedule.map(r => ({ time: r.time.trim(), label: r.label.trim(), note: r.note.trim() })).filter(r => r.label),
+    course_facts: d.course.map(r => ({ label: r.label.trim(), value: r.value.trim() })).filter(r => r.label),
+    faq: d.faq.map(r => ({ q: r.q.trim(), a: r.a.trim() })).filter(r => r.q),
+    included: includedOf(d.included),
+  };
+}
+
+/**
+ * The tags stand for some distances and a surface (5K → 5 km, Trail → trail). Turning a tag on adds what it stands
+ * for when it isn't there yet, and turning it off takes away only what a tag put there (tagKm, tagSurface): a
+ * distance or surface the host typed or picked stays, and a tag turned on and off again leaves the event as it was.
+ */
+export function withTags(d: EventDetails, oldTags: string[], newTags: string[]): EventDetails {
+  const was = derivedFromTags(oldTags).distances_km.map(kmKey), now = derivedFromTags(newTags).distances_km.map(kmKey);
+  const wasSurface = derivedFromTags(oldTags).surface, nowSurface = derivedFromTags(newTags).surface;
+  const gone = was.filter(k => !now.includes(k) && d.tagKm.includes(k));
+  const cur = distancesOf(d.distances);
+  let distances = d.distances, tagKm = d.tagKm.filter(k => !gone.includes(k));
+  if (cur) {
+    const keys = cur.map(kmKey);
+    const added = now.filter(k => !was.includes(k) && !keys.includes(k));
+    const next = [...new Set([...keys.filter(k => !gone.includes(k)), ...added])].sort((a, b) => a - b);
+    if (next.join() !== keys.join()) distances = next.map(k => fmtKm(k / 100)).join(", ");
+    tagKm = [...tagKm, ...added];
+  } else {
+    // Mid-typing ("5, 1O"): what a new tag stands for is added as text; nothing typed is taken away.
+    const added = now.filter(k => !was.includes(k));
+    if (added.length) distances = [d.distances.trim().replace(/,\s*$/, ""), ...added.map(k => fmtKm(k / 100))].filter(Boolean).join(", ");
+    tagKm = [...tagKm, ...added];
+  }
+  let surface = d.surface, tagSurface = d.tagSurface;
+  if (nowSurface !== wasSurface) {
+    if (nowSurface && (d.surface === "" || d.tagSurface)) { surface = nowSurface as Surface; tagSurface = true; }
+    else if (!nowSurface && d.tagSurface) { surface = ""; tagSurface = false; }
+  }
+  return { ...d, distances, surface, tagKm: [...new Set(tagKm)], tagSurface };
+}
 
 /** What the server has, so a save sends only what changed where that matters. */
 export type Saved = {
@@ -155,9 +261,9 @@ export type Saved = {
   hadQuestions: boolean;
   /** The place as the server has it (placeKey): sent again only when the host picked another. */
   place: string;
-  /** What the Events grid filters on, as the server has it: the tags fill these in, the older editor sets them by hand. */
-  distances: number[];
-  surface: string | null;
+  /** The event page's sections as the server has them (detailsWire), and the course map's file. */
+  details: DetailsWire;
+  mapPath: string | null;
   /** Each ticket type's sale times as the server has them, by type id: sent back exactly when the host didn't change them. */
   saleTimes: Record<string, { opensAt: string | null; closesEarlyAt: string | null }>;
 };
@@ -183,8 +289,6 @@ export type Loaded = {
   sold: number;
   /** Past-event photos on the event: the app's to change, kept as they are here. */
   galleryCount: number;
-  /** The event has a schedule, course, FAQ, notes or race details from the older editor. */
-  hasLegacyDetails: boolean;
 };
 
 // ─── Refusals ───────────────────────────────────────────────────────────────
@@ -197,7 +301,7 @@ export type EditorFail =
   | "invalid_price" | "price_locked" | "payout_account_required" | "paid_not_open" | "host_owes" | "host_suspended"
   | "invalid_questions" | "question_has_answers" | "contact_question" | "invalid_sales_open" | "invalid_sale_options"
   | "invalid_max_per_order" | "invalid_tags" | "invalid_age" | "invalid_gender" | "invalid_visibility" | "invalid_kind"
-  | "invalid_cover" | "invalid_content" | "invalid_patch" | "upload_failed" | "signed_out" | "unavailable" | "error"
+  | "invalid_cover" | "invalid_content" | "invalid_distances" | "invalid_patch" | "upload_failed" | "signed_out" | "unavailable" | "error"
   // Not the database's: a publish held back because this database dropped part of the form (see saveEvent).
   | "sale_options_off" | "questions_off";
 
@@ -209,7 +313,7 @@ const FAILS: EditorFail[] = [
   "invalid_price", "price_locked", "payout_account_required", "paid_not_open", "host_owes", "host_suspended",
   "invalid_questions", "question_has_answers", "contact_question", "invalid_sales_open", "invalid_sale_options",
   "invalid_max_per_order", "invalid_tags", "invalid_age", "invalid_gender", "invalid_visibility", "invalid_kind",
-  "invalid_cover", "invalid_content", "invalid_patch",
+  "invalid_cover", "invalid_content", "invalid_distances", "invalid_patch",
 ];
 
 /** The database's reason from an error message: the code itself, or the longest code the message carries. */
@@ -237,7 +341,7 @@ export function editorFailCopy(reason: EditorFail): { title: string; body: strin
     case "invalid_place": return { title: "Pick the location again", body: "That place didn’t come with a usable map pin." };
     case "incomplete": return { title: "Pick a place on the map", body: "Choose the location from the search results, so it has a pin runners can navigate to." };
     case "host_limit": return { title: "That’s a lot of events", body: "A host can have 20 drafts and upcoming events at a time. Finish or delete one first." };
-    case "blocked_content": return { title: "Can’t use those words", body: "Something in the name, the description, a ticket’s name or a question isn’t allowed on pacr. Change it and save again." };
+    case "blocked_content": return { title: "Can’t use those words", body: "Something on the event isn’t allowed on pacr: look at the name, the description, the ticket names, the questions, the notes and the event page’s sections (event day, course, good to know, included). Change it and save again." };
     case "below_sold": return { title: "The limit is too low", body: "More runners already hold that ticket than the limit you set." };
     case "tier_has_orders": return { title: "That ticket type has runners", body: "A ticket type people have booked can’t be removed." };
     case "invalid_tiers": return { title: "Check the ticket types", body: "Every ticket type needs a name of up to 40 characters, and an event can have up to 6." };
@@ -266,9 +370,10 @@ export function editorFailCopy(reason: EditorFail): { title: string; body: strin
     case "invalid_gender": return { title: "Check who can join", body: "Pick one of the choices under Who can join." };
     case "invalid_visibility": return { title: "Check who can see it", body: "Squad members only is for events a squad hosts." };
     case "invalid_kind": return { title: "Check the type", body: "Pick race, run, workshop or social." };
-    case "invalid_cover": return { title: "Couldn’t use that poster", body: "Add the poster again." };
-    case "invalid_content": return { title: "Check the event’s details", body: "A schedule, course or FAQ entry on this event is missing a label or is too long. Open more details to fix it." };
-    case "upload_failed": return { title: "Couldn’t upload the poster", body: "Everything else is as you left it. Check your connection and save again." };
+    case "invalid_cover": return { title: "Couldn’t use that picture", body: "Add the poster or the course map again." };
+    case "invalid_content": return { title: "Check the event’s details", body: "Each event-day step needs what happens, each course fact a name and each answer its question, and what’s included is up to 12 lines of 30 characters." };
+    case "invalid_distances": return { title: "Check the distances", body: "Up to 6 distances, each from 0.1 to 250 km." };
+    case "upload_failed": return { title: "Couldn’t upload a picture", body: "Everything else is as you left it. Check your connection and save again." };
     case "signed_out": return { title: "You’ve been signed out", body: "Sign in again, then save." };
     case "sale_options_off": return { title: "Saved as a draft, not published", body: "Sale options aren’t switched on yet, so the ticket types were saved without them. Look the tickets over, then publish." };
     case "questions_off": return { title: "Saved as a draft, not published", body: "Registration questions aren’t switched on yet, so the event was saved without them. Publish it as it is if that’s fine." };
@@ -381,7 +486,7 @@ export function blankForm(now = new Date()): EventForm {
     visibility: "public", kind: "run", title: "", description: "", zone,
     startsAt: { date, time: "07:00" }, endsAt: { date, time: "08:30" }, closesAt: null, maxPerOrder: "",
     place: null, placeText: "", tags: [], cohosts: [], paid: false, tiers: [newTier("General entry", "60")],
-    age: "all", ageMin: "21", gender: "all", cover: null, questions: [],
+    age: "all", ageMin: "21", gender: "all", cover: null, questions: [], details: emptyDetails(),
   };
 }
 
@@ -433,8 +538,9 @@ export async function loadEvent(id: string): Promise<Loaded> {
   if (e.status !== "draft" && e.status !== "published") throw new EditorError("event_closed");
   const cohosts = list(e.cohosts);
   const coverPath = str(e.cover_path) || null;
+  const mapPath = str(e.course_map_path) || null;
   const [imgs, faces] = await Promise.all([
-    signedUrls("event-covers", [coverPath]),
+    signedUrls("event-covers", [coverPath, mapPath]),
     signedUrls("avatars", cohosts.map(c => str(c.avatar_path) || null)),
   ]);
   const zone = zoneKnown(str(e.timezone)) ? str(e.timezone) : DEFAULT_ZONE;
@@ -477,8 +583,22 @@ export async function loadEvent(id: string): Promise<Loaded> {
       key: newKey(), id: str(q.id) || null, kind: q.kind as QuestionDraft["kind"], label: str(q.label),
       options: Array.isArray(q.options) ? (q.options as string[]).join(", ") : "", required: q.required !== false,
     })),
+    details: {
+      meetNote: str(e.meet_note), refundNote: str(e.refund_note),
+      surface: (["road", "trail", "track", "mixed"] as const).find(x => x === e.surface) ?? "",
+      terrain: str(e.terrain), timed: e.timed === true,
+      distances: (Array.isArray(e.distances_km) ? (e.distances_km as unknown[]) : []).map(Number).filter(Number.isFinite).map(fmtKm).join(", "),
+      schedule: list(e.schedule).map(x => ({ key: newKey(), time: str(x.time), label: str(x.label), note: str(x.note) })),
+      course: list(e.course_facts).map(x => ({ key: newKey(), label: str(x.label), value: str(x.value) })),
+      faq: list(e.faq).map(x => ({ key: newKey(), q: str(x.q), a: str(x.a) })),
+      included: (Array.isArray(e.included) ? (e.included as unknown[]) : []).map(String).join("\n"),
+      courseMap: mapPath ? { path: mapPath, url: imgs.get(mapPath) ?? null, blob: null } : null,
+      // What the event's tags stand for and it holds: taken away if the host turns those tags off.
+      tagKm: derivedFromTags(tags).distances_km.map(kmKey)
+        .filter(k => (Array.isArray(e.distances_km) ? (e.distances_km as unknown[]) : []).some(x => kmKey(Number(x)) === k)),
+      tagSurface: !!e.surface && e.surface === derivedFromTags(tags).surface,
+    },
   };
-  const some = (v: unknown) => Array.isArray(v) && v.length > 0;
   return {
     form,
     saved: {
@@ -486,8 +606,7 @@ export async function loadEvent(id: string): Promise<Loaded> {
       host: host && str(host.id) ? { kind: host.kind === "organizer" ? "organizer" : "squad", id: str(host.id), name: str(host.name) } : null,
       startsAt: str(e.starts_at), endsAt: str(e.ends_at), zone, closesAt, coverPath, tags, kind, visibility,
       hadQuestions: (questions ?? []).length > 0, place: placeKey(form),
-      distances: Array.isArray(e.distances_km) ? (e.distances_km as unknown[]).map(Number).filter(Number.isFinite) : [],
-      surface: str(e.surface) || null,
+      details: detailsWire(form.details), mapPath,
       saleTimes: Object.fromEntries(tiers.filter(t => str(t.id)).map(t => [str(t.id), {
         opensAt: str(t.sales_open_at) || null, closesEarlyAt: str(t.closes_early_at) || null,
       }])),
@@ -502,8 +621,6 @@ export async function loadEvent(id: string): Promise<Loaded> {
     features: { saleOptions: tiers.some(t => "sale_state" in t || "sales_open_at" in t), questions: questions !== null },
     sold: Number(e.sold) || 0,
     galleryCount: Array.isArray(e.gallery_paths) ? e.gallery_paths.length : 0,
-    hasLegacyDetails: some(e.schedule) || some(e.course_facts) || some(e.faq) || some(e.included) || !!str(e.meet_note)
-      || !!str(e.refund_note) || !!str(e.terrain) || !!str(e.course_map_path) || e.timed === true,
   };
 }
 
@@ -527,6 +644,8 @@ export type Check = {
   tier: Record<string, { capacity?: string; price?: string; opens?: string; early?: string }>;
   /** Paid, and this host has no payout details yet. */
   needPayout: boolean;
+  /** The event page's sections, by section. */
+  details: { distances?: string; schedule?: string; course?: string; faq?: string; included?: string };
 };
 
 /**
@@ -576,6 +695,24 @@ export function checkForm(
   const age = f.age === "custom" ? parseInt(f.ageMin, 10) : null;
   const badAge = f.age === "custom" && !(age != null && age >= 5 && age <= 80);
   const needPayout = f.paid && opts.payoutReady === false;
+  // The event page's sections: what update_event would refuse, said before it is sent.
+  const d = f.details, dErr: Check["details"] = {};
+  const km = distancesOf(d.distances);
+  if (km === null) dErr.distances = "Distances are numbers in km, separated by commas.";
+  else if (new Set(km.map(kmKey)).size > DETAIL_MAX.distances) dErr.distances = `Up to ${DETAIL_MAX.distances} distances.`;
+  else if (km.some(n => n < 0.1 || n > 250)) dErr.distances = "Each distance is from 0.1 to 250 km.";
+  if (d.schedule.some(r => !r.label.trim() && (r.time.trim() || r.note.trim()))) dErr.schedule = "Each step needs what happens.";
+  if (d.course.some(r => !r.label.trim() && r.value.trim())) dErr.course = "Each fact needs a name.";
+  if (d.faq.some(r => !r.q.trim() && r.a.trim())) dErr.faq = "Each answer needs its question.";
+  const lines = includedOf(d.included);
+  if (lines.length > DETAIL_MAX.included) dErr.included = `Up to ${DETAIL_MAX.included} lines.`;
+  // Characters as the database counts them, not UTF-16 units: an emoji is one.
+  else if (lines.some(l => [...l].length > 30)) dErr.included = "Each line is up to 30 characters.";
+  const detailWords = [
+    dErr.distances ? "race distances that fit" : null, dErr.schedule ? "what happens at each event-day step" : null,
+    dErr.course ? "a name for each course fact" : null, dErr.faq ? "a question for each answer" : null,
+    dErr.included ? "what’s included in up to 12 lines of 30 characters" : null,
+  ].filter((x): x is string => !!x);
 
   const missing: string[] = [];
   if (!title) missing.push("a name");
@@ -593,6 +730,7 @@ export function checkForm(
   else if (closePast && future) missing.push("a time registration closes that’s still ahead");
   if (badMax) missing.push(`a tickets-per-booking limit between 1 and ${fees.maxPerOrder}`);
   if (badAge) missing.push("a minimum age between 5 and 80");
+  missing.push(...detailWords);
 
   const draftMissing: string[] = [];
   if (!title) draftMissing.push("a name");
@@ -608,11 +746,12 @@ export function checkForm(
   if (Object.values(tier).some(t => t.capacity)) draftMissing.push("a limit for each ticket type (or no limit)");
   if (Object.values(tier).some(t => t.price)) draftMissing.push("a price for each ticket type (or make the event free)");
   if (Object.values(tier).some(t => t.opens || t.early)) draftMissing.push("ticket sale times that come before the start");
+  draftMissing.push(...detailWords);
 
   return {
     missing, draftMissing, start, end,
     badTime: !start || !end || (badRange && timeMoved) || (!future && (timeMoved || !live)),
-    badClose: closeLate || (closePast && future), badMax, noPin: !hasPin, tier, needPayout,
+    badClose: closeLate || (closePast && future), badMax, noPin: !hasPin, tier, needPayout, details: dErr,
   };
 }
 
@@ -624,14 +763,17 @@ export const andList = (xs: string[]) => (xs.length < 2 ? xs.join("") : `${xs.sl
 const BUCKET = "event-covers";
 /** The poster as the app saves it: 2:3. */
 export const POSTER = { aspect: 2 / 3, out: { width: 1000, height: 1500 } };
+/** The course map as the older web editor saved it: 16:9. */
+export const COURSE_MAP = { aspect: 16 / 9, out: { width: 1600, height: 900 } };
 
-async function uploadPoster(eventId: string, jpeg: Blob): Promise<string | null> {
+/** A picture into the event's own folder ("<event id>/poster-…" or "course-…", what event_image_path_ok allows). */
+async function uploadImage(eventId: string, kind: "poster" | "course", jpeg: Blob): Promise<string | null> {
   try {
     const rand = `${Date.now().toString(36)}${crypto.getRandomValues(new Uint32Array(2)).join("").slice(0, 10)}`;
-    const path = `${eventId}/poster-${rand}.jpg`;
+    const path = `${eventId}/${kind}-${rand}.jpg`;
     const { error } = await getSupabase().storage.from(BUCKET).upload(path, jpeg, { contentType: "image/jpeg", upsert: false, cacheControl: "31536000" });
     if (error) {
-      console.warn("[host] poster upload failed", error.message);
+      console.warn(`[host] ${kind} upload failed`, error.message);
       return null;
     }
     return path;
@@ -710,14 +852,16 @@ export async function saveEvent(
       p_host_kind: opts.host.kind, p_host_id: opts.host.id, p_kind: form.kind,
       p_title: form.title.trim(), p_description: form.description.trim() || null,
       p_starts_at: startsAt, p_ends_at: endsAt, p_timezone: form.zone, p_place: placeJson(form),
-      p_meet_note: null, p_visibility: form.visibility, p_women_only: form.gender === "women",
-      p_capacity: firstCap, p_refund_note: null,
+      p_meet_note: form.details.meetNote.trim() || null, p_visibility: form.visibility, p_women_only: form.gender === "women",
+      p_capacity: firstCap, p_refund_note: form.details.refundNote.trim() || null,
     });
     if (!res.ok) return fail(res.reason);
     saved = {
       id: res.value, status: "draft", isHost: true, host: null, startsAt, endsAt, zone: form.zone, closesAt: null, coverPath: null,
       tags: [], kind: form.kind, visibility: form.visibility, hadQuestions: false, place: placeKey(form),
-      distances: [], surface: null, saleTimes: {},
+      // What create_event stored: the two notes; the rest of the page's sections go with the save below.
+      details: { ...detailsWire(emptyDetails()), meet_note: form.details.meetNote.trim(), refund_note: form.details.refundNote.trim() },
+      mapPath: null, saleTimes: {},
     };
     stage = "created";
   }
@@ -747,24 +891,29 @@ export async function saveEvent(
     }
   }
 
-  // 2: the poster, and what the tags say about distance and surface.
-  let newCover: string | null = null;
+  // 1c: the event page's sections, each only when the host changed it (the tags' distances and surface are in here,
+  // put there by the form when the tags changed).
+  const wire = detailsWire(form.details);
+  for (const k of Object.keys(wire) as (keyof DetailsWire)[]) {
+    if (JSON.stringify(wire[k]) !== JSON.stringify(saved.details[k])) patch[k] = wire[k];
+  }
+
+  // 2: the pictures, uploaded into the event's folder before the save that points at them.
+  let newCover: string | null = null, newMap: string | null = null;
   if (form.cover?.blob) {
-    newCover = await uploadPoster(id, form.cover.blob);
+    newCover = await uploadImage(id, "poster", form.cover.blob);
     if (!newCover) return fail("upload_failed");
     patch.cover_path = newCover;
   } else if (!form.cover && saved.coverPath) {
     patch.cover_path = null;
   }
-  if (tagsChanged) {
-    // Only what this tag edit is about: distances or a surface entered in the older editor stay, unless the tags now say something else.
-    // A distance the older editor added stays; one the tags put there goes with its tag. A surface set by hand stays.
-    const was = derivedFromTags(saved.tags), now = derivedFromTags(form.tags);
-    const key = (n: number) => Math.round(n * 100);
-    const kept = saved.distances.filter(d => !was.distances_km.some(w => key(w) === key(d)));
-    const next = [...kept, ...now.distances_km.filter(d => !kept.some(k => key(k) === key(d)))].sort((a, b) => a - b);
-    if (next.map(key).join() !== [...saved.distances].sort((a, b) => a - b).map(key).join()) patch.distances_km = next;
-    if (was.surface !== now.surface && saved.surface === was.surface) patch.surface = now.surface;
+  const map = form.details.courseMap;
+  if (map?.blob) {
+    newMap = await uploadImage(id, "course", map.blob);
+    if (!newMap) { await removeImages([newCover]); return fail("upload_failed"); }
+    patch.course_map_path = newMap;
+  } else if (!map && saved.mapPath) {
+    patch.course_map_path = null;
   }
 
   // 3: tags, who can join, ticket types, co-hosts. (No gallery_paths: the past photos stay as they are.)
@@ -804,25 +953,30 @@ export async function saveEvent(
   // The row and the setup in one transaction: a refusal leaves the event as it was.
   const res = await rpc<Json | null>("save_event", { p_event_id: id, p_patch: patch, p_setup: setup });
   if (!res.ok) {
-    await removeImages([newCover]);   // nothing points at it
+    // A refusal means nothing points at the new files. A lost answer ("error") may hide a save that landed, and the
+    // event would then point at files that are gone: those are left, at the cost of an unused file if it didn't.
+    if (res.reason !== "error") await removeImages([newCover, newMap]);
     return fail(res.reason);
   }
   const row = (res.value?.event ?? null) as Json | null;
   const out = (res.value?.setup ?? null) as Json | null;
-  await removeImages([str(row?.old_cover_path) || null]);
+  await removeImages([str(row?.old_cover_path) || null, str(row?.old_course_map_path) || null]);
   stage = "saved";
   const sentTiers = list(setup.tiers);
   saved = {
     ...saved, kind: form.kind, visibility: form.visibility, place: placeKey(form),
     ...(tagsChanged ? { tags: [...form.tags, ...otherTags(saved.tags)] } : {}),
-    ...("distances_km" in patch ? { distances: patch.distances_km as number[] } : {}),
-    ...("surface" in patch ? { surface: patch.surface as string | null } : {}),
+    details: wire,
     // What the server now has: a time that didn't move keeps its saved value, seconds and all.
     ...(patch.starts_at ? { startsAt } : {}), ...(patch.ends_at ? { endsAt } : {}), ...(patch.timezone ? { zone: form.zone } : {}),
   };
   if ("cover_path" in patch) {
     saved = { ...saved, coverPath: newCover };
     form = { ...form, cover: form.cover && newCover ? { ...form.cover, path: newCover, blob: null } : null };
+  }
+  if ("course_map_path" in patch) {
+    saved = { ...saved, mapPath: newMap };
+    form = { ...form, details: { ...form.details, courseMap: map && newMap ? { ...map, path: newMap, blob: null } : null } };
   }
   const tierIds = list(out?.tiers);
   const closeSaved = out && "sales_close_at" in out ? str(out.sales_close_at) || null : undefined;

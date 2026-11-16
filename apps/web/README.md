@@ -42,7 +42,7 @@ The session is shared with `/signin` and `/host` through the `pacr.web.auth` loc
 
 ## Built
 
-Every page on pacr.life except the host dashboard (`/host`, plus its event editor at `/host/new`, `/host/e/*` and `/host/apply`, which keep their own design system).
+Every page on pacr.life except the host dashboard (`/host`, its own app in `apps/host`) and the request to host at `/host/apply` (an old page in `public/legacy`, with its own look). The old event editor's addresses, `/host/new` and `/host/e/*`, redirect to the dashboard.
 
 | Area | Routes |
 |---|---|

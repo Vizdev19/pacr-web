@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useMemo, useState, type KeyboardEvent } from "react";
+import { useEffect, useMemo, useState, type KeyboardEvent } from "react";
 import { DateTile, EmptyState, GlassCard, Icon, ProgressBar, Skeleton, StatusTag, Tabs } from "@/components/ds";
 import { kMuted, kStrong, LoadError, Meta, Toolbar } from "@/components/shell/kit";
 import * as api from "@/lib/api";
@@ -17,7 +17,7 @@ import { kindLabel, isOver, Poster, tagOf } from "./shared";
 type Tab = "draft" | "up" | "past";
 
 export function Events() {
-  const { host } = useHost();
+  const { host, hosts, setHost } = useHost();
   const params = useSearchParams();
   const router = useRouter();
   const { phone } = useViewport();
@@ -27,13 +27,22 @@ export function Events() {
     const all = await api.hostedEvents(true);
     const mine = all.filter(e => e.host?.kind === host.kind && e.host?.id === host.id);
     const covers = await api.signedUrls("event-covers", mine.map(e => e.cover_path));
-    return { events: mine, covers, now: Date.now() };
+    return { events: mine, all, covers, now: Date.now() };
   }, `events:${host.key}`);
 
   // A co-host works on the events they were added to; creating one is the host's.
   const cohost = host.roleKey === "cohost";
   const canCreate = !cohost && (host.kind === "squad" ? host.verified : host.status === "approved");
   const focus = decodeRef(params.get("event"));
+
+  // A link to an event of another host this person can act as (an old /host/e/<ref> address, a bookmark) opens it
+  // under that host instead of "not found": the sidebar moves to the event's host.
+  const otherHost = ev.status === "ready" && focus && !ev.data.events.some(e => e.id === focus)
+    ? ev.data.all.find(e => e.id === focus)?.host ?? null : null;
+  const otherKey = otherHost ? `${otherHost.kind}:${otherHost.id}` : null;
+  useEffect(() => {
+    if (otherKey && hosts.some(h => h.key === otherKey)) setHost(otherKey);
+  }, [otherKey, hosts, setHost]);
 
   const groups = useMemo(() => {
     if (ev.status !== "ready") return { draft: [], up: [], past: [] };
@@ -61,6 +70,8 @@ export function Events() {
     const found = focus ? events.find(e => e.id === focus) : undefined;
     // Just published from the editor: the list read before that may not have it yet, and is being read again.
     if (!found && now < (Number(params.get("fresh")) || 0)) return <ListSkeleton />;
+    // Another host's event: the sidebar is moving to that host, and the list is read again under it.
+    if (!found && otherKey && hosts.some(h => h.key === otherKey)) return <ListSkeleton />;
     if (!found) {
       return (
         <EmptyState
@@ -69,7 +80,7 @@ export function Events() {
         />
       );
     }
-    return <EventDetail event={found} cover={found.cover_path ? covers.get(found.cover_path) : undefined} now={now} initialTab={params.get("tab") === "sales" ? "sales" : "attendees"} />;
+    return <EventDetail event={found} cover={found.cover_path ? covers.get(found.cover_path) : undefined} now={now} initialTab={params.get("tab") === "sales" ? "sales" : "attendees"} onChanged={ev.reload} />;
   }
 
   const createButton = canCreate ? (

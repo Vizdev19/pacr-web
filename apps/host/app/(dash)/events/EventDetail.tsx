@@ -12,15 +12,22 @@ import { useHost } from "@/lib/host";
 import { useLoad, useViewport } from "@/lib/hooks";
 import { encodeRef } from "@/lib/refs";
 import { Summary, owedNote, payoutNote, payoutTag } from "../money/Summary";
-import { Poster, tagOf } from "./shared";
+import { isOver, Poster, tagOf } from "./shared";
 
 type View = "attendees" | "sales";
 type Seat = api.Attendee & { avatar?: string };
 type SeatsLoad = ReturnType<typeof useLoad<Seat[]>>;
 type SalesLoad = ReturnType<typeof useLoad<api.EventSales>>;
 
-export function EventDetail({ event: e, cover, now, initialTab }: { event: api.HostedEvent; cover?: string; now: number; initialTab: View }) {
+export function EventDetail({ event: e, cover, now, initialTab, onChanged }: {
+  event: api.HostedEvent; cover?: string; now: number; initialTab: View;
+  /** The events list is out of date (the event was cancelled). */
+  onChanged: () => void;
+}) {
   const [view, setView] = useState<View>(initialTab);
+  const [cancelling, setCancelling] = useState(false);
+  /** Cancelled from this page: the button goes at once, not when the list has been read again. */
+  const [cancelledHere, setCancelledHere] = useState(false);
   const t = tile(e.starts_at);
   const status = tagOf(e, now);
   const ref = encodeRef(e.id);
@@ -35,6 +42,10 @@ export function EventDetail({ event: e, cover, now, initialTab }: { event: api.H
     return rows.map(r => ({ ...r, avatar: r.avatar_path ? faces.get(r.avatar_path) : undefined }));
   }, `attendees:${e.id}`);
   const sales = useLoad(() => api.eventSales(e.id), `sales:${e.id}`);
+  // Cancelling is the host's, like refunds (cancel_event refuses co-hosts): the sales summary loading is how this
+  // page knows. A draft is deleted from the editor instead, and an event that has ended can't be cancelled.
+  const canCancel = !cancelledHere && sales.status === "ready" && e.status === "published" && !isOver(e, now);
+  const afterCancel = () => { seats.reload(); sales.reload(); onChanged(); };
   return (
     <div>
       <Link href="/events" style={{ ...kMuted, textDecoration: "none", display: "inline-flex", gap: 4, alignItems: "center", marginBottom: 10 }}>
@@ -59,6 +70,7 @@ export function EventDetail({ event: e, cover, now, initialTab }: { event: api.H
               <a className="pc-btn pc-btn--secondary" href={`/e/${ref}`} style={{ textDecoration: "none" }}><Icon name="external-link" size={17} />View page</a>
             ) : null}
             {/* A draft or a live event opens in the editor; one that has ended or was cancelled can't be changed. */}
+            {canCancel ? <Button variant="secondary" icon="ban" onClick={() => setCancelling(true)}>Cancel event</Button> : null}
             {(status === "Draft" || status === "Published") && ref ? (
               <Link className="pc-btn pc-btn--primary" href={`/events?event=${ref}&edit=1`} style={{ textDecoration: "none" }}><Icon name="pencil" size={17} />Edit event</Link>
             ) : null}
@@ -68,7 +80,95 @@ export function EventDetail({ event: e, cover, now, initialTab }: { event: api.H
       <Tabs value={view} onChange={v => setView(v as View)} style={{ marginBottom: 12 }}
         tabs={[{ value: "attendees", label: "Attendees", count: e.sold }, { value: "sales", label: "Sales" }]} />
       {view === "attendees" ? <Attendees event={e} seats={seats} sales={sales} /> : <Sales event={e} now={now} sales={sales} seats={seats} />}
+      {cancelling ? (
+        <CancelEventDialog event={e} onClose={() => setCancelling(false)}
+          onCancelled={() => { setCancelling(false); setCancelledHere(true); afterCancel(); }} onStale={afterCancel} />
+      ) : null}
     </div>
+  );
+}
+
+/** Refusals that mean this page is out of date: show the event as it is now. */
+const CANCEL_STALE = new Set(["already_cancelled", "event_over", "not_published", "not_found", "not_allowed"]);
+
+/**
+ * Cancel the event (cancel_event): what it does to bookings and money, said before the host confirms. The bookings
+ * and what cancelling costs the host in payment charges (event_refund_cost, the event's own rule) are read afresh as
+ * the dialog opens, not taken from the list this page was opened with, and the host confirms once they are in.
+ */
+function CancelEventDialog({ event: e, onClose, onCancelled, onStale }: {
+  event: api.HostedEvent; onClose: () => void; onCancelled: () => void; onStale: () => void;
+}) {
+  const { notify } = useHost();
+  const [note, setNote] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  // Seats sold and kept, whether any ticket type is priced, and the charge. The sales summary is the host's, as cancelling is.
+  const info = useLoad(async () => {
+    const [s, cost] = await Promise.all([api.eventSales(e.id), api.refundCost(e.id)]);
+    return { sold: s.sold, paid: s.tiers.some(t => t.price_minor > 0), charge: cost?.payer === "host" ? cost.chargeMinor : 0 };
+  }, `cancel-info:${e.id}`);
+  const d = info.status === "ready" ? info.data : null;
+  const go = async () => {
+    if (!d) return;
+    setBusy(true);
+    setErr(null);
+    try {
+      const { notified } = await api.cancelEvent(e.id, note);
+      // notified counts the bookings told: a buyer whose account is gone, or the host's own booking, isn't.
+      notify("success", "Event cancelled", d.sold === 0 && notified === 0 ? `${e.title} is off. Nobody had booked.`
+        : `Every booking is cancelled${d.paid ? ", and every paid one is being refunded in full" : ""}.${notified > 0 ? " The runners who booked are being told." : ""}`);
+      onCancelled();
+    } catch (x) {
+      const reason = x instanceof api.ApiError ? x.reason : "error";
+      // No answer: the cancel may have gone through. The page is read again, and says which.
+      setErr(reason === "error"
+        ? "We couldn’t reach pacr, so we can’t tell whether the event was cancelled. This page has been read again: check its status before you try again."
+        : api.cancelFailText(x));
+      if (reason === "error" || CANCEL_STALE.has(reason)) onStale();
+    } finally {
+      setBusy(false);
+    }
+  };
+  const p = { font: "400 13px/1.5 var(--font-sans)", color: "var(--text-body)", margin: "0 0 12px" } as const;
+  return (
+    <Dialog open onClose={busy ? undefined : onClose} icon="ban" tone="danger" title={`Cancel ${e.title}?`}
+      description={`${day(e.starts_at)} · ${time(e.starts_at)} IST`}
+      footer={<>
+        <Button variant="ghost" onClick={onClose} disabled={busy}>Keep event</Button>
+        <Button variant="danger" loading={busy} disabled={!d} onClick={go}>Cancel event</Button>
+      </>}>
+      {info.status === "loading" ? (
+        <p style={{ ...p, color: "var(--text-muted)" }}>Checking the bookings…</p>
+      ) : !d ? (
+        <div style={{ ...p, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+          <span>Couldn’t check the bookings just now, so the event can’t be cancelled from here yet.</span>
+          <Button size="sm" variant="secondary" icon="rotate-cw" onClick={info.reload}>Try again</Button>
+        </div>
+      ) : (
+        <>
+          <p style={p}>
+            {d.sold > 0
+              ? `${plural(d.sold, "ticket")} ${d.sold === 1 ? "is" : "are"} booked. Every booking is cancelled and its QR stops working, and the runners who booked are told, with your note.`
+              : "Nobody has booked yet."}
+            {d.paid && d.sold > 0 ? " Every paid booking is refunded in full: the ticket price, pacr’s fee and the GST go back the way they paid." : ""}
+            {" "}Check-in closes. This can’t be undone.
+          </p>
+          {d.charge > 0 ? (
+            <p style={p}>
+              Cancelling costs you <span style={{ fontWeight: 500, color: "var(--text-strong)" }}>{paise(d.charge)}</span> in payment charges, which Razorpay keeps. It comes off your next payout.
+            </p>
+          ) : null}
+        </>
+      )}
+      <label className="pc-field">
+        <span className="pc-label">Note to the runners who booked <span style={kMuted}>optional</span></span>
+        <textarea rows={2} maxLength={300} style={kTextarea} value={note} disabled={busy}
+          placeholder="Heavy rain forecast: we’ll run it on the 22nd instead." onChange={ev => { setNote(ev.target.value); setErr(null); }} />
+        <span className="pc-hint">They see it with the cancellation. {note.length} / 300</span>
+      </label>
+      {err ? <div role="alert" style={{ font: "400 13px/1.45 var(--font-sans)", color: "var(--danger-text)", marginTop: 10 }}>{err}</div> : null}
+    </Dialog>
   );
 }
 

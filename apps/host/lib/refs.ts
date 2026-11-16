@@ -26,8 +26,6 @@ export function decodeRef(ref: string | null | undefined): string | null {
   }
 }
 
-/** The original event pages on the static site (host.html). The dashboard has its own editor now (/events?new=1,
- *  /events?event=<ref>&edit=1); the older one is still where an event's schedule, course, FAQ and notes are edited. */
-export const eventEditHref = (eventId: string) => `/host/e/${encodeRef(eventId)}`;
-export const eventNewHref = "/host/new";
+/** Asking to host as an organizer: an old page on the static site (apps/web public/legacy), the one the dashboard has
+ *  no form of its own for. The old event editor's addresses redirect here: /host/new to /events?new=1, /host/e/<ref> to /events?event=<ref>. */
 export const organizerApplyHref = "/host/apply";
