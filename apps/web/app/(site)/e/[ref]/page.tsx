@@ -21,7 +21,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const url = `${SITE}/e/${valid ? ref : "event"}`;
   const title = v ? `${v.title} — on pacr` : "An event on pacr";
   const description = v
-    ? [eventWhen(v.startsAt, v.endsAt), v.place.name, v.distances ?? v.typeLabel, priceLine(v.tiers)].filter(Boolean).join(" · ").slice(0, 200)
+    ? [eventWhen(v.startsAt, v.endsAt, v.timezone), v.place.name, v.distances ?? v.typeLabel, priceLine(v.tiers)].filter(Boolean).join(" · ").slice(0, 200)
     : "Open this link in the pacr app to see the event.";
   const image = v?.poster ? `${SITE}${v.poster}` : `${SITE}/og-image.png?v=3`;
   return {

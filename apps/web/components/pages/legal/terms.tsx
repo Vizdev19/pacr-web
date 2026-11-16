@@ -110,11 +110,11 @@ export const TERMS_SECTIONS: LegalSection[] = [
       </UL>
       <H3>Cancellations and refunds</H3>
       <UL>
-        <li><strong>You can&apos;t cancel a paid ticket yourself.</strong> Only the host can refund a booking, and a refund is always for the whole booking — ticket price and Pacr fee.</li>
+        <li><strong>You can&apos;t cancel a paid ticket yourself, or ask for it to be refunded.</strong> A booking is refunded only if the event is cancelled, or the host or Pacr chooses to refund it — and a refund is always for the whole booking, ticket price and Pacr fee.</li>
         <li><strong>If the host cancels the event</strong>, every paid booking is refunded in full automatically.</li>
         <li>If you pay but a ticket can&apos;t be issued — for example, the event was cancelled while you paid — the payment is refunded in full.</li>
         <li>Refunds go back to how you paid. Banks usually take 5–7 working days to show them.</li>
-        <li>The host&apos;s own refund policy, if they have one, is shown on the event. Ask the host first; if you can&apos;t reach them, write to <a href="mailto:support@pacr.life">support@pacr.life</a>.</li>
+        <li>The host&apos;s own note on refunds, if they have one, is shown on the event. If a payment went wrong, write to <a href="mailto:support@pacr.life">support@pacr.life</a>.</li>
       </UL>
       <P>The host is responsible for the event: that it happens as described, that it is safe, and that it has whatever permits and insurance it needs. Pacr isn&apos;t responsible for an event that doesn&apos;t go as described, but tell us — we can hold a host&apos;s payout while we look into it.</P>
     </>,

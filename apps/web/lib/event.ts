@@ -10,19 +10,26 @@
 // The bottom half is the plumbing the three share pages (/e, /p, /u) have in
 // common: ref decoding, the anon client, the picture proxy and the deep links.
 import { cache } from "react";
+import { unstable_cache } from "next/cache";
 import { createClient } from "@supabase/supabase-js";
 import { PLAY_STORE_URL, SUPABASE_KEY, SUPABASE_URL } from "./config";
-import { dayLine, inr, istParts, whenLine } from "./format";
+import { dayLine, inr, istParts, whenLine, zoneNote } from "./format";
 
 // ─── get_event, as the RPC returns it ─────────────────────────────────────────
 
 export type EventTierRaw = {
   id: string; name: string; price_minor: number; fee_minor: number; capacity: number | null;
   taken: number; sold_out: boolean; sales_close_at: string | null;
+  /** pacr 20270124120000 (absent before it: every type is on sale). */
+  sale_state?: string | null; sales_open_at?: string | null; opens_after_name?: string | null;
 };
 export type EventRaw = {
   id: string; kind: string; title: string; description: string | null; cover_path: string | null;
   course_map_path: string | null; starts_at: string; ends_at: string; timezone: string | null;
+  /** Where the results are, set by the host once the event has started (pacr 20270123120000; absent before it). */
+  results_url?: string | null;
+  /** What the host asks for each ticket at booking (pacr 20270125120000; absent before it). */
+  questions?: { required?: boolean }[] | null;
   place: { name: string | null; address: string | null; lat: number | null; lng: number | null; google_place_id: string | null } | null;
   meet_note: string | null; visibility: string; status: string; women_only: boolean; refund_note: string | null;
   is_paid: boolean; cancelled_at: string | null; cancel_reason: string | null;
@@ -40,10 +47,19 @@ export type EventRaw = {
 
 export type TierView = {
   name: string; priceMinor: number; capacity: number | null; taken: number; soldOut: boolean; salesCloseAt: string | null;
+  /** on_sale, or why not yet: on sale later (salesOpenAt), waiting for another type to sell out (opensAfterName), or closed. */
+  saleState: "on_sale" | "not_open" | "waiting" | "closed";
+  salesOpenAt: string | null; opensAfterName: string | null;
 };
 export type EventView = {
   ref: string; title: string; kind: string; typeLabel: string; description: string | null;
   poster: string | null; courseMap: string | null; startsAt: string; endsAt: string;
+  /** The event's own time zone: its times are shown by that clock. */
+  timezone: string | null;
+  /** The host's results link: an https address, or null. */
+  resultsUrl: string | null;
+  /** How many details the host asks for each ticket. They are answered in the app. */
+  questionCount: number;
   place: { name: string | null; address: string | null; lat: number | null; lng: number | null; placeId: string | null };
   meetNote: string | null; status: string; cancelled: boolean; cancelReason: string | null; womenOnly: boolean;
   refundNote: string | null; isPaid: boolean;
@@ -68,7 +84,9 @@ export function eventView(e: EventRaw, ref: string): EventView {
     ref, title: e.title, kind: e.kind, typeLabel: kindLabel(e.kind), description: e.description?.trim() || null,
     poster: e.cover_path ? `/e/${ref}/poster?v=${version(e.cover_path)}` : null,
     courseMap: e.course_map_path ? `/e/${ref}/course?v=${version(e.course_map_path)}` : null,
-    startsAt: e.starts_at, endsAt: e.ends_at,
+    startsAt: e.starts_at, endsAt: e.ends_at, timezone: e.timezone ?? null,
+    resultsUrl: typeof e.results_url === "string" && /^https:\/\/\S+$/i.test(e.results_url) ? e.results_url : null,
+    questionCount: Array.isArray(e.questions) ? e.questions.length : 0,
     place: {
       name: e.place?.name ?? null, address: e.place?.address ?? null,
       lat: e.place?.lat == null ? null : Number(e.place.lat), lng: e.place?.lng == null ? null : Number(e.place.lng),
@@ -86,6 +104,8 @@ export function eventView(e: EventRaw, ref: string): EventView {
     tiers: (e.tiers ?? []).map(t => ({
       name: t.name, priceMinor: Math.max(0, num(t.price_minor)), capacity: numOrNull(t.capacity), taken: num(t.taken),
       soldOut: !!t.sold_out, salesCloseAt: t.sales_close_at ?? null,
+      saleState: t.sale_state === "not_open" || t.sale_state === "waiting" || t.sale_state === "closed" ? t.sale_state : "on_sale",
+      salesOpenAt: t.sales_open_at ?? null, opensAfterName: t.opens_after_name ?? null,
     })),
     goingCount: num(e.going_count),
     distances: (e.distances_km ?? []).map(Number).filter(n => n > 0).map(kmLabel).join(" · ") || null,
@@ -120,8 +140,12 @@ export const money = (minor: number) => (minor > 0 ? inr(minor) : "Free");
  *  "From ₹499 + fee and GST", "Free, or from ₹499 + fee and GST", "Sold out". */
 export function priceLine(tiers: TierView[]): string | null {
   if (!tiers.length) return null;
-  const prices = tiers.filter(t => !t.soldOut).map(t => t.priceMinor);
-  if (!prices.length) return "Sold out";
+  // A type that has stopped selling (an early bird past its last day) isn't
+  // a price any more, whatever it has left: it would head the page and its
+  // link preview with a price nobody can pay.
+  const live = tiers.filter(t => t.saleState !== "closed");
+  const prices = live.filter(t => !t.soldOut).map(t => t.priceMinor);
+  if (!prices.length) return live.length || tiers.every(t => t.soldOut) ? "Sold out" : null;
   const min = Math.min(...prices), max = Math.max(...prices);
   if (max === 0) return "Free";
   const paid = `${inr(Math.min(...prices.filter(p => p > 0)))} + fee and GST`;
@@ -129,11 +153,12 @@ export function priceLine(tiers: TierView[]): string | null {
 }
 
 /** "Sat, 14 Nov · 6:00 am – 9:00 am", or the end's day too when it runs past midnight. */
-export function eventWhen(startsAt: string, endsAt?: string | null): string {
-  const s = whenLine(startsAt);
-  if (!endsAt || !(new Date(endsAt) > new Date(startsAt))) return s;
-  const a = istParts(startsAt), b = istParts(endsAt);
-  return `${s} – ${a.ymd === b.ymd ? b.time : `${dayLine(endsAt)} · ${b.time}`}`;
+export function eventWhen(startsAt: string, endsAt?: string | null, tz?: string | null): string {
+  if (!endsAt || !(new Date(endsAt) > new Date(startsAt))) return whenLine(startsAt, tz);
+  // By the clock at the event; a zone other than India's is named once, at the end.
+  const a = istParts(startsAt, tz), b = istParts(endsAt, tz);
+  const s = `${a.dow}, ${a.day} ${a.month} · ${a.time}`;
+  return `${s} – ${a.ymd === b.ymd ? b.time : `${dayLine(endsAt, tz)} · ${b.time}`}${zoneNote(startsAt, tz)}`;
 }
 
 export const isOver = (e: { status: string; endsAt: string; startsAt: string }, now: number) =>
@@ -159,7 +184,7 @@ export function whoFor(e: EventView): string[] {
 const FAILS = [
   "not_allowed", "email_required", "not_found", "not_published", "event_cancelled", "event_over", "sales_closed",
   "sold_out", "already_have_ticket", "women_only", "not_member", "paid_not_supported", "too_many_holds",
-  "invalid_qty", "not_enough_seats",
+  "invalid_qty", "not_enough_seats", "sales_paused", "sales_not_open",
 ] as const;
 export type EventFail = (typeof FAILS)[number] | "error";
 export const failOf = (message: string | undefined): EventFail => FAILS.find(f => (message ?? "").includes(f)) ?? "error";
@@ -171,12 +196,14 @@ export function failCopy(reason: EventFail): { title: string; body: string } {
     case "invalid_qty": return { title: "Too many tickets", body: "That's more than one booking can hold at this event. Pick fewer and try again." };
     case "already_have_ticket": return { title: "You're already in", body: "Your tickets are in Your tickets." };
     case "sales_closed": return { title: "Registration has closed", body: "The host isn't taking new entries any more." };
+    case "sales_not_open": return { title: "Not on sale yet", body: "These tickets aren't on sale yet. The page says when they open." };
     case "event_over": return { title: "This event is over", body: "It has already started or finished." };
     case "event_cancelled": return { title: "This event was cancelled", body: "The host cancelled it." };
     case "women_only": return { title: "Women only", body: "This event is for women. Set your gender in your profile in the app if that's you." };
     case "not_member": return { title: "Squad members only", body: "Join the squad to get a ticket." };
     case "email_required": return { title: "Add an email first", body: "Events need an email on your account so the host can reach you. Add one in the app, then try again." };
-    case "too_many_holds": return { title: "Too many unfinished payments", body: "You've held a spot at this event several times without paying, so new holds are paused. Try again in a few hours." };
+    case "too_many_holds": return { title: "Let's give it a little while", body: "Spots at this event have been held for you a few times without a payment going through, so we can't hold another just yet. If money did leave your account, don't pay again: the ticket will turn up in Your tickets. Otherwise, try again in a couple of hours." };
+    case "sales_paused": return { title: "Ticket sales are paused", body: "pacr has paused ticket sales for a short while. Nothing was charged. Please try again a little later." };
     case "paid_not_supported": return { title: "Buy this ticket in the app", body: "Paid checkout on the web is coming." };
     case "not_found": case "not_published": return { title: "We can't find that event", body: "It may have been removed, or it isn't open to you." };
     case "not_allowed": return { title: "You can't get a ticket here", body: "This event isn't taking tickets from your account." };
@@ -189,12 +216,53 @@ export const seatQr = (code: string) => `PACR1:${code}`;
 
 // ─── Server reads ────────────────────────────────────────────────────────────
 
-/** get_event as anon, once per request (the page and its metadata share it). */
+/**
+ * The public read of one event, kept for 15 seconds and shared by everyone
+ * who opens its link in that time: a link posted to a big group used to mean
+ * one database read per visitor, all asking for the same thing. It is what
+ * anyone signed out sees (get_event as anon carries nothing about a runner),
+ * so sharing it shows nobody anything of someone else's. A signed-in visitor's
+ * own ticket and the seats as they stand are read in the browser, as before.
+ *
+ * Two things are never kept. A failed read (thrown). And "no such event": a
+ * link opened while the event was a draft would otherwise hand "nothing
+ * here" to the first visitor after it is published, which is usually the
+ * chat app fetching the link's preview.
+ *
+ * This cache hands back a copy past its 15 seconds while it fetches a new one
+ * behind, so on a quiet page the first visitor after a gap would get whatever
+ * the last one saw, however old: a cancelled event, an old price. A copy
+ * older than a minute is not used; that visitor is read for directly.
+ */
+const NONE = "event_none";
+const TOO_OLD_MS = 60_000;
+const readPublic = async (id: string): Promise<EventRaw | null> => {
+  const { data, error } = await anon().rpc("get_event", { p_event_id: id });
+  if (error) throw new Error("event_read_failed");
+  return (data as EventRaw | null) ?? null;
+};
+const publicEvent = unstable_cache(
+  async (id: string): Promise<{ at: number; event: EventRaw }> => {
+    const event = await readPublic(id);
+    if (!event) throw new Error(NONE);
+    return { at: Date.now(), event };
+  },
+  ["event-public-v2"],
+  { revalidate: 15 },
+);
+
+/** get_event as anon, once per request (the page and its metadata share it), from the shared copy when it is fresh. */
 export const loadEvent = cache(async (ref: string): Promise<{ ok: true; event: EventRaw | null } | { ok: false }> => {
   const id = decodeRef(ref);
   if (!id) return { ok: true, event: null };
-  const { data, error } = await anon().rpc("get_event", { p_event_id: id });
-  return error ? { ok: false } : { ok: true, event: (data as EventRaw | null) ?? null };
+  try {
+    const kept = await publicEvent(id);
+    if (Date.now() - kept.at <= TOO_OLD_MS) return { ok: true, event: kept.event };
+    return { ok: true, event: await readPublic(id) };
+  } catch (e) {
+    if (e instanceof Error && e.message === NONE) return { ok: true, event: null };
+    return { ok: false };
+  }
 });
 
 // ─── Share-page plumbing (also used by lib/post.ts and lib/profilecard.ts) ───

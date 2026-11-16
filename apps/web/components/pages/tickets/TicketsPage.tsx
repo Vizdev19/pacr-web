@@ -185,7 +185,7 @@ function OrderView({ t, code, holder, now, onChanged }: { t: Ticket; code: strin
             : order ? <OrderSummary lines={[{ label: t.tierName || "General", qty: order.qty, priceMinor: order.unitMinor }]} feeMinor={order.feeMinor} gstMinor={order.gstMinor} totalMinor={order.totalMinor} note={null} />
             : <div className="row" style={{ justifyContent: "space-between" }}><span className="t-secondary">Paid</span><b className="num">{money(t.totalMinor)}</b></div>}
           {!free && refundLine(t, order) ? <p className="t-caption" style={{ margin: "10px 0 0" }}>{refundLine(t, order)}</p> : null}
-          {!off && !free ? <p className="t-caption" style={{ margin: "10px 0 0" }}>{t.refundNote ? `Refunds: ${t.refundNote}` : "Refunds are up to the host. Paid tickets can't be given back from here."}</p> : null}
+          {!off && !free ? <p className="t-caption" style={{ margin: "10px 0 0" }}>{t.refundNote ? `Refunds: ${t.refundNote}` : "Paid tickets can't be cancelled or refunded on request. Your money comes back only if the event is cancelled, or the host or pacr refunds the booking."}</p> : null}
           {canGiveUp ? <Button variant="ghost" size="sm" style={{ marginTop: 8 }} onClick={() => setGiveUp(true)}>{t.qty > 1 ? "Give up my spots" : "Give up my spot"}</Button> : null}
         </Card>
       </div>

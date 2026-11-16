@@ -7,7 +7,7 @@
 // events they can see. Free tickets are booked here exactly as the app does
 // (src/services/events.ts reserveTicket); paid ones are bought in the app
 // until web checkout exists.
-import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { DirectionsLink, PlaceMap } from "@/components/ds/actions";
 import { TicketCard } from "@/components/ds/content";
 import { Badge, Button, Card, Icon, Media, TrustTag, VerifiedMark } from "@/components/ds/core";
@@ -48,6 +48,15 @@ function memOf(raw: EventRaw, ref: string, now: number): Mem {
   };
 }
 
+/** Which app's built-in browser this is, from the browser's own description of itself; null in a real browser. */
+function inAppBrowser(): string | null {
+  const ua = navigator.userAgent || "";
+  return /Instagram/i.test(ua) ? "Instagram" : /FBAN|FBAV|FB_IAB/i.test(ua) ? "Facebook" : /LinkedInApp/i.test(ua) ? "LinkedIn"
+    : /Snapchat/i.test(ua) ? "Snapchat" : /musical_ly|TikTok|Bytedance/i.test(ua) ? "TikTok" : /\bLine\//i.test(ua) ? "LINE"
+    : /Twitter/i.test(ua) ? "X" : null;
+}
+const noChange = () => () => {};
+
 const closeAt = (t: TierView, e: EventView) => t.salesCloseAt ?? e.startsAt;
 const closedNow = (t: TierView, e: EventView, now: number) => now >= new Date(closeAt(t, e)).getTime();
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
@@ -87,7 +96,54 @@ export function EventPage({ view: served, refStr, now }: { view: EventView | nul
     return () => { alive = false; };
   }, [signedIn, auth.uid]);
 
-  const e = (signedIn && mem?.view) || served;
+  // A link opened from a post or a message often lands in that app's own
+  // little browser, which can't hand over to the pacr app and forgets a
+  // sign-in. Named from the browser's own description of itself, after the
+  // page has loaded (the server doesn't guess).
+  const inApp = useSyncExternalStore(noChange, inAppBrowser, () => null);
+
+  // Sold out, with the page open: it keeps looking (event_seat_status, pacr
+  // 20270122120000). A seat comes back when a hold runs out unpaid or a
+  // booking is refunded. Every 20 seconds while the tab is showing, for 20
+  // minutes. `seatNow` is the seats as they stand, type by type in the page's
+  // order; a database from before the migration answers nothing and the page
+  // stays as it was served.
+  const e0 = (signedIn && mem?.view) || served;
+  const watchSeats = !!e0 && !e0.cancelled && !isOver(e0, now) && e0.tiers.length > 0 && e0.tiers.every(t => t.soldOut)
+    && !(signedIn && (mem?.mine || mem?.holding));
+  const [seatNow, setSeatNow] = useState<{ names: string[]; capacity: (number | null)[]; taken: number[]; held: number; minutes: number } | null>(null);
+  const tierCount = e0?.tiers.length ?? 0;
+  useEffect(() => {
+    if (!watchSeats || !id) return;
+    let alive = true;
+    let looks = 0;
+    const look = () => {
+      getSupabase().rpc("event_seat_status", { p_event_id: id }).then(({ data, error }) => {
+        const tiers = (data as { tiers?: { name: string; taken: number; held: number; capacity: number | null }[]; hold_minutes?: number } | null)?.tiers;
+        if (!alive || error || !Array.isArray(tiers) || tiers.length !== tierCount) return;
+        setSeatNow({
+          names: tiers.map(t => String(t.name ?? "")), capacity: tiers.map(t => (t.capacity == null ? null : Number(t.capacity))),
+          taken: tiers.map(t => Number(t.taken) || 0), held: tiers.reduce((n, t) => n + (Number(t.held) || 0), 0),
+          minutes: Number((data as { hold_minutes?: number }).hold_minutes) || 10,
+        });
+        // A seat is back: a signed-in runner's page is read again, so it can be booked.
+        if (signedIn && tiers.some(t => t.capacity == null || Number(t.taken) < t.capacity)) load();
+      });
+    };
+    look();
+    const timer = setInterval(() => { if (document.visibilityState === "visible" && ++looks <= 60) look(); }, 20000);
+    // The watch is over (a seat came back, a ticket was got, the event ended): what it last saw goes with it.
+    return () => { alive = false; clearInterval(timer); setSeatNow(null); };
+  }, [watchSeats, id, tierCount, signedIn, load]);
+
+  // The seats as just read, laid over the page as served. Only when the ticket
+  // types are the same ones in the same order (the page's copy can be a little
+  // old, and it carries no ids to match by); the limit is the one just read.
+  const sameTypes = !!e0 && !!seatNow && seatNow.names.length === e0.tiers.length && e0.tiers.every((t, i) => t.name === seatNow.names[i]);
+  const e = e0 && seatNow && sameTypes
+    ? { ...e0, tiers: e0.tiers.map((t, i) => ({ ...t, capacity: seatNow.capacity[i], taken: seatNow.taken[i],
+        soldOut: seatNow.capacity[i] != null && seatNow.taken[i] >= (seatNow.capacity[i] as number) })) }
+    : e0;
   if (!e) {
     if (signedIn && !!id && !loaded) return <div className="pw-container pw-page"><Skeleton variant="event" /></div>;
     return <Hidden refStr={refStr} />;
@@ -102,7 +158,7 @@ export function EventPage({ view: served, refStr, now }: { view: EventView | nul
   const price = priceLine(e.tiers);
   const status = e.cancelled ? <TrustTag kind="cancelled" /> : over ? <Badge>Ended</Badge>
     : allSold ? <TrustTag kind="sold-out" /> : left != null && left > 0 && left <= 10 ? <TrustTag kind="few-left" /> : null;
-  const onSale = (t: TierView) => !t.soldOut && !closedNow(t, e, now);
+  const onSale = (t: TierView) => !t.soldOut && t.saleState === "on_sale" && !closedNow(t, e, now);
   const freeOpen = e.tiers.some(t => t.priceMinor === 0 && onSale(t));
   const paidOpen = e.tiers.some(t => t.priceMinor > 0 && onSale(t));
   const picked = sel && e.tiers[sel.tier] ? { tier: e.tiers[sel.tier], qty: sel.qty, id: tierIds?.[sel.tier] ?? null } : null;
@@ -151,7 +207,10 @@ export function EventPage({ view: served, refStr, now }: { view: EventView | nul
     void openSeats();
   };
 
-  const panel = <TicketPanel e={e} now={now} auth={auth.status} tierIds={tierIds} mine={mine} holding={!!mem?.holding && signedIn}
+  const holdNote = allSold && live && seatNow && seatNow.held > 0
+    ? `${plural(seatNow.held, "spot is", "spots are")} being held while ${seatNow.held === 1 ? "a runner pays" : "runners pay"}. If a payment doesn’t go through, the spot is back within ${seatNow.minutes} minutes. Keep this page open: it checks for you.`
+    : null;
+  const panel = <TicketPanel holdNote={holdNote} e={e} now={now} auth={auth.status} tierIds={tierIds} mine={mine} holding={!!mem?.holding && signedIn}
     sel={sel} setSel={setSel} busy={busy} onGet={() => void get()} onSeats={() => void openSeats()} freeOpen={freeOpen} paidOpen={paidOpen} />;
 
   const sections = [
@@ -181,7 +240,7 @@ export function EventPage({ view: served, refStr, now }: { view: EventView | nul
               ? <a href={e.host.href} style={{ color: "var(--text-primary)", textDecoration: "none" }}><b>{e.host.name}</b></a>
               : <b style={{ color: "var(--text-primary)" }}>{e.host.name}</b>}{e.host.verified ? <VerifiedMark /> : null}</div> : null}
             <dl className="dl" style={{ marginTop: 8 }}>
-              <dt><Icon name="calendar" size={17} />When</dt><dd>{eventWhen(e.startsAt, e.endsAt)}</dd>
+              <dt><Icon name="calendar" size={17} />When</dt><dd>{eventWhen(e.startsAt, e.endsAt, e.timezone)}</dd>
               {e.place.name ? <><dt><Icon name="map-pin" size={17} />Where</dt><dd>{e.place.name}{e.place.address ? <div className="t-body-s t-secondary">{e.place.address}</div> : null}</dd></> : null}
               {e.distances ? <><dt><Icon name="route" size={17} />Distance</dt><dd>{e.distances}{e.terrain ? <span className="t-secondary"> · {e.terrain}</span> : null}</dd></> : null}
               {price && !e.cancelled ? <><dt><Icon name="ticket" size={17} />Price</dt><dd className="num">{price}</dd></> : null}
@@ -190,9 +249,13 @@ export function EventPage({ view: served, refStr, now }: { view: EventView | nul
             {e.tags.length ? <div className="pw-tags">{e.tags.map(t => <Badge key={t} size="sm">{t}</Badge>)}</div> : null}
           </div>
         </div>
+        {inApp && live ? <Banner tone="info" title={`You’re inside ${inApp}’s browser`}>
+          It can’t open the pacr app or keep you signed in. Tap the ••• or share button at the top and choose “Open in browser”, then come back to this page.</Banner> : null}
         {e.cancelled ? <Banner tone="error" title="This event was cancelled" actions={<Button size="sm" variant="secondary" href="/events">See other events</Button>}>
           {e.cancelReason ? `From the host: ${e.cancelReason}` : "The host cancelled it. Anyone with a paid ticket is refunded in full."}</Banner>
-          : over ? <Banner tone="neutral" title="This event has ended" actions={<Button size="sm" variant="secondary" href={e.host?.href ?? "/events"}>{e.host?.href ? `See ${e.host.name}` : "See other events"}</Button>}>
+          : over ? <Banner tone="neutral" title="This event has ended" actions={e.resultsUrl
+              ? <Button size="sm" href={e.resultsUrl} target="_blank" rel="noopener noreferrer nofollow">See results</Button>
+              : <Button size="sm" variant="secondary" href={e.host?.href ?? "/events"}>{e.host?.href ? `See ${e.host.name}` : "See other events"}</Button>}>
             See what this host runs next, and other events near you.</Banner> : null}
       </div>
       {live && e.tiers.length ? <aside className="sticky hide-md"><Card><h2 className="t-h4" style={{ marginBottom: 4 }}>Tickets</h2>{panel}</Card></aside> : <div />}
@@ -229,8 +292,8 @@ export function EventPage({ view: served, refStr, now }: { view: EventView | nul
         <Fact label="Age" value={e.minAge != null ? `${e.minAge}+` : "All ages"} note={e.minAge != null ? "You confirm it when you register" : null} first />
         <Fact label="Gender" value={e.gender === "women" ? "Women only" : e.gender === "men" ? "Men only" : e.gender === "women_nb" ? "Women and non-binary" : "Open to all"}
           note={e.gender === "women" ? "Checked against your profile" : e.gender === "all" ? null : "You confirm it when you register"} />
-        {e.isPaid || e.refundNote ? <Fact label="Refunds" value={e.isPaid ? "Only the host can refund" : "Give up your spot anytime"}
-          note={[e.isPaid ? "Paid tickets can't be cancelled, and a refund covers the whole booking." : null, e.refundNote ? `From the host: ${e.refundNote}` : null].filter(Boolean).join(" ") || null} /> : null}
+        {e.isPaid || e.refundNote ? <Fact label="Refunds" value={e.isPaid ? "No refunds on request" : "Give up your spot anytime"}
+          note={[e.isPaid ? "Paid tickets can't be cancelled. Your money comes back only if the event is cancelled, or the host or pacr refunds the booking, always the whole booking." : null, e.refundNote ? `From the host: ${e.refundNote}` : null].filter(Boolean).join(" ") || null} /> : null}
       </Card></div>
 
       {e.faq.length ? <div className="block faq" id="faq"><h2>FAQ</h2>{e.faq.map((f, i) => <details key={i}><summary>{f.q}<Icon name="plus" /></summary>{f.a ? <p>{f.a}</p> : null}</details>)}</div> : null}
@@ -254,7 +317,7 @@ export function EventPage({ view: served, refStr, now }: { view: EventView | nul
         : !seats.length ? <EmptyState icon="ticket" title="No tickets to show yet" body="Your booking may still be confirming. Your tickets has the latest." action="Your tickets" href="/tickets" />
         : <div className="stack" style={{ alignItems: "center", gap: "var(--space-4)" }}>
           <p className="t-secondary" style={{ margin: 0, textAlign: "center" }}>{plural(seats.length, "ticket", "tickets")} for {e.title}. One QR per runner; each is scanned once at check-in.</p>
-          {seats.map(s => <TicketCard key={s.seq} event={e.title} date={whenLine(e.startsAt)} venue={e.place.name} holder={holder}
+          {seats.map(s => <TicketCard key={s.seq} event={e.title} date={whenLine(e.startsAt, e.timezone)} venue={e.place.name} holder={holder}
             ticketType={s.tierName} seat={s.seq} seats={seats.length}
             status={e.cancelled ? "cancelled" : s.checkedIn ? "checked-in" : s.status} qr={seatQr(s.code)} />)}
         </div>}
@@ -267,7 +330,8 @@ function Fact({ label, value, note, first = false }: { label: string; value: str
     <div className="t-caption">{label}</div><b>{value}</b>{note ? <div className="t-body-s t-secondary">{note}</div> : null}</div>;
 }
 
-function TicketPanel({ e, now, auth, tierIds, mine, holding, sel, setSel, busy, onGet, onSeats, freeOpen, paidOpen }: {
+function TicketPanel({ e, now, auth, tierIds, mine, holding, sel, setSel, busy, onGet, onSeats, freeOpen, paidOpen, holdNote }: {
+  holdNote: string | null;
   e: EventView; now: number; auth: "loading" | "signed-in" | "signed-out"; tierIds: string[] | null; mine: Mine | null; holding: boolean;
   sel: { tier: number; qty: number } | null; setSel: (s: { tier: number; qty: number } | null) => void; busy: boolean;
   onGet: () => void; onSeats: () => void; freeOpen: boolean; paidOpen: boolean;
@@ -276,7 +340,8 @@ function TicketPanel({ e, now, auth, tierIds, mine, holding, sel, setSel, busy, 
   const picked = sel && e.tiers[sel.tier] ? sel : null;
   const closes = e.tiers.map(t => t.salesCloseAt).find(Boolean);
   return <div className="stack" style={{ gap: 0 }}>
-    {mine ? <div style={{ padding: "12px 0" }}><Banner tone="success" title="You're in">{plural(mine.qty, "ticket", "tickets")}{mine.tierName ? ` · ${mine.tierName}` : ""}</Banner></div> : null}
+    {mine ? <div style={{ padding: "12px 0" }}><Banner tone="success" title="You're in">{plural(mine.qty, "ticket", "tickets")}{mine.tierName ? ` · ${mine.tierName}` : ""}
+      {e.questionCount > 0 && !e.cancelled && !isOver(e, now) ? ` · The host asks ${e.questionCount === 1 ? "one detail" : "a few details"} for each ticket: add ${e.questionCount === 1 ? "it" : "them"} in the pacr app, under My tickets.` : ""}</Banner></div> : null}
     {holding && !mine ? <div style={{ padding: "12px 0" }}><Banner tone="info" title="You have seats on hold">Finish paying for them in the app before the hold runs out.</Banner></div> : null}
     {e.tiers.map((t, i) => {
       const left = tierLeft(t);
@@ -285,15 +350,19 @@ function TicketPanel({ e, now, auth, tierIds, mine, holding, sel, setSel, busy, 
       return <div key={i} className="ticket-type">
         <div><b>{t.name}</b>
           <div className="t-body-s"><b className="num">{money(t.priceMinor)}</b>{t.priceMinor ? <span className="t-caption"> + fee and GST</span> : null}</div>
-          {!t.soldOut && !closed && left != null && left > 0 && left <= 10 ? <div style={{ marginTop: 4 }}><TrustTag kind="few-left" size="sm">{left} left</TrustTag></div> : null}
+          {!t.soldOut && !closed && t.saleState === "on_sale" && left != null && left > 0 && left <= 10 ? <div style={{ marginTop: 4 }}><TrustTag kind="few-left" size="sm">{left} left</TrustTag></div> : null}
         </div>
         {t.soldOut ? <TrustTag kind="sold-out" size="sm" />
           : closed ? <Badge size="sm">Registration closed</Badge>
+          : t.saleState === "closed" ? <Badge size="sm">No longer on sale</Badge>
+          : t.saleState === "not_open" ? <Badge size="sm">{t.salesOpenAt ? `On sale ${whenLine(t.salesOpenAt, e.timezone)}` : "On sale soon"}</Badge>
+          : t.saleState === "waiting" ? <Badge size="sm">{t.opensAfterName ? `Opens when ${t.opensAfterName} sells out` : "Opens later"}</Badge>
           : t.priceMinor > 0 ? <Badge size="sm" icon="smartphone">In the app</Badge>
           : canBook ? <QuantityStepper value={picked?.tier === i ? picked.qty : 0} max={max} label={`${t.name} tickets`}
             onChange={v => setSel(v > 0 ? { tier: i, qty: v } : null)} /> : null}
       </div>;
     })}
+    {holdNote && !mine ? <p className="t-body-s t-secondary" style={{ margin: "var(--space-3) 0 0" }}>{holdNote}</p> : null}
     <div className="stack" style={{ paddingTop: "var(--space-4)", gap: "var(--space-2)" }}>
       {mine ? <>
         <Button block size="lg" icon="qr-code" onClick={onSeats}>Show my tickets</Button>
@@ -305,13 +374,14 @@ function TicketPanel({ e, now, auth, tierIds, mine, holding, sel, setSel, busy, 
             {picked ? `Get ${plural(picked.qty, "free ticket", "free tickets")}` : "Choose tickets"}</Button>
           <p className="t-caption" style={{ margin: 0, textAlign: "center" }}>One ticket type per booking, up to {e.maxPerOrder}. Each ticket gets its own QR.</p>
         </>
-      ) : !paidOpen ? <Button block size="lg" disabled>{e.tiers.every(t => t.soldOut) ? "Sold out" : "Registration closed"}</Button> : null}
+      ) : !paidOpen ? <Button block size="lg" disabled>{(e.tiers.some(t => t.saleState !== "closed") ? e.tiers.filter(t => t.saleState !== "closed") : e.tiers).every(t => t.soldOut) ? "Sold out"
+          : e.tiers.some(t => !t.soldOut && (t.saleState === "not_open" || t.saleState === "waiting")) ? "Not on sale yet" : "Registration closed"}</Button> : null}
       {paidOpen && !mine ? <>
         <OpenInAppButton path={`e/${e.ref}`} label="Buy tickets in the app" variant={freeOpen ? "secondary" : "primary"} block />
         <p className="t-caption" style={{ margin: 0, textAlign: "center" }}>Paid checkout on the web is coming. The app adds pacr&apos;s fee and GST before you pay.</p>
       </> : null}
       {closes && !mine ? <p className="t-caption" style={{ margin: 0, textAlign: "center" }}>
-        Registration {now >= new Date(closes).getTime() ? "closed" : "closes"} {whenLine(closes)}</p> : null}
+        Registration {now >= new Date(closes).getTime() ? "closed" : "closes"} {whenLine(closes, e.timezone)}</p> : null}
     </div>
   </div>;
 }
