@@ -28,7 +28,7 @@ const nextConfig: NextConfig = {
       // Marathon Complete Edition, sold on Gumroad. Not permanent, so the
       // link can point at another checkout later. /plans/<distance> are the
       // free plan pages and stay as they are.
-      { source: "/plans", destination: "https://prajarathnam.gumroad.com/l/pacr-half-marathon", permanent: false },
+      { source: "/plans", destination: "https://pacr.gumroad.com/l/pacr-half-marathon", permanent: false },
       // Run buddies is app-only: the web explains it on /safety and doesn't
       // list or open runs. Old links (incl. ?run=) land on that explainer.
       { source: "/runbuddies", destination: "/safety#run-buddies", permanent: false },
