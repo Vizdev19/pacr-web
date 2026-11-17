@@ -24,8 +24,11 @@ const nextConfig: NextConfig = {
       { source: "/half-marathon-training-plan", destination: "/plans/half-marathon", permanent: true },
       { source: "/marathon-training-plan", destination: "/plans/marathon", permanent: true },
       { source: "/running-coach-app", destination: "/app", permanent: true },
-      // No plans index yet: the first distance stands in for it.
-      { source: "/plans", destination: "/plans/5k", permanent: false },
+      // pacr.life/plans is the link shared on Instagram for the paid Half
+      // Marathon Complete Edition, sold on Gumroad. Not permanent, so the
+      // link can point at another checkout later. /plans/<distance> are the
+      // free plan pages and stay as they are.
+      { source: "/plans", destination: "https://prajarathnam.gumroad.com/l/pacr-half-marathon", permanent: false },
       // Run buddies is app-only: the web explains it on /safety and doesn't
       // list or open runs. Old links (incl. ?run=) land on that explainer.
       { source: "/runbuddies", destination: "/safety#run-buddies", permanent: false },
