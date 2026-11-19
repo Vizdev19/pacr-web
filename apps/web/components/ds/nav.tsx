@@ -68,7 +68,7 @@ export const MEMBER_NAV: [string, string, string][] = feedGate([["feed", "Feed",
 export const ACCOUNT_MENU: MenuItem[] = [
   { id: "profile", label: "Profile", icon: "user-round" }, { id: "tickets", label: "Tickets", icon: "ticket" }, { id: "routes", label: "Routes", icon: "route" },
   { id: "shoes", label: "Shoes", icon: "footprints" }, { id: "settings", label: "Settings", icon: "settings" },
-  { id: "host", label: "Host dashboard", icon: "layout-dashboard", meta: "/host" }, "-", { id: "signout", label: "Sign out", icon: "log-out" },
+  { id: "host", label: "Host dashboard", icon: "layout-dashboard" }, "-", { id: "signout", label: "Sign out", icon: "log-out" },
 ];
 export type HeaderUser = { name: string; handle?: string | null; avatar?: string | null };
 export function SiteHeader({ active, signin = "/signin", cityName, onCity, onMenu, user, unread = 0, onAvatarAction }:
