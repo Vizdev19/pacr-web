@@ -4,9 +4,10 @@
 // The server renders the event as anon (no ids in it). A signed-in runner's
 // browser reads get_event again with their session: that adds their booking
 // (my_ticket), the ticket types' ids for reserve_event_ticket, and squad-only
-// events they can see. Free tickets are booked here exactly as the app does
-// (src/services/events.ts reserveTicket); paid ones are bought in the app
-// until web checkout exists.
+// events they can see. Tickets are booked here exactly as the app does
+// (src/services/events.ts reserveTicket): a free one is theirs at once, a paid
+// one is held for ten minutes while they pay (Checkout, lib/checkout.ts). The
+// host's questions for each ticket are asked on the way (SeatQuestions).
 import { Fragment, useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { DirectionsLink, PlaceMap } from "@/components/ds/actions";
 import { TicketCard } from "@/components/ds/content";
@@ -17,12 +18,15 @@ import { Breadcrumbs, SectionNav } from "@/components/ds/nav";
 import { Banner, Dialog, useToast } from "@/components/ds/overlays";
 import { OpenInAppButton, OpenInAppCard } from "@/components/pages/card/OpenInApp";
 import { signinHref, useAuth } from "@/lib/auth";
+import { heldOf, type Held } from "@/lib/checkout";
 import {
   eventView, eventWhen, failCopy, failOf, isOver, money, priceLine, seatQr, spotsLeft, tierLeft, whoFor,
-  type EventRaw, type EventView, type TierView,
+  type EventFail, type EventRaw, type EventView, type TierView,
 } from "@/lib/event";
 import { whenLine } from "@/lib/format";
 import { getSupabase } from "@/lib/supabase";
+import { Checkout } from "./Checkout";
+import { SeatQuestionsSheet } from "./SeatQuestions";
 
 /** The event's uuid, in this browser only, for the RPCs. Never rendered. */
 function uuidOf(ref: string): string | null {
@@ -35,16 +39,20 @@ function uuidOf(ref: string): string | null {
 
 type Mine = { tierName: string; qty: number };
 type Seat = { seq: number; code: string; checkedIn: boolean; status: "valid" | "cancelled" | "refunded"; tierName: string | null };
-type Mem = { view: EventView; tierIds: string[]; mine: Mine | null; holding: boolean };
+/** Seats held while the runner pays: the hold, and which ticket type it is of. */
+type Paying = { held: Held; tierId: string | null; tierName: string };
+type Mem = { view: EventView; tierIds: string[]; mine: Mine | null; hold: Paying | null };
 
 function memOf(raw: EventRaw, ref: string, now: number): Mem {
   const mt = raw.my_ticket, mp = raw.my_payment;
+  const held = heldOf(mp);
   return {
     view: eventView(raw, ref),
     tierIds: (raw.tiers ?? []).map(t => t.id),
     mine: mt && mt.order_status === "confirmed" && mt.ticket_status === "valid"
       ? { tierName: mt.tier_name ?? "", qty: Math.max(1, Number(mt.qty) || 1) } : null,
-    holding: !!mp && mp.order_status === "reserved" && !!mp.hold_expires_at && new Date(mp.hold_expires_at).getTime() > now,
+    hold: held && new Date(held.holdExpiresAt).getTime() > now
+      ? { held, tierId: mp?.tier_id ?? null, tierName: (raw.tiers ?? []).find(t => t.id === mp?.tier_id)?.name ?? "" } : null,
   };
 }
 
@@ -70,6 +78,10 @@ export function EventPage({ view: served, refStr, now }: { view: EventView | nul
   const [busy, setBusy] = useState(false);
   const [ask, setAsk] = useState(false);
   const [sheet, setSheet] = useState(false);
+  /** Checkout is open on these held seats. */
+  const [paying, setPaying] = useState<Paying | null>(null);
+  /** The host's questions are open for this booking (a free one, or to change answers); `then` shows the tickets after. */
+  const [details, setDetails] = useState<{ orderId: string; then: boolean } | null>(null);
   const [seats, setSeats] = useState<Seat[] | null | "error">(null);
   const [holder, setHolder] = useState("You");
   const id = useMemo(() => uuidOf(refStr), [refStr]);
@@ -110,7 +122,7 @@ export function EventPage({ view: served, refStr, now }: { view: EventView | nul
   // stays as it was served.
   const e0 = (signedIn && mem?.view) || served;
   const watchSeats = !!e0 && !e0.cancelled && !isOver(e0, now) && e0.tiers.length > 0 && e0.tiers.every(t => t.soldOut)
-    && !(signedIn && (mem?.mine || mem?.holding));
+    && !(signedIn && (mem?.mine || mem?.hold));
   const [seatNow, setSeatNow] = useState<{ names: string[]; capacity: (number | null)[]; taken: number[]; held: number; minutes: number } | null>(null);
   const tierCount = e0?.tiers.length ?? 0;
   useEffect(() => {
@@ -179,6 +191,13 @@ export function EventPage({ view: served, refStr, now }: { view: EventView | nul
     })));
   };
 
+  /** reserve_event_ticket, exactly the app's call: p_qty only when it says something. */
+  const reserve = async (tierId: string, qty: number): Promise<{ ok: true; data: unknown } | { ok: false; reason: EventFail }> => {
+    if (!id) return { ok: false, reason: "error" };
+    const { data, error } = await getSupabase().rpc("reserve_event_ticket", { p_event_id: id, p_tier_id: tierId, ...(qty > 1 ? { p_qty: qty } : {}) });
+    return error ? { ok: false, reason: failOf(error.message) } : { ok: true, data };
+  };
+
   const get = async (confirmed = false) => {
     if (!picked?.id || !id || busy) return;
     if (Date.now() >= new Date(closeAt(picked.tier, e)).getTime()) {
@@ -186,32 +205,53 @@ export function EventPage({ view: served, refStr, now }: { view: EventView | nul
     }
     if (eligible.length && !confirmed) { setAsk(true); return; }
     setAsk(false); setBusy(true);
-    // Exactly the app's call: p_qty only when it says something.
-    const { data, error } = await getSupabase().rpc("reserve_event_ticket", {
-      p_event_id: id, p_tier_id: picked.id, ...(picked.qty > 1 ? { p_qty: picked.qty } : {}),
-    });
+    const r = await reserve(picked.id, picked.qty);
     setBusy(false);
-    if (error) {
-      const reason = failOf(error.message);
-      const c = failCopy(reason);
+    if (!r.ok) {
+      const c = failCopy(r.reason);
       toast({ title: c.title, message: c.body, tone: "error" });
-      if (["sold_out", "not_enough_seats", "invalid_qty", "already_have_ticket", "sales_closed", "event_over"].includes(reason)) load();
+      if (["sold_out", "not_enough_seats", "invalid_qty", "already_have_ticket", "sales_closed", "event_over"].includes(r.reason)) load();
       return;
     }
-    if ((data as { status?: string } | null)?.status !== "confirmed") {
-      // A held paid seat: this page only books free ones, so it shouldn't happen.
-      const c = failCopy("paid_not_supported"); toast({ title: c.title, message: c.body, tone: "info" }); load(); return;
-    }
+    const booked = r.data as { status?: string; order_id?: string } | null;
+    // A paid ticket: the seats are held for ten minutes while they pay.
+    const held = heldOf(booked);
+    if (held) { setPaying({ held, tierId: picked.id, tierName: picked.tier.name }); return; }
+    if (booked?.status !== "confirmed") { const c = failCopy("error"); toast({ title: c.title, message: c.body, tone: "error" }); load(); return; }
+    // A free one is theirs already; the host's questions come before the tickets are shown.
     setSel(null);
     load();
-    void openSeats();
+    if (e.questionCount > 0 && booked.order_id) setDetails({ orderId: booked.order_id, then: true });
+    else void openSeats();
+  };
+
+  /** Checkout's hold ran out: the same seats again, for a fresh ten minutes. */
+  const holdAgain = async () => {
+    if (!paying?.tierId) return failCopy("error");
+    const r = await reserve(paying.tierId, paying.held.qty);
+    if (!r.ok) { load(); return failCopy(r.reason); }
+    const held = heldOf(r.data);
+    if (!held) { load(); return failCopy("error"); }
+    setPaying({ ...paying, held });
+    return null;
+  };
+
+  /** "Add or change details" on a booking they already have: its order id comes from my_tickets. */
+  const openDetails = async () => {
+    const { data } = await getSupabase().rpc("my_tickets");
+    const row = (Array.isArray(data) ? (data as { event_id: string; order_id: string | null; tickets: { status: string }[] | null }[]) : [])
+      .find(r => r.event_id === id && r.order_id && r.tickets?.some(t => t.status === "valid"));
+    if (row?.order_id) setDetails({ orderId: row.order_id, then: false });
+    else toast({ title: "We couldn't open your booking", message: "Check your connection and try again.", tone: "error" });
   };
 
   const holdNote = allSold && live && seatNow && seatNow.held > 0
     ? `${plural(seatNow.held, "spot is", "spots are")} being held while ${seatNow.held === 1 ? "a runner pays" : "runners pay"}. If a payment doesn’t go through, the spot is back within ${seatNow.minutes} minutes. Keep this page open: it checks for you.`
     : null;
-  const panel = <TicketPanel holdNote={holdNote} e={e} now={now} auth={auth.status} tierIds={tierIds} mine={mine} holding={!!mem?.holding && signedIn}
-    sel={sel} setSel={setSel} busy={busy} onGet={() => void get()} onSeats={() => void openSeats()} freeOpen={freeOpen} paidOpen={paidOpen} />;
+  const hold = signedIn && !mine ? mem?.hold ?? null : null;
+  const panel = <TicketPanel holdNote={holdNote} e={e} now={now} auth={auth.status} tierIds={tierIds} mine={mine} holding={!!hold}
+    sel={sel} setSel={setSel} busy={busy} onGet={() => void get()} onSeats={() => void openSeats()} anyOpen={freeOpen || paidOpen}
+    onResume={() => { if (hold) setPaying(hold); }} onDetails={() => void openDetails()} />;
 
   const sections = [
     { id: "about", label: "About", on: !!(e.description || e.included.length) },
@@ -302,8 +342,9 @@ export function EventPage({ view: served, refStr, now }: { view: EventView | nul
     </div><div /></div></div>
 
     {picked && live ? <div className="only-md mbar" style={{ bottom: signedIn ? "var(--tabbar-h)" : 0, zIndex: 31 }}>
-      <div><b className="num">{plural(picked.qty, "ticket", "tickets")} · Free</b><div className="t-caption">{picked.tier.name}</div></div>
-      <Button onClick={() => void get()} loading={busy}>Get tickets</Button></div> : null}
+      <div><b className="num">{plural(picked.qty, "ticket", "tickets")} · {money(picked.tier.priceMinor * picked.qty)}</b>
+        <div className="t-caption">{picked.tier.name}{picked.tier.priceMinor ? " · + fee and GST" : ""}</div></div>
+      <Button onClick={() => void get()} loading={busy}>{picked.tier.priceMinor ? "Continue" : "Get tickets"}</Button></div> : null}
 
     <Dialog open={ask} onClose={() => setAsk(false)} title="Is this event for you?"
       actions={<><Button variant="secondary" onClick={() => setAsk(false)}>Not me</Button><Button onClick={() => void get(true)} loading={busy}>Yes, register</Button></>}>
@@ -322,6 +363,15 @@ export function EventPage({ view: served, refStr, now }: { view: EventView | nul
             status={e.cancelled ? "cancelled" : s.checkedIn ? "checked-in" : s.status} qr={seatQr(s.code)} />)}
         </div>}
     </BottomSheet>
+
+    {paying ? <Checkout key={paying.held.orderId} held={paying.held} tierName={paying.tierName} e={e} askQuestions={e.questionCount > 0}
+      onHoldAgain={holdAgain}
+      onClose={() => { setPaying(null); load(); }}
+      onConfirmed={() => { setPaying(null); setSel(null); load(); void openSeats(); }} /> : null}
+
+    <SeatQuestionsSheet orderId={details?.orderId ?? null}
+      onClose={() => { const then = details?.then; setDetails(null); if (then) void openSeats(); }}
+      onDone={() => { const then = details?.then; setDetails(null); if (then) void openSeats(); else toast({ title: "Saved" }); }} />
   </>;
 }
 
@@ -330,19 +380,26 @@ function Fact({ label, value, note, first = false }: { label: string; value: str
     <div className="t-caption">{label}</div><b>{value}</b>{note ? <div className="t-body-s t-secondary">{note}</div> : null}</div>;
 }
 
-function TicketPanel({ e, now, auth, tierIds, mine, holding, sel, setSel, busy, onGet, onSeats, freeOpen, paidOpen, holdNote }: {
+function TicketPanel({ e, now, auth, tierIds, mine, holding, sel, setSel, busy, onGet, onSeats, anyOpen, holdNote, onResume, onDetails }: {
   holdNote: string | null;
   e: EventView; now: number; auth: "loading" | "signed-in" | "signed-out"; tierIds: string[] | null; mine: Mine | null; holding: boolean;
   sel: { tier: number; qty: number } | null; setSel: (s: { tier: number; qty: number } | null) => void; busy: boolean;
-  onGet: () => void; onSeats: () => void; freeOpen: boolean; paidOpen: boolean;
+  onGet: () => void; onSeats: () => void;
+  /** A ticket type, free or paid, can be booked right now. */
+  anyOpen: boolean;
+  onResume: () => void; onDetails: () => void;
 }) {
   const canBook = auth === "signed-in" && !!tierIds && !mine;
   const picked = sel && e.tiers[sel.tier] ? sel : null;
+  const pickedTier = picked ? e.tiers[picked.tier] : null;
+  const asks = e.questionCount > 0 && !e.cancelled && !isOver(e, now);
   const closes = e.tiers.map(t => t.salesCloseAt).find(Boolean);
   return <div className="stack" style={{ gap: 0 }}>
-    {mine ? <div style={{ padding: "12px 0" }}><Banner tone="success" title="You're in">{plural(mine.qty, "ticket", "tickets")}{mine.tierName ? ` · ${mine.tierName}` : ""}
-      {e.questionCount > 0 && !e.cancelled && !isOver(e, now) ? ` · The host asks ${e.questionCount === 1 ? "one detail" : "a few details"} for each ticket: add ${e.questionCount === 1 ? "it" : "them"} in the pacr app, under My tickets.` : ""}</Banner></div> : null}
-    {holding && !mine ? <div style={{ padding: "12px 0" }}><Banner tone="info" title="You have seats on hold">Finish paying for them in the app before the hold runs out.</Banner></div> : null}
+    {mine ? <div style={{ padding: "12px 0" }}><Banner tone="success" title="You're in"
+      actions={asks ? <Button size="sm" variant="secondary" onClick={onDetails}>Add or change details</Button> : undefined}>{plural(mine.qty, "ticket", "tickets")}{mine.tierName ? ` · ${mine.tierName}` : ""}
+      {asks ? ` · The host asks ${e.questionCount === 1 ? "one detail" : "a few details"} for each ticket.` : ""}</Banner></div> : null}
+    {holding && !mine ? <div style={{ padding: "12px 0" }}><Banner tone="info" title="You have seats on hold"
+      actions={<Button size="sm" onClick={onResume}>Finish paying</Button>}>Pay before the hold runs out, or the seats go back on sale.</Banner></div> : null}
     {e.tiers.map((t, i) => {
       const left = tierLeft(t);
       const closed = closedNow(t, e, now);
@@ -357,7 +414,6 @@ function TicketPanel({ e, now, auth, tierIds, mine, holding, sel, setSel, busy, 
           : t.saleState === "closed" ? <Badge size="sm">No longer on sale</Badge>
           : t.saleState === "not_open" ? <Badge size="sm">{t.salesOpenAt ? `On sale ${whenLine(t.salesOpenAt, e.timezone)}` : "On sale soon"}</Badge>
           : t.saleState === "waiting" ? <Badge size="sm">{t.opensAfterName ? `Opens when ${t.opensAfterName} sells out` : "Opens later"}</Badge>
-          : t.priceMinor > 0 ? <Badge size="sm" icon="smartphone">In the app</Badge>
           : canBook ? <QuantityStepper value={picked?.tier === i ? picked.qty : 0} max={max} label={`${t.name} tickets`}
             onChange={v => setSel(v > 0 ? { tier: i, qty: v } : null)} /> : null}
       </div>;
@@ -367,19 +423,18 @@ function TicketPanel({ e, now, auth, tierIds, mine, holding, sel, setSel, busy, 
       {mine ? <>
         <Button block size="lg" icon="qr-code" onClick={onSeats}>Show my tickets</Button>
         <Button block variant="ghost" href="/tickets">See all your tickets</Button>
-      </> : freeOpen ? (
+      </> : anyOpen ? (
         auth === "signed-out" ? <Button block size="lg" href={signinHref()}>Sign in to get tickets</Button>
         : <>
           <Button block size="lg" disabled={!picked || !canBook} loading={busy || auth === "loading" || (auth === "signed-in" && !tierIds)} onClick={onGet}>
-            {picked ? `Get ${plural(picked.qty, "free ticket", "free tickets")}` : "Choose tickets"}</Button>
-          <p className="t-caption" style={{ margin: 0, textAlign: "center" }}>One ticket type per booking, up to {e.maxPerOrder}. Each ticket gets its own QR.</p>
+            {!picked || !pickedTier ? "Choose tickets"
+              : pickedTier.priceMinor ? `Continue · ${money(pickedTier.priceMinor * picked.qty)}`
+              : `Get ${plural(picked.qty, "free ticket", "free tickets")}`}</Button>
+          <p className="t-caption" style={{ margin: 0, textAlign: "center" }}>
+            {pickedTier?.priceMinor ? "+ pacr fee and GST, shown before you pay. " : ""}One ticket type per booking, up to {e.maxPerOrder}. Each ticket gets its own QR.</p>
         </>
-      ) : !paidOpen ? <Button block size="lg" disabled>{(e.tiers.some(t => t.saleState !== "closed") ? e.tiers.filter(t => t.saleState !== "closed") : e.tiers).every(t => t.soldOut) ? "Sold out"
-          : e.tiers.some(t => !t.soldOut && (t.saleState === "not_open" || t.saleState === "waiting")) ? "Not on sale yet" : "Registration closed"}</Button> : null}
-      {paidOpen && !mine ? <>
-        <OpenInAppButton path={`e/${e.ref}`} label="Buy tickets in the app" variant={freeOpen ? "secondary" : "primary"} block />
-        <p className="t-caption" style={{ margin: 0, textAlign: "center" }}>Paid checkout on the web is coming. The app adds pacr&apos;s fee and GST before you pay.</p>
-      </> : null}
+      ) : <Button block size="lg" disabled>{(e.tiers.some(t => t.saleState !== "closed") ? e.tiers.filter(t => t.saleState !== "closed") : e.tiers).every(t => t.soldOut) ? "Sold out"
+          : e.tiers.some(t => !t.soldOut && (t.saleState === "not_open" || t.saleState === "waiting")) ? "Not on sale yet" : "Registration closed"}</Button>}
       {closes && !mine ? <p className="t-caption" style={{ margin: 0, textAlign: "center" }}>
         Registration {now >= new Date(closes).getTime() ? "closed" : "closes"} {whenLine(closes, e.timezone)}</p> : null}
     </div>

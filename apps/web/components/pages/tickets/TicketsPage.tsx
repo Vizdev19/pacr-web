@@ -9,9 +9,11 @@ import { DirectionsLink } from "@/components/ds/actions";
 import { EmptyState, ErrorState, Skeleton } from "@/components/ds/feedback";
 import { SegmentedControl, Tabs } from "@/components/ds/nav";
 import { Banner, Dialog, useToast } from "@/components/ds/overlays";
+import { SeatQuestionsSheet } from "@/components/pages/event/SeatQuestions";
 import { RequireSignIn } from "@/components/site/RequireSignIn";
 import { encodeRef } from "@/lib/refs";
 import { whenLine } from "@/lib/format";
+import { orderAnswers } from "@/lib/seatAnswers";
 import {
   holderName, money, myCheckinCode, myEventOrder, myPastTickets, myTickets, offLine, refundLine, releaseFreeTicket, seatQrs,
   type Order, type PastTicket, type Ticket,
@@ -130,6 +132,17 @@ function OrderView({ t, code, holder, now, onChanged }: { t: Ticket; code: strin
 
   useEffect(() => { let alive = true; myEventOrder(t.orderId).then(o => { if (alive) setOrder(o); }); return () => { alive = false; }; }, [t.orderId, t.ticketStatus]);
 
+  // What the host asks for each ticket, if anything: how many required answers
+  // are still missing, while they can still be given (until the event starts).
+  const [asks, setAsks] = useState<{ missing: number } | null>(null);
+  const [details, setDetails] = useState(false);
+  const [asked, setAsked] = useState(0);
+  useEffect(() => {
+    let alive = true;
+    orderAnswers(t.orderId).then(a => { if (alive) setAsks(a && a.questions.length > 0 && a.open ? { missing: a.missing } : null); });
+    return () => { alive = false; };
+  }, [t.orderId, asked]);
+
   const off = t.ticketStatus !== "valid";
   const qrs = seatQrs(t, code ?? null);
   const many = qrs.length > 1;
@@ -168,6 +181,9 @@ function OrderView({ t, code, holder, now, onChanged }: { t: Ticket; code: strin
       </div>
       <div className="stack">
         <Button variant="ghost" icon="arrow-left" href="/tickets" style={{ alignSelf: "flex-start" }}>All tickets</Button>
+        {!off && asks ? <Banner tone={asks.missing ? "warning" : "neutral"} title={asks.missing ? "The host needs a few details" : "Your details for the host"}
+          actions={<Button size="sm" variant={asks.missing ? "primary" : "secondary"} onClick={() => setDetails(true)}>{asks.missing ? "Add details" : "Change details"}</Button>}>
+          {asks.missing ? `${asks.missing === 1 ? "One answer is" : `${asks.missing} answers are`} still needed to finish your registration.` : "You can change your answers until the event starts."}</Banner> : null}
         {off ? <Banner tone={t.ticketStatus === "refunded" ? "info" : "warning"} title={t.ticketStatus === "refunded" ? "Refunded" : "Cancelled"}>{offLine(t, order)}</Banner> : null}
         <Card><div className="stack">
           <b>{t.title}</b>
@@ -190,6 +206,8 @@ function OrderView({ t, code, holder, now, onChanged }: { t: Ticket; code: strin
         </Card>
       </div>
     </div>
+    <SeatQuestionsSheet orderId={details ? t.orderId : null} onClose={() => setDetails(false)}
+      onDone={() => { setDetails(false); setAsked(n => n + 1); toast({ title: "Saved" }); }} />
     <Dialog open={giveUp} onClose={() => setGiveUp(false)} title={t.qty > 1 ? `Give up your ${t.qty} spots?` : "Give up your spot?"}
       actions={<><Button variant="secondary" onClick={() => setGiveUp(false)}>Keep it</Button><Button variant="destructive" loading={busy} onClick={() => void release()}>{t.qty > 1 ? "Give them up" : "Give it up"}</Button></>}>
       <p style={{ margin: 0 }}>{t.qty > 1

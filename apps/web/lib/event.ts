@@ -40,7 +40,11 @@ export type EventRaw = {
   included: string[] | null; tags: string[] | null; min_age: number | null; gender: string | null;
   max_per_order: number | null;
   my_ticket: { order_status?: string; ticket_status?: string | null; tier_name?: string; qty?: number; checked_in_count?: number } | null;
-  my_payment: { order_status?: string; hold_expires_at?: string | null } | null;
+  /** The runner's own paid booking or hold (event_my_payment_json, pacr 20270104120000). Paise. */
+  my_payment: {
+    order_id?: string; order_status?: string; hold_expires_at?: string | null; qty?: number; tier_id?: string | null;
+    unit_minor?: number; fee_minor?: number; gst_minor?: number; total_minor?: number;
+  } | null;
 };
 
 // ─── What the page draws: the same event with every id taken out ─────────────
@@ -58,7 +62,7 @@ export type EventView = {
   timezone: string | null;
   /** The host's results link: an https address, or null. */
   resultsUrl: string | null;
-  /** How many details the host asks for each ticket. They are answered in the app. */
+  /** How many details the host asks for each ticket (answered at booking: SeatQuestions). */
   questionCount: number;
   place: { name: string | null; address: string | null; lat: number | null; lng: number | null; placeId: string | null };
   meetNote: string | null; status: string; cancelled: boolean; cancelReason: string | null; womenOnly: boolean;
@@ -183,7 +187,7 @@ export function whoFor(e: EventView): string[] {
 
 const FAILS = [
   "not_allowed", "email_required", "not_found", "not_published", "event_cancelled", "event_over", "sales_closed",
-  "sold_out", "already_have_ticket", "women_only", "not_member", "paid_not_supported", "too_many_holds",
+  "sold_out", "already_have_ticket", "women_only", "not_member", "too_many_holds",
   "invalid_qty", "not_enough_seats", "sales_paused", "sales_not_open",
 ] as const;
 export type EventFail = (typeof FAILS)[number] | "error";
@@ -204,7 +208,6 @@ export function failCopy(reason: EventFail): { title: string; body: string } {
     case "email_required": return { title: "Sign in again", body: "You've been signed out. Sign in again to get a ticket." };
     case "too_many_holds": return { title: "Let's give it a little while", body: "Spots at this event have been held for you a few times without a payment going through, so we can't hold another just yet. If money did leave your account, don't pay again: the ticket will turn up in Your tickets. Otherwise, try again in a couple of hours." };
     case "sales_paused": return { title: "Ticket sales are paused", body: "pacr has paused ticket sales for a short while. Nothing was charged. Please try again a little later." };
-    case "paid_not_supported": return { title: "Buy this ticket in the app", body: "Paid checkout on the web is coming." };
     case "not_found": case "not_published": return { title: "We can't find that event", body: "It may have been removed, or it isn't open to you." };
     case "not_allowed": return { title: "You can't get a ticket here", body: "This event isn't taking tickets from your account." };
     default: return { title: "Something went wrong", body: "Check your connection and try again." };

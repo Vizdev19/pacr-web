@@ -59,7 +59,6 @@ The old URLs `/*-training-plan`, `/running-coach-app`, `/social` and `/downloads
 ## Not built yet (needs a decision or a deploy)
 
 - **Squad member view:** feed, chat, announcements, leaderboard and members tabs. Members are pointed to the app for now.
-- **Paid event checkout:** needs CORS on the `event-checkout` edge function and Razorpay on the web. Free tickets work.
 - **Directory map view.**
 - **Analytics:** PostHog is not in this app yet.
 
