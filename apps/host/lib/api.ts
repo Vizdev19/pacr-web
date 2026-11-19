@@ -58,7 +58,7 @@ const FAIL: Record<string, string> = {
   already_verified: "This squad is already verified.",
   hidden_beyond_squad: "That post is hidden in another squad too, so it can't be shown again from here.",
   squad_not_verified: "Only verified squads host events.",
-  email_required: "Add an email to your pacr account first.",
+  email_required: "Sign in again to do that.",
   signed_out: "You've been signed out. Sign in again.",
   error: "We couldn't reach pacr just now. Nothing was changed.",
 };
@@ -131,6 +131,15 @@ async function done(what: string, q: PromiseLike<{ error: { message: string } | 
 // ── Session ────────────────────────────────────────────────────────────────
 
 export type Me = { id: string; name: string; handle: string | null; avatarPath: string | null; hasEmail: boolean };
+
+/**
+ * A real account, as the database's is_real_account() sees it (pacr
+ * migration 20270127120000): an email on it, or a session that says it isn't
+ * anonymous. An Apple account made with a phone number has no email at all.
+ */
+function isRealAccount(user: { email?: string | null; is_anonymous?: boolean }): boolean {
+  return !!user.email || user.is_anonymous === false;
+}
 
 /** The signed-in runner, or null when there is no session. */
 export async function sessionMe(): Promise<Me | null> {
@@ -521,7 +530,7 @@ export async function scheduleRun(circleId: string, d: RunDraft): Promise<void> 
   const { data } = await sb().auth.getSession();
   const user = data.session?.user;
   if (!user) throw new ApiError("signed_out");
-  if (!user.email) throw new ApiError("email_required");
+  if (!isRealAccount(user)) throw new ApiError("email_required");
   await done("schedule run", sb().from("squad_announcements").insert({
     circle_id: circleId, author_id: user.id, title: d.title.trim(), event_at: d.eventAt.toISOString(), rsvp: true,
     distance_km: Math.round(d.distanceKm * 10) / 10, pace_label: d.paceLabel.trim() || null,
@@ -634,7 +643,7 @@ export async function createAnnouncement(circleId: string, title: string, body: 
   const { data } = await sb().auth.getSession();
   const user = data.session?.user;
   if (!user) throw new ApiError("signed_out");
-  if (!user.email) throw new ApiError("email_required");
+  if (!isRealAccount(user)) throw new ApiError("email_required");
   await done("announcement", sb().from("squad_announcements").insert({
     circle_id: circleId, author_id: user.id, title: title.trim(), body: body.trim() || null, event_at: null, rsvp: false,
   }));

@@ -82,7 +82,7 @@ function Profile({ me, r }: { me: string; r: string | null }) {
       const res = await follow(me, p.id);
       if (res.ok) patch(x => ({ ...x, followedByMe: true, followers: x.followers + 1 }));
       else toast(res.reason === "email_required"
-        ? { title: "Add an email first", message: "Add an email to your account in the app before following anyone here.", tone: "error" }
+        ? { title: "Sign in again", message: "You've been signed out. Sign in again to follow runners here.", tone: "error" }
         : { title: "Couldn't follow", message: "Something went wrong. Try again.", tone: "error" });
     }
     setBusy(false);

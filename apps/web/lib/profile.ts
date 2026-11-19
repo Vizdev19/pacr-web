@@ -243,7 +243,7 @@ export async function getPeople(subjectId: string, self: boolean, kind: "followe
 }
 
 export type FollowResult = { ok: true } | { ok: false; reason: "email_required" | "error" };
-/** js/follow.js's followUser: 23505 is already following; 42501 is the email gate. */
+/** js/follow.js's followUser: 23505 is already following; 42501 is the account gate (signed in with a real account). */
 export async function follow(me: string, them: string): Promise<FollowResult> {
   const { error } = await getSupabase().from("follows").insert({ follower_id: me, followee_id: them });
   if (!error || error.code === "23505") return { ok: true };

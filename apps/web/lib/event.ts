@@ -201,7 +201,7 @@ export function failCopy(reason: EventFail): { title: string; body: string } {
     case "event_cancelled": return { title: "This event was cancelled", body: "The host cancelled it." };
     case "women_only": return { title: "Women only", body: "This event is for women. Set your gender in your profile in the app if that's you." };
     case "not_member": return { title: "Squad members only", body: "Join the squad to get a ticket." };
-    case "email_required": return { title: "Add an email first", body: "Events need an email on your account so the host can reach you. Add one in the app, then try again." };
+    case "email_required": return { title: "Sign in again", body: "You've been signed out. Sign in again to get a ticket." };
     case "too_many_holds": return { title: "Let's give it a little while", body: "Spots at this event have been held for you a few times without a payment going through, so we can't hold another just yet. If money did leave your account, don't pay again: the ticket will turn up in Your tickets. Otherwise, try again in a couple of hours." };
     case "sales_paused": return { title: "Ticket sales are paused", body: "pacr has paused ticket sales for a short while. Nothing was charged. Please try again a little later." };
     case "paid_not_supported": return { title: "Buy this ticket in the app", body: "Paid checkout on the web is coming." };

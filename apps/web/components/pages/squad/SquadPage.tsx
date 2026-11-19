@@ -30,7 +30,7 @@ function joinFail(m: string): ToastIn {
   if (/women_only/.test(m)) return WOMEN_SQUAD;
   if (/\bbanned\b/.test(m)) return { title: "You can't join this squad", message: "Its organisers have closed it to you.", tone: "error" };
   if (/invite_code_not_found/.test(m)) return { title: "This invite no longer works", message: "Ask the organiser for a fresh link.", tone: "error" };
-  if (/email_required/.test(m)) return { title: "Your account needs an email", message: "Add an email address in Settings in the pacr app, then try again.", tone: "error" };
+  if (/email_required/.test(m)) return { title: "Sign in again", message: "You've been signed out. Sign in again, then try once more.", tone: "error" };
   if (/answers_required/.test(m)) return { title: "Answer every question", message: "Each question needs an answer before you send your request.", tone: "error" };
   if (/blocked_content|blocked_term/.test(m)) return { title: "We can't send that", message: "One of your answers has words our community rules don't allow. Change it and try again.", tone: "error" };
   if (/club_not_public|approval_required/.test(m)) return { title: "You can't join from here", message: "Ask the organisers for an invite link.", tone: "error" };
