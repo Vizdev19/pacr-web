@@ -2,7 +2,8 @@
 
 // Tickets: free or paid, the ticket types (name, limit, price while nobody has
 // bought it), and each type's sale options: when it goes on sale, an early
-// last day, opening after the type above, hidden. The app's form, on the web
+// last day, opening after the type above, hidden. A free event can ask the
+// host to approve each runner. The app's form, on the web
 // (pacr app/event-create.tsx); the rules are the database's and are said here
 // before a save would be refused for them.
 
@@ -17,7 +18,7 @@ import { zoneShort, type Wall } from "@/lib/eventZone";
 import { num, paise, plural } from "@/lib/format";
 import { eBox, eErr, eRow, Section, shiftDay, SwitchRow, WhenInput } from "./parts";
 
-export function Tickets({ form, patch, fees, check, show, paidAllowed, saleOptions, live, refundCharged, onRefuse, children }: {
+export function Tickets({ form, patch, fees, check, show, paidAllowed, saleOptions, approval, live, refundCharged, onRefuse, children }: {
   form: EventForm;
   patch: (p: Partial<EventForm>) => void;
   fees: FeeRules;
@@ -27,6 +28,8 @@ export function Tickets({ form, patch, fees, check, show, paidAllowed, saleOptio
   paidAllowed: boolean;
   /** false when this database has no sale options yet; null while unknown. */
   saleOptions: boolean | null;
+  /** false when this database can't hold "Approve each runner" yet; null while unknown. */
+  approval: boolean | null;
   live: boolean;
   /** Say that refunds the host causes carry the payment charge. */
   refundCharged: boolean;
@@ -60,9 +63,9 @@ export function Tickets({ form, patch, fees, check, show, paidAllowed, saleOptio
       onRefuse("These prices are fixed", "Runners have already bought tickets at these prices, so the event can’t become free.");
       return;
     }
-    // A paid ticket isn't "General entry".
+    // A paid ticket isn't "General entry", and it is bought, not asked for: approval is a free event's.
     const one = tiers.length === 1 ? tiers[0] : null;
-    patch({ paid, tiers: paid && one && one.name === "General entry" && !one.id ? [{ ...one, name: "Standard" }] : tiers });
+    patch({ paid, ...(paid ? { requiresApproval: false } : {}), tiers: paid && one && one.name === "General entry" && !one.id ? [{ ...one, name: "Standard" }] : tiers });
   };
 
   const cap = totalCapacity(tiers);
@@ -75,6 +78,11 @@ export function Tickets({ form, patch, fees, check, show, paidAllowed, saleOptio
           options={[{ value: "free", label: "Free" }, { value: "paid", label: "Paid" }]} />
         {!paidAllowed && !form.paid ? <span style={kMuted}>Paid tickets aren’t open yet.</span> : null}
       </div>
+      {!form.paid && approval !== false ? (
+        <SwitchRow label="Approve each runner" checked={form.requiresApproval}
+          sub="Runners ask for a spot. You approve or decline each one, and they get their ticket once you approve."
+          onChange={on => patch({ requiresApproval: on })} />
+      ) : null}
 
       {tiers.map((t, i) => {
         const err = show ? check.tier[t.key] : undefined;
@@ -156,7 +164,7 @@ export function Tickets({ form, patch, fees, check, show, paidAllowed, saleOptio
         {cap == null ? "No limit on seats" : `${plural(cap, "seat")} in all`}
         {form.paid
           ? ` · Runners pay a ${fees.bps / 100}% pacr fee on top of the price, plus ${fees.gstBps / 100}% GST on that fee. You get the full price, paid out after the event. Only the host can refund a booking.`
-          : " · Runners book for free."}
+          : form.requiresApproval && approval !== false ? " · Runners ask for a free spot, and you approve each one." : " · Runners book for free."}
       </div>
       {refundCharged ? (
         <div style={kMuted}>

@@ -113,7 +113,7 @@ function Form({ init, onChanged }: { init: Init; onChanged: () => void }) {
   const [form, setForm] = useState<EventForm>(() => init.loaded?.form ?? blankForm(new Date(init.now)));
   const [saved, setSaved] = useState<Saved | null>(init.loaded?.saved ?? null);
   const [fees, setFees] = useState<FeeRules>(init.loaded?.fees ?? init.rules.fees ?? DEFAULT_FEES);
-  const [features, setFeatures] = useState<Features>(init.loaded?.features ?? { saleOptions: null, questions: null });
+  const [features, setFeatures] = useState<Features>(init.loaded?.features ?? { saleOptions: null, questions: null, approval: null });
   const [gallery, setGallery] = useState(init.loaded?.galleryCount ?? 0);
   const [dirty, setDirty] = useState(false);
   const [show, setShow] = useState(false);
@@ -245,7 +245,11 @@ function Form({ init, onChanged }: { init: Init; onChanged: () => void }) {
       setForm(out.form);
       setSaved(out.saved);
       // What this database turned out not to have is known now, and stays out of the form.
-      if (out.questionsOff || out.saleOff) setFeatures(f => ({ saleOptions: out.saleOff ? false : f.saleOptions, questions: out.questionsOff ? false : f.questions }));
+      if (out.questionsOff || out.saleOff || out.approvalOff) {
+        setFeatures(f => ({
+          saleOptions: out.saleOff ? false : f.saleOptions, questions: out.questionsOff ? false : f.questions, approval: out.approvalOff ? false : f.approval,
+        }));
+      }
     }
     setAsking(null);
     if (!res.ok) {
@@ -262,6 +266,7 @@ function Form({ init, onChanged }: { init: Init; onChanged: () => void }) {
     const id = res.value.saved.id;
     if (res.value.questionsOff) notify("warning", "Questions not saved", "Registration questions aren’t switched on yet. Everything else was saved.");
     if (res.value.saleOff) notify("warning", "Sale options not saved", "Sale options aren’t switched on yet. Everything else was saved.");
+    if (res.value.approvalOff) notify("warning", "Approval not saved", "Approving each runner isn’t switched on yet, so anyone can book. Everything else was saved.");
     if (publish && !live) {
       notify("success", "Event published", `${title} is live${form.visibility === "public" ? " and listed in the pacr app’s Events tab" : form.visibility === "squad" ? " for the squad’s members" : ". Share its link to invite runners"}.`);
       // The list is being read again (onChanged above); the event's page waits for it rather than saying "not found".
@@ -353,7 +358,7 @@ function Form({ init, onChanged }: { init: Init; onChanged: () => void }) {
         <Visible form={form} patch={patch} squadHost={evHost.kind === "squad"} hostName={evHost.name} />
 
         <Tickets form={form} patch={patch} fees={fees} check={check} show={show} paidAllowed={init.rules.paidAllowed || form.paid}
-          saleOptions={features.saleOptions} live={live} refundCharged={refundCharged} onRefuse={refuse}>
+          saleOptions={features.saleOptions} approval={features.approval} live={live} refundCharged={refundCharged} onRefuse={refuse}>
           <Area label="Cancellation and refund note (optional)" value={form.details.refundNote} max={300} rows={2}
             placeholder="Can’t make it? Give your spot back in the app so someone else can come." onChange={v => setDetails({ refundNote: v })} />
           {form.paid ? (
@@ -407,6 +412,7 @@ function Form({ init, onChanged }: { init: Init; onChanged: () => void }) {
         <KV k="Who can see it" v={form.visibility === "public" ? "Everyone" : form.visibility === "squad" ? "Squad members only" : "Anyone with the link"} />
         <KV k="Who can join" v={`${GENDER_LABEL[gender]}${minAgeOf(form) != null ? ` · ${minAgeOf(form)}+` : ""}`} />
         <KV k="Seats" v={seats == null ? "No limit" : plural(seats, "seat")} />
+        {!form.paid && form.requiresApproval && features.approval !== false ? <KV k="Booking" v="Runners ask, and you approve each one" /> : null}
         {shownTiers.map(t => {
           const pm = form.paid ? priceMinorOf(t.price) : null;
           return (

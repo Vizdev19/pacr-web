@@ -12,18 +12,20 @@ import { useHost } from "@/lib/host";
 import { useLoad, useViewport } from "@/lib/hooks";
 import { encodeRef } from "@/lib/refs";
 import { Summary, owedNote, payoutNote, payoutTag } from "../money/Summary";
+import { EventRequests, loadRequests } from "./EventRequests";
 import { isOver, Poster, tagOf } from "./shared";
 
-type View = "attendees" | "sales";
+export type View = "attendees" | "requests" | "sales";
 type Seat = api.Attendee & { avatar?: string };
 type SeatsLoad = ReturnType<typeof useLoad<Seat[]>>;
 type SalesLoad = ReturnType<typeof useLoad<api.EventSales>>;
 
 export function EventDetail({ event: e, cover, now, initialTab, onChanged }: {
   event: api.HostedEvent; cover?: string; now: number; initialTab: View;
-  /** The events list is out of date (the event was cancelled). */
+  /** The events list is out of date (the event was cancelled, or a request was answered). */
   onChanged: () => void;
 }) {
+  const { refreshCounts } = useHost();
   const [view, setView] = useState<View>(initialTab);
   const [cancelling, setCancelling] = useState(false);
   /** Cancelled from this page: the button goes at once, not when the list has been read again. */
@@ -42,6 +44,17 @@ export function EventDetail({ event: e, cover, now, initialTab, onChanged }: {
     return rows.map(r => ({ ...r, avatar: r.avatar_path ? faces.get(r.avatar_path) : undefined }));
   }, `attendees:${e.id}`);
   const sales = useLoad(() => api.eventSales(e.id), `sales:${e.id}`);
+  // Runners waiting on the host's answer, at a free event whose host approves each one. Null when there is no such
+  // thing here (a database from before approval, a draft, a paid event): the tab is then left out.
+  const requests = useLoad(() => loadRequests(e), `event-requests:${e.id}`);
+  const asked = requests.status === "ready" ? requests.data : null;
+  const waiting = asked ? asked.waiting : e.requests_waiting;
+  // The tab is there while the event asks for approval or anyone is waiting, and stays while it is being looked at.
+  const hasRequests = asked ? asked.on || asked.waiting > 0 || view === "requests"
+    : requests.status !== "ready" && (e.requests_waiting > 0 || view === "requests");
+  const shown: View = view === "requests" && !hasRequests ? "attendees" : view;
+  // An approved request is a booking now: the attendees, the list's counts and the sidebar's have all moved.
+  const afterDecision = () => { requests.reload(); seats.reload(); onChanged(); refreshCounts(); };
   // Cancelling is the host's, like refunds (cancel_event refuses co-hosts): the sales summary loading is how this
   // page knows. A draft is deleted from the editor instead, and an event that has ended can't be cancelled.
   const canCancel = !cancelledHere && sales.status === "ready" && e.status === "published" && !isOver(e, now);
@@ -77,9 +90,17 @@ export function EventDetail({ event: e, cover, now, initialTab, onChanged }: {
           </div>
         </div>
       </GlassCard>
-      <Tabs value={view} onChange={v => setView(v as View)} style={{ marginBottom: 12 }}
-        tabs={[{ value: "attendees", label: "Attendees", count: e.sold }, { value: "sales", label: "Sales" }]} />
-      {view === "attendees" ? <Attendees event={e} seats={seats} sales={sales} /> : <Sales event={e} now={now} sales={sales} seats={seats} />}
+      <Tabs value={shown} onChange={v => setView(v as View)} style={{ marginBottom: 12 }}
+        tabs={[
+          { value: "attendees", label: "Attendees", count: e.sold },
+          ...(hasRequests ? [{ value: "requests", label: "Requests", count: waiting }] : []),
+          { value: "sales", label: "Sales" },
+        ]} />
+      {shown === "attendees" ? <Attendees event={e} seats={seats} sales={sales} />
+        : shown === "requests" ? (
+          <EventRequests event={e} load={requests} onDecided={afterDecision}
+            closed={e.status === "cancelled" ? "cancelled" : isOver(e, now) ? "ended" : null} />
+        ) : <Sales event={e} now={now} sales={sales} seats={seats} />}
       {cancelling ? (
         <CancelEventDialog event={e} onClose={() => setCancelling(false)}
           onCancelled={() => { setCancelling(false); setCancelledHere(true); afterCancel(); }} onStale={afterCancel} />

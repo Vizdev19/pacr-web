@@ -19,6 +19,8 @@ export class ApiError extends Error {
 }
 
 const REASONS = [
+  // First, ahead of not_allowed, which its name contains.
+  "runner_not_allowed",
   "not_owner", "not_allowed", "not_member", "banned", "women_only", "last_owner", "squad_not_set_up",
   "verified_rename_owner_only", "blocked_content", "leader_not_member", "too_many_places", "is_home",
   "checkin_closed", "unknown_code", "not_a_run", "cooldown", "already_verified", "hidden_beyond_squad",
@@ -30,11 +32,15 @@ const REASONS = [
   "already_cancelled", "not_published", "event_over",
   // Payout details (set_host_payout_account): worded by payoutFailText.
   "destination_required", "name_required", "invalid_vpa", "invalid_account", "invalid_ifsc", "invalid_pan",
+  // Answering a runner's request for a spot (decide_event_request): worded by requestFailText.
+  "request_gone", "event_cancelled", "host_suspended", "not_enough_seats",
 ] as const;
 
 function reasonOf(message: string | undefined | null): string {
   const m = String(message ?? "");
   if (/jwt|PGRST301/i.test(m)) return "signed_out";
+  // A database from before the call existed (PGRST202): the caller leaves that part of the page out.
+  if (m.includes("Could not find the function")) return "unavailable";
   return REASONS.find(r => m.includes(r)) ?? "error";
 }
 
@@ -88,6 +94,19 @@ const CANCEL_FAIL: Record<string, string> = {
 };
 /** A cancel_event refusal, in plain words. */
 export const cancelFailText = (e: unknown) => (e instanceof ApiError ? CANCEL_FAIL[e.reason] : undefined) ?? failText(e);
+
+const REQUEST_FAIL: Record<string, string> = {
+  not_found: "That request isn’t there any more.",
+  not_allowed: "Only the event’s host and co-hosts can answer requests.",
+  request_gone: "That request was withdrawn, or someone else answered it first.",
+  event_cancelled: "This event was cancelled, so requests can’t be approved.",
+  event_over: "This event has ended, so requests can’t be approved.",
+  host_suspended: "Hosting is paused for this account, so requests can’t be approved. Write to support@pacr.life.",
+  runner_not_allowed: "This runner can’t book this event any more. They may have left the squad or been removed, or their account is gone. You can decline the request.",
+  not_enough_seats: "That ticket type doesn’t have enough seats left. Raise its limit, or wait for seats to free up.",
+};
+/** A decide_event_request refusal, in plain words. */
+export const requestFailText = (e: unknown) => (e instanceof ApiError ? REQUEST_FAIL[e.reason] : undefined) ?? failText(e);
 
 const PAYOUT_FAIL: Record<string, string> = {
   destination_required: "Choose UPI or a bank account.",
@@ -757,10 +776,13 @@ export type HostedEvent = {
   status: EventStatus; visibility: "public" | "squad" | "link"; cover_path: string | null; place_name: string | null;
   is_paid: boolean; host: { kind: "squad" | "organizer"; id: string; name: string } | null;
   capacity: number | null; sold: number; checked_in: number; checkin_open: boolean;
+  /** Runners waiting for the host to approve them (see eventRequests). 0 on a database from before approval (pacr 20270129120000). */
+  requests_waiting: number;
 };
 /** Every event you host or co-host, across all your squads and your organizer account. */
 export const hostedEvents = (includePast = true) =>
-  rpc<HostedEvent[] | null>("my_hosted_events", { p_include_past: includePast }).then(r => r ?? []);
+  rpc<(Omit<HostedEvent, "requests_waiting"> & { requests_waiting?: number | null })[] | null>("my_hosted_events", { p_include_past: includePast })
+    .then(r => (r ?? []).map((e): HostedEvent => ({ ...e, requests_waiting: Number(e.requests_waiting) || 0 })));
 
 /** A booking's refund: queued, being sent to Razorpay, back with the runner, or failed (event-jobs tries again). */
 export type RefundStatus = "requested" | "processing" | "done" | "failed";
@@ -785,6 +807,66 @@ export const eventSeatSheet = (eventId: string) => rpc<SeatSheet>("event_seat_sh
 /** One row per seat: who holds it, its tier and whether it's checked in. The event's host and co-hosts. */
 export const eventAttendees = (eventId: string) =>
   rpc<Attendee[] | null>("list_event_attendees", { p_event_id: eventId }).then(r => r ?? []);
+
+// ── Requests: a free event whose host approves each runner ─────────────────
+// pacr 20270129120000. With "Approve each runner" on (the editor's switch, free
+// events only), a runner's registration is a request: it holds no seat and has
+// no ticket until the host or a co-host approves it, so list_event_attendees
+// never shows it. A database from before it has none of this: the event's read
+// carries no requires_approval and the two calls don't exist, and the page
+// then shows nothing about requests.
+
+/** One answer on one seat. An emergency contact comes only as given or not (answer is null): the number stays with pacr. */
+export type SeatAnswer = { label: string; kind: string; answer: string | null; given: boolean };
+/** A runner waiting on the host's answer. A name and a face: never an email or a phone number. */
+export type EventRequest = {
+  order_id: string; user_id: string | null; name: string; avatar_path: string | null; tier_id: string; tier_name: string;
+  qty: number; requested_at: string;
+  /** Room in the ticket type now; null = no limit. A request for more than this can't be approved until seats free up. */
+  seats_left: number | null;
+  /** Required answers the runner hasn't given yet. */
+  answers_missing: number;
+  seats: { seq: number; answers: SeatAnswer[] }[];
+};
+export type EventRequests = { waiting: number; requests: EventRequest[] };
+
+/**
+ * Whether the host approves each runner at this event, from the event's own read (get_event_for_edit).
+ * Null on a database from before approval, and on any failure: there is then nothing about requests to show.
+ */
+export async function eventApproval(eventId: string): Promise<boolean | null> {
+  try {
+    const d = await rpc<Record<string, unknown> | null>("get_event_for_edit", { p_event_id: eventId });
+    return d && "requires_approval" in d ? d.requires_approval === true : null;
+  } catch {
+    return null;
+  }
+}
+
+/** The requests waiting at an event, oldest first. The event's host and co-hosts. Null on a database from before approval. */
+export async function eventRequests(eventId: string): Promise<EventRequests | null> {
+  try {
+    const d = await rpc<{ waiting?: number | null; requests?: EventRequest[] | null } | null>("list_event_requests", { p_event_id: eventId });
+    const requests = (d?.requests ?? []).map((r): EventRequest => ({
+      ...r, name: r.name || "Runner", qty: Number(r.qty) || 1, seats_left: r.seats_left == null ? null : Number(r.seats_left),
+      answers_missing: Number(r.answers_missing) || 0,
+      seats: (r.seats ?? []).map(s => ({ seq: Number(s.seq), answers: s.answers ?? [] })),
+    }));
+    return { waiting: Number(d?.waiting) || requests.length, requests };
+  } catch (e) {
+    if (e instanceof ApiError && e.reason === "unavailable") return null;
+    throw e;
+  }
+}
+
+/**
+ * Approve or decline one request (decide_event_request). Approving makes the runner's tickets, as a free booking
+ * does, and tells them; declining tells them the host couldn't give them a spot, and they can't ask again for this
+ * event. Answering the same way twice is quiet. Refusals are worded by requestFailText. `waiting` is how many are left.
+ */
+export const decideEventRequest = (orderId: string, approve: boolean) =>
+  rpc<{ status?: string | null; waiting?: number | null } | null>("decide_event_request", { p_order_id: orderId, p_approve: approve })
+    .then(r => ({ status: r?.status === "declined" ? "declined" as const : "confirmed" as const, waiting: Number(r?.waiting) || 0 }));
 
 /**
  * Refund a whole booking, named by any one of its seats (a buyer who deleted

@@ -48,9 +48,9 @@ export function MenuItem({ icon, label, sub, onClick, href, danger }: {
   return href ? <a className={cls} href={href} onClick={onClick}>{inner}</a> : <button type="button" className={cls} onClick={onClick}>{inner}</button>;
 }
 
-function navItems(host: Host, counts: { requests: number; reports: number }): SidebarItem[] {
+function navItems(host: Host, counts: { requests: number; reports: number; eventRequests: number }): SidebarItem[] {
   const locked = LOCKED[host.roleKey];
-  const badge: Partial<Record<PageId, number>> = { requests: counts.requests, moderation: counts.reports };
+  const badge: Partial<Record<PageId, number>> = { requests: counts.requests, moderation: counts.reports, events: counts.eventRequests };
   return ORDER.map(k => {
     if (!(k in PAGES)) return { section: k };
     const id = k as PageId, p = PAGES[id], isLocked = locked.includes(id);

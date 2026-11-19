@@ -28,7 +28,8 @@
 //   · The database may be older than this page (pacr migrations 20270119 to
 //     20270125 are not live everywhere yet): sale options and registration
 //     questions are offered only when the event's own read carries them, and a
-//     save that meets a server without them says so instead of failing.
+//     save that meets a server without them says so instead of failing. The
+//     same goes for "Approve each runner" (pacr 20270129120000).
 
 import { ApiError, signedUrls } from "./api";
 import { DEFAULT_ZONE, browserZone, instantOf, wallOf, zoneKnown, type Wall } from "./eventZone";
@@ -130,6 +131,8 @@ export type EventForm = {
   cohosts: Person[];
   /** Free, or every ticket type priced. */
   paid: boolean;
+  /** A free event only: a registration is a request, and the runner gets a ticket once the host approves it. */
+  requiresApproval: boolean;
   tiers: TierDraft[];
   age: AgeRule;
   /** The custom minimum age, as typed. */
@@ -278,6 +281,8 @@ export type Features = {
   saleOptions: boolean | null;
   /** Registration questions (pacr 20270125120000). */
   questions: boolean | null;
+  /** The host approves each runner (pacr 20270129120000). */
+  approval: boolean | null;
 };
 
 export type Loaded = {
@@ -302,8 +307,9 @@ export type EditorFail =
   | "invalid_questions" | "question_has_answers" | "contact_question" | "invalid_sales_open" | "invalid_sale_options"
   | "invalid_max_per_order" | "invalid_tags" | "invalid_age" | "invalid_gender" | "invalid_visibility" | "invalid_kind"
   | "invalid_cover" | "invalid_content" | "invalid_distances" | "invalid_patch" | "upload_failed" | "signed_out" | "unavailable" | "error"
+  | "approval_free_only" | "requests_waiting"
   // Not the database's: a publish held back because this database dropped part of the form (see saveEvent).
-  | "sale_options_off" | "questions_off";
+  | "sale_options_off" | "questions_off" | "approval_off";
 
 const FAILS: EditorFail[] = [
   "squad_not_verified", "not_allowed", "email_required", "organizer_not_approved", "title_required", "too_long",
@@ -314,6 +320,7 @@ const FAILS: EditorFail[] = [
   "invalid_questions", "question_has_answers", "contact_question", "invalid_sales_open", "invalid_sale_options",
   "invalid_max_per_order", "invalid_tags", "invalid_age", "invalid_gender", "invalid_visibility", "invalid_kind",
   "invalid_cover", "invalid_content", "invalid_distances", "invalid_patch",
+  "approval_free_only", "requests_waiting",
 ];
 
 /** The database's reason from an error message: the code itself, or the longest code the message carries. */
@@ -373,10 +380,13 @@ export function editorFailCopy(reason: EditorFail): { title: string; body: strin
     case "invalid_cover": return { title: "Couldn’t use that picture", body: "Add the poster or the course map again." };
     case "invalid_content": return { title: "Check the event’s details", body: "Each event-day step needs what happens, each course fact a name and each answer its question, and what’s included is up to 12 lines of 30 characters." };
     case "invalid_distances": return { title: "Check the distances", body: "Up to 6 distances, each from 0.1 to 250 km." };
+    case "approval_free_only": return { title: "Approval is for free events", body: "A paid ticket is bought, not asked for. Make every ticket type free, or turn off Approve each runner." };
+    case "requests_waiting": return { title: "Runners are waiting on that ticket", body: "A ticket type with requests waiting can’t be given a price. Approve or decline them on the event’s Requests tab first." };
     case "upload_failed": return { title: "Couldn’t upload a picture", body: "Everything else is as you left it. Check your connection and save again." };
     case "signed_out": return { title: "You’ve been signed out", body: "Sign in again, then save." };
     case "sale_options_off": return { title: "Saved as a draft, not published", body: "Sale options aren’t switched on yet, so the ticket types were saved without them. Look the tickets over, then publish." };
     case "questions_off": return { title: "Saved as a draft, not published", body: "Registration questions aren’t switched on yet, so the event was saved without them. Publish it as it is if that’s fine." };
+    case "approval_off": return { title: "Saved as a draft, not published", body: "Approving each runner isn’t switched on yet, so the event was saved without it: anyone could book. Publish it as it is if that’s fine." };
     case "unavailable": return { title: "Not switched on yet", body: "This part of events isn’t switched on yet. Nothing was changed." };
     default: return { title: "Couldn’t reach pacr", body: "Check your connection and try again. Nothing was changed." };
   }
@@ -485,7 +495,7 @@ export function blankForm(now = new Date()): EventForm {
   return {
     visibility: "public", kind: "run", title: "", description: "", zone,
     startsAt: { date, time: "07:00" }, endsAt: { date, time: "08:30" }, closesAt: null, maxPerOrder: "",
-    place: null, placeText: "", tags: [], cohosts: [], paid: false, tiers: [newTier("General entry", "60")],
+    place: null, placeText: "", tags: [], cohosts: [], paid: false, requiresApproval: false, tiers: [newTier("General entry", "60")],
     age: "all", ageMin: "21", gender: "all", cover: null, questions: [], details: emptyDetails(),
   };
 }
@@ -568,6 +578,7 @@ export async function loadEvent(id: string): Promise<Loaded> {
     tags: knownTags(tags),
     cohosts: cohosts.map(c => ({ userId: str(c.user_id), name: str(c.name) || "Runner", meta: "", avatarUrl: faces.get(str(c.avatar_path)) })),
     paid: tiers.some(t => Number(t.price_minor) > 0),
+    requiresApproval: e.requires_approval === true,
     tiers: tiers.length ? tiers.map((t, i) => ({
       key: newKey(), id: str(t.id) || null, name: str(t.name), capacity: t.capacity == null ? "" : String(t.capacity),
       unlimited: t.capacity == null, taken: Number(t.taken) || 0,
@@ -617,8 +628,9 @@ export async function loadEvent(id: string): Promise<Loaded> {
       priceMinMinor: numOrNull(e.price_min_minor) ?? DEFAULT_FEES.priceMinMinor,
       priceMaxMinor: numOrNull(e.price_max_minor) ?? DEFAULT_FEES.priceMaxMinor,
     },
-    // The read carries each when the database has it: a tier's sale state (20270124) and the questions (20270125).
-    features: { saleOptions: tiers.some(t => "sale_state" in t || "sales_open_at" in t), questions: questions !== null },
+    // The read carries each when the database has it: a tier's sale state (20270124), the questions (20270125) and
+    // whether the host approves each runner (20270129).
+    features: { saleOptions: tiers.some(t => "sale_state" in t || "sales_open_at" in t), questions: questions !== null, approval: "requires_approval" in e },
     sold: Number(e.sold) || 0,
     galleryCount: Array.isArray(e.gallery_paths) ? e.gallery_paths.length : 0,
   };
@@ -797,6 +809,8 @@ export type SaveOutcome = {
   questionsOff: boolean;
   /** Sale options were in the form and this database dropped them: they are out of `form`. */
   saleOff: boolean;
+  /** "Approve each runner" was on and this database has no such thing yet: it is off in `form`. */
+  approvalOff: boolean;
 };
 /** How far a save got before it stopped: nothing, a new draft with its name, time and place, or everything but what failed. */
 export type SaveStage = "none" | "created" | "saved";
@@ -838,8 +852,9 @@ export async function saveEvent(
   let saved = prev;
   let questionsOff = false;
   let saleOff = false;
+  let approvalOff = false;
   let stage: SaveStage = "none";
-  const fail = (reason: EditorFail): SaveResult => ({ ok: false, reason, partial: saved ? { saved, form, questionsOff, saleOff } : null, stage });
+  const fail = (reason: EditorFail): SaveResult => ({ ok: false, reason, partial: saved ? { saved, form, questionsOff, saleOff, approvalOff } : null, stage });
   const start = instantOf(form.startsAt, form.zone), end = instantOf(form.endsAt, form.zone);
   if (!start || !end) return fail("invalid_time");
   const startsAt = start.toISOString(), endsAt = end.toISOString();
@@ -935,6 +950,9 @@ export async function saveEvent(
       : closes && closes.getTime() < start.getTime() ? closes.toISOString() : null,
     // Empty = pacr's cap (the server clears the host's).
     max_per_order: parseInt(form.maxPerOrder, 10) || null,
+    // Free events only. Left out for a database known not to have it; one that isn't known yet (a new event) is
+    // sent it, and an older one ignores a setup key it doesn't know (see 3c).
+    ...(opts.features.approval !== false ? { requires_approval: !form.paid && form.requiresApproval } : {}),
     tiers: form.tiers.map((t, i) => ({
       ...(t.id ? { id: t.id } : {}),
       name: t.name.trim() || "General entry",
@@ -1000,6 +1018,13 @@ export async function saveEvent(
     }
   }
 
+  // 3c: the same for "Approve each runner". A database that has it hands the switch back with the setup; one from
+  // before it says nothing, and the event would go live open to anyone when the host asked to approve each runner.
+  if (opts.features.approval === null && setup.requires_approval === true && !(out && "requires_approval" in out)) {
+    approvalOff = true;
+    form = { ...form, requiresApproval: false };
+  }
+
   // 4: the registration questions. Their own call; asked only when the host has some, or had some and took them off.
   if (opts.features.questions !== false && (form.questions.length > 0 || hadQuestions)) {
     const qs = await rpc<Json[] | null>("set_event_questions", {
@@ -1024,13 +1049,15 @@ export async function saveEvent(
   }
 
   // 5: publish. Not when part of the form was dropped on the way: the host sees what was kept first.
-  if (opts.publish && saved.status === "draft" && (saleOff || questionsOff)) return fail(saleOff ? "sale_options_off" : "questions_off");
+  if (opts.publish && saved.status === "draft" && (saleOff || questionsOff || approvalOff)) {
+    return fail(saleOff ? "sale_options_off" : questionsOff ? "questions_off" : "approval_off");
+  }
   if (opts.publish && saved.status === "draft") {
     const pub = await rpc<null>("publish_event", { p_event_id: id });
     if (!pub.ok && pub.reason !== "already_published") return fail(pub.reason);
     saved = { ...saved, status: "published" };
   }
-  return { ok: true, value: { saved, form, questionsOff, saleOff } };
+  return { ok: true, value: { saved, form, questionsOff, saleOff, approvalOff } };
 }
 
 /** Throw a draft away, its pictures too. */

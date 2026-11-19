@@ -6,7 +6,7 @@ import { useEffect, useMemo, useState, type KeyboardEvent } from "react";
 import { DateTile, EmptyState, GlassCard, Icon, ProgressBar, Skeleton, StatusTag, Tabs } from "@/components/ds";
 import { kMuted, kStrong, LoadError, Meta, Toolbar } from "@/components/shell/kit";
 import * as api from "@/lib/api";
-import { num, tile, time } from "@/lib/format";
+import { num, plural, tile, time } from "@/lib/format";
 import { useHost } from "@/lib/host";
 import { useLoad, useViewport } from "@/lib/hooks";
 import { decodeRef, encodeRef } from "@/lib/refs";
@@ -80,7 +80,7 @@ export function Events() {
         />
       );
     }
-    return <EventDetail event={found} cover={found.cover_path ? covers.get(found.cover_path) : undefined} now={now} initialTab={params.get("tab") === "sales" ? "sales" : "attendees"} onChanged={ev.reload} />;
+    return <EventDetail event={found} cover={found.cover_path ? covers.get(found.cover_path) : undefined} now={now} initialTab={params.get("tab") === "sales" ? "sales" : params.get("tab") === "requests" ? "requests" : "attendees"} onChanged={ev.reload} />;
   }
 
   const createButton = canCreate ? (
@@ -162,6 +162,8 @@ function EventRow({ e, cover, now, phone, onOpen }: { e: api.HostedEvent; cover?
         <div style={{ flex: "1 1 220px", minWidth: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
             <span style={{ ...kStrong, fontSize: 15 }}>{e.title}</span><StatusTag status={status} />
+            {/* Runners waiting on the host's answer (a free event that approves each runner). */}
+            {status === "Published" && e.requests_waiting > 0 ? <StatusTag status="Requested">{plural(e.requests_waiting, "request")}</StatusTag> : null}
           </div>
           <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 6 }}>
             <Meta icon="clock">{time(e.starts_at)}</Meta>

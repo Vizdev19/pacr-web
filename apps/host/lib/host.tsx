@@ -45,8 +45,11 @@ type Ctx = {
   hosts: Host[];
   host: Host;
   setHost: (key: string) => void;
-  /** Things waiting on staff in this squad; both 0 for other roles. */
-  counts: { requests: number; reports: number };
+  /**
+   * Things waiting on this person: join requests and reports for a squad's staff (0 for other roles), and runners
+   * waiting for a spot at this host's events that approve each runner.
+   */
+  counts: { requests: number; reports: number; eventRequests: number };
   refreshCounts: () => void;
   /** Reload the hosts list (names and pictures in the switcher), keeping the page as it is. */
   refreshHosts: () => void;
@@ -122,9 +125,16 @@ export function HostProvider({ children }: { children: ReactNode }) {
   const host = hosts?.find(h => h.key === picked) ?? hosts?.find(h => h.key === data?.stored) ?? hosts?.[0] ?? null;
 
   const counts = useLoad(async () => {
-    if (!host || host.kind !== "squad" || !isStaff(host.roleKey)) return { requests: 0, reports: 0 };
-    const [detail, reports] = await Promise.all([squadDetail(host.id), countOpenReports(host.id)]);
-    return { requests: detail?.pending_requests ?? 0, reports };
+    if (!host) return { requests: 0, reports: 0, eventRequests: 0 };
+    const staff = host.kind === "squad" && isStaff(host.roleKey);
+    const [detail, reports, events] = await Promise.all([
+      staff ? squadDetail(host.id) : null, staff ? countOpenReports(host.id) : 0,
+      // Events still to finish. A read that fails is no badge, not an error.
+      hostedEvents(false).catch(() => []),
+    ]);
+    const eventRequests = events.filter(e => e.status === "published" && e.host?.kind === host.kind && e.host?.id === host.id)
+      .reduce((n, e) => n + e.requests_waiting, 0);
+    return { requests: detail?.pending_requests ?? 0, reports, eventRequests };
   }, `counts:${host?.key ?? ""}`);
 
   const setHost = useCallback((key: string) => {
@@ -134,7 +144,7 @@ export function HostProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<Ctx | null>(() => (data && host ? {
     me: data.me, greeting: `${data.greeting}, ${firstName(data.me.name)}`, hosts: data.hosts, host, setHost,
-    counts: counts.status === "ready" ? counts.data : { requests: 0, reports: 0 }, refreshCounts: counts.reload, refreshHosts: shell.reload,
+    counts: counts.status === "ready" ? counts.data : { requests: 0, reports: 0, eventRequests: 0 }, refreshCounts: counts.reload, refreshHosts: shell.reload,
     notify, notifyError,
   } : null), [data, host, setHost, counts.status, counts.data, counts.reload, shell.reload, notify, notifyError]);
 
