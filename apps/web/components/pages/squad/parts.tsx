@@ -41,7 +41,7 @@ export function joinNote(state: JoinState, squad: Squad): string | null {
     ? `The organisers will see your answers to ${plural(squad.joinQuestions.length, "short question")}.`
     : "The organisers approve each new member.") + women;
   if (state === "invite-code") return "You were invited, so you're in straight away." + women;
-  if (state === "signed-out") return "Joining is free, in the pacr app." + women;
+  if (state === "signed-out") return "Joining is free, here or in the pacr app." + women;
   if (state === "sent") return `${squad.organiserName ?? "The organiser"} will review your request.`;
   return null;
 }
@@ -85,17 +85,17 @@ export function usePlatform(): Platform {
 }
 
 /**
- * Where every signed-out Join and RSVP goes. Joining needs a pacr account, and
- * accounts are made in the app, so this leads with the app: on a phone, its
- * store and "open in pacr"; on a computer, a QR code for the phone and both
- * store badges. Runners who already have pacr can still sign in on the web.
+ * Where every signed-out Join and RSVP goes. Joining needs a pacr account.
+ * This leads with the app: on a phone, its store and "open in pacr"; on a
+ * computer, a QR code for the phone and both store badges. Below that,
+ * anyone can sign in, or sign up, and join on the web instead.
  */
 export function GetAppSheet({ open, onClose, name, action, subject, signin, appHref, pageUrl }:
   { open: boolean; onClose: () => void; name: string; action: "join" | "rsvp"; subject: "squad" | "run"; signin: string; appHref: string; pageUrl: string }) {
   const platform = usePlatform();
   return <BottomSheet open={open} onClose={onClose} title={action === "rsvp" ? "RSVP in the pacr app" : `Join ${name} in the pacr app`}>
     <div className="stack" style={{ gap: 16 }}>
-      <p className="t-secondary" style={{ margin: 0 }}>Joining is free. Squads, runs and RSVPs live in the pacr app, so you&apos;ll need it on your phone.</p>
+      <p className="t-secondary" style={{ margin: 0 }}>Joining is free. Squads, runs and RSVPs are at their best in the pacr app on your phone.</p>
       {platform === "desktop"
         ? <div className="stack" style={{ gap: 14, alignItems: "center", textAlign: "center" }}>
           <QRBlock value={pageUrl} size={168} caption={`Scan with your phone's camera to open this ${subject}`} />
@@ -105,7 +105,7 @@ export function GetAppSheet({ open, onClose, name, action, subject, signin, appH
           <Button block size="lg" href={platform === "ios" ? APP_STORE_URL : PLAY_STORE_URL}>{platform === "ios" ? "Get pacr on the App Store" : "Get pacr on Google Play"}</Button>
           <Button block variant="secondary" icon="smartphone" href={appHref}>I have pacr: open this {subject}</Button>
         </div>}
-      <span className="t-caption">Already on pacr? <a href={signin}>Sign in to {action === "rsvp" ? "RSVP" : "join"} here</a>.</span>
+      <span className="t-caption">Rather use the web? <a href={signin}>Sign in or sign up to {action === "rsvp" ? "RSVP" : "join"} here</a>.</span>
     </div>
   </BottomSheet>;
 }

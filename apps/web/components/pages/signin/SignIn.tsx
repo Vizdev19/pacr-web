@@ -4,19 +4,32 @@
 //
 // On load it first finishes a return from Apple or Google (?code= or
 // ?error=), then checks for a session; either way a signed-in visitor goes
-// straight on to ?next= (same-site paths only) or /feed and never sees the
-// form. Otherwise: Apple, Google, or email and a six-digit code.
+// straight on to ?next= (same-site paths only) or /squads and never sees the
+// form. Otherwise: Apple, Google, or email and a six-digit code, which sign
+// in an existing account or make a new one, as in the app. A new account (no
+// public.users row yet) gets one more step, the app's profile setup cut to
+// what lives on the server (name, gender, 13 or older), before it goes on; a
+// sign-up left at that step comes back to it (components/site/session.ts).
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
+import type { User } from "@supabase/supabase-js";
 import { FEED_ON_WEB } from "@/lib/config";
 import { Button, Card, Logo } from "@/components/ds/core";
 import { Skeleton } from "@/components/ds/feedback";
-import { CodeInput, FieldMessage, Input } from "@/components/ds/forms";
+import { Checkbox, ChipSelect, CodeInput, FieldMessage, Input } from "@/components/ds/forms";
 import {
-  EMAIL_RE, PROVIDER_NAMES, RESEND_COOLDOWN_SEC, currentUser, finishProviderSignIn, isSigninPath,
-  nextFromQuery, sendCode, startProviderSignIn, verifyCode, type Provider,
+  EMAIL_RE, PROVIDER_NAMES, RESEND_COOLDOWN_SEC, createProfile, currentUser, finishProviderSignIn, hasProfile,
+  isSigninPath, nextFromQuery, sendCode, signOut, startProviderSignIn, suggestedName, verifyCode, type Gender, type Provider,
 } from "@/lib/signin";
 
-type Step = "boot" | "start" | "code" | "leaving";
+type Step = "boot" | "start" | "code" | "profile" | "leaving";
+
+/** The app's onboarding choices. "Prefer not to say" saves no gender. */
+const GENDERS: { id: string; label: string; value: Gender | null }[] = [
+  { id: "female", label: "Woman", value: "female" },
+  { id: "male", label: "Man", value: "male" },
+  { id: "other", label: "Non-binary", value: "other" },
+  { id: "unsaid", label: "Prefer not to say", value: null },
+];
 type Msg = { tone: "hint" | "error" | "success"; text: string } | null;
 
 /** Where a signed-in visitor goes: ?next= when it's a same-site path that isn't sign-in, else the feed. */
@@ -45,7 +58,25 @@ export function SignIn() {
   const [checking, setChecking] = useState(false);
   const [provider, setProvider] = useState<Provider | null>(null);
   const [cooldown, setCooldown] = useState(0);
+  const [name, setName] = useState("");
+  const [gender, setGender] = useState("");
+  const [adult, setAdult] = useState(false);
+  const [saving, setSaving] = useState(false);
   const busy = useRef(false);
+
+  // Signed in: an account that has its profile goes on; a new one stays for its name.
+  const signedIn = useCallback(async (user: User, alive: () => boolean = () => true) => {
+    setStep("leaving");
+    const known = await hasProfile(user.id);
+    if (!alive()) return;
+    if (known === false) {
+      setName(cur => cur || suggestedName(user));
+      setMsg(null);
+      setStep("profile");
+      return;
+    }
+    land();
+  }, []);
 
   // Back from Apple/Google first (the session it makes is what currentUser looks for), then any session.
   useEffect(() => {
@@ -53,9 +84,9 @@ export function SignIn() {
     (async () => {
       const back = await finishProviderSignIn();
       if (!alive) return;
-      if (back?.ok) { setStep("leaving"); land(); return; }
-      if (await currentUser()) { if (alive) { setStep("leaving"); land(); } return; }
+      const user = (back?.ok ? back.user : null) ?? await currentUser();
       if (!alive) return;
+      if (user) { await signedIn(user, () => alive); return; }
       setStep("start");
       if (back && !back.ok && back.text) setMsg({ tone: "error", text: back.text });
     })();
@@ -64,7 +95,7 @@ export function SignIn() {
     const shown = (e: PageTransitionEvent) => { if (e.persisted) { setProvider(null); setMsg(null); } };
     window.addEventListener("pageshow", shown);
     return () => { alive = false; window.removeEventListener("pageshow", shown); };
-  }, []);
+  }, [signedIn]);
 
   useEffect(() => {
     if (cooldown <= 0) return;
@@ -117,9 +148,9 @@ export function SignIn() {
       return;
     }
     setMsg(null);
-    setStep("leaving");
-    land();
-  }, [pending]);
+    if (res.user) await signedIn(res.user);
+    else { setStep("leaving"); land(); }
+  }, [pending, signedIn]);
 
   const onCode = (v: string) => {
     const digits = v.replace(/\D/g, "").slice(0, 6);
@@ -136,6 +167,32 @@ export function SignIn() {
     setMsg(null);
   };
 
+  const saveProfile = async (e: FormEvent) => {
+    e.preventDefault();
+    if (saving) return;
+    if (!name.trim()) { setMsg({ tone: "error", text: "Enter your name." }); return; }
+    const g = GENDERS.find(x => x.id === gender);
+    if (!g) { setMsg({ tone: "error", text: "Pick an option for gender." }); return; }
+    if (!adult) { setMsg({ tone: "error", text: "pacr is for runners aged 13 and over." }); return; }
+    setSaving(true);
+    setMsg(null);
+    const res = await createProfile(name, g.value);
+    if (!res.ok) { setSaving(false); setMsg({ tone: "error", text: res.text }); return; }
+    setStep("leaving");
+    land();
+  };
+
+  // Not the account they meant (a Google account they didn't expect, say): start over.
+  const anotherAccount = async () => {
+    await signOut();
+    setName("");
+    setGender("");
+    setAdult(false);
+    setEmail("");
+    setMsg(null);
+    setStep("start");
+  };
+
   const message = msg ? <FieldMessage tone={msg.tone}>{msg.text}</FieldMessage> : null;
   const providersBusy = provider !== null;
 
@@ -144,11 +201,11 @@ export function SignIn() {
       <div className="stack" style={{ gap: "var(--space-4)" }}>
         <Logo height={30} />
         {step === "boot" || step === "leaving" ? <>
-          <h1 className="t-h2">{step === "leaving" ? "Signing you in" : "Sign in to pacr"}</h1>
+          <h1 className="t-h2">{step === "leaving" ? "Signing you in" : "Sign in or sign up"}</h1>
           <Skeleton lines={3} />
         </> : step === "start" ? <>
-          <h1 className="t-h2">Sign in to pacr</h1>
-          <p className="t-secondary" style={{ margin: 0 }}>Sign in the way you do in the app: with Apple, Google, or your email and a six-digit code. No password.</p>
+          <h1 className="t-h2">Sign in or sign up</h1>
+          <p className="t-secondary" style={{ margin: 0 }}>Use Apple, Google, or your email and a six-digit code, as in the app. New to pacr? This makes your account. No password.</p>
           <Button block size="lg" variant="inverse" disabled={providersBusy} loading={provider === "apple"} onClick={() => continueWith("apple")}>
             <span className="row" style={{ flexWrap: "nowrap" }}>{provider === "apple" ? null : <AppleLogo />}Continue with Apple</span>
           </Button>
@@ -164,13 +221,30 @@ export function SignIn() {
             <Button type="submit" block size="lg" loading={sending} disabled={!email.trim() || providersBusy}>Email me a code</Button>
           </form>
           {message}
+        </> : step === "profile" ? <>
+          <h1 className="t-h2">Set up your profile</h1>
+          <p className="t-secondary" style={{ margin: 0 }}>Welcome to pacr. Add the name other runners will see. You can change it, and add a photo, later.</p>
+          <form className="stack" style={{ gap: "var(--space-4)" }} onSubmit={saveProfile} noValidate>
+            <Input label="Name" name="name" autoComplete="name" placeholder="First name" maxLength={32} required autoFocus
+              value={name} onChange={e => { setName(e.target.value); if (msg?.tone === "error") setMsg(null); }} />
+            <div className="pw-field">
+              <span className="pw-field__label" id="f-gender">Gender</span>
+              <ChipSelect label="Gender" multi={false} value={gender} options={GENDERS.map(({ id, label }) => ({ id, label, disabled: saving }))}
+                onChange={v => { setGender(v[0] ?? ""); if (msg?.tone === "error") setMsg(null); }} />
+              <span className="t-caption">Women-only squads and events use it. Once set, it can&apos;t be changed.</span>
+            </div>
+            <Checkbox label="I'm 13 or older" checked={adult} disabled={saving} onChange={v => { setAdult(v); if (msg?.tone === "error") setMsg(null); }} />
+            {message}
+            <Button type="submit" block size="lg" loading={saving} disabled={!name.trim() || !gender || !adult}>Continue</Button>
+          </form>
+          <Button variant="ghost" size="sm" disabled={saving} onClick={anotherAccount}>Use a different account</Button>
         </> : <>
           <h1 className="t-h2">Check your email</h1>
           <p className="t-secondary" style={{ margin: 0 }}>We sent a 6-digit code to <b style={{ color: "var(--text-primary)" }}>{pending}</b>.</p>
           <form className="stack" style={{ gap: "var(--space-4)" }} onSubmit={e => { e.preventDefault(); submitCode(code.replace(/\D/g, "")); }} noValidate>
             <CodeInput key={attempt} value={code} onChange={onCode} error={msg?.tone === "error"} disabled={checking} autoFocus />
             {message}
-            <Button type="submit" block size="lg" loading={checking} disabled={code.replace(/\D/g, "").length !== 6}>Sign in</Button>
+            <Button type="submit" block size="lg" loading={checking} disabled={code.replace(/\D/g, "").length !== 6}>Continue</Button>
           </form>
           <div className="row" style={{ justifyContent: "space-between" }}>
             <Button variant="ghost" size="sm" disabled={cooldown > 0 || sending || checking} loading={sending} onClick={() => requestCode(pending, true)}>
@@ -180,7 +254,7 @@ export function SignIn() {
           </div>
         </>}
         <p className="t-caption" style={{ margin: 0, textAlign: "center" }}>
-          No account yet? Accounts are made in the app. <a href="/download">Get pacr</a>
+          By continuing you agree to the <a href="/terms">Terms</a> and <a href="/privacy">Privacy Policy</a>.
         </p>
       </div>
     </Card>

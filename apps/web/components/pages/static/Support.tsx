@@ -8,7 +8,7 @@ const mail = (subject?: string) => `mailto:${MAIL}${subject ? `?subject=${encode
 
 const TOPICS: { icon: string; title: string; body: string; link: [string, string] }[] = [
   { icon: "circle-alert", title: "Something isn't working", body: "Tell us what happened, on which phone, and what you expected. A screenshot helps.", link: ["Email about a bug", mail("Bug")] },
-  { icon: "key-round", title: "Your account", body: "Accounts are made in the app, with Apple, Google or email. Signing in on pacr.life uses the same account.", link: ["Sign in", "/signin"] },
+  { icon: "key-round", title: "Your account", body: "Sign up in the app or here on pacr.life, with Apple, Google or email. It's the same account in both places.", link: ["Sign in", "/signin"] },
   { icon: "file-text", title: "Your data", body: "Ask for a copy of your data, a correction, or deletion. You can also delete your account in the app, under Profile → Settings.", link: ["Read the privacy policy", "/privacy"] },
   { icon: "ticket", title: "Tickets and refunds", body: "Paid tickets can't be cancelled or refunded on request. If the host cancels the event, every paid booking is refunded in full; a host or pacr can also refund a whole booking. If a payment went wrong, email us.", link: ["Ticket terms", "/terms#tickets"] },
   { icon: "flag", title: "Report a post or a runner", body: "Use Report on it in the app or on pacr.life. Reporting hides it from you straight away, and we review every report.", link: ["Community rules", "/community-rules"] },

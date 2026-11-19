@@ -20,7 +20,7 @@ export const TERMS_SECTIONS: LegalSection[] = [
     body: <>
       <UL>
         <li><strong>Age.</strong> You must be at least 13 (or the minimum age in your country, if higher). If you are under 18, a parent or guardian must agree to these terms for you, and must make any payment.</li>
-        <li><strong>Accounts are made in the app.</strong> You sign up with Apple, Google or email. Signing in on pacr.life uses the same account.</li>
+        <li><strong>One account, app and web.</strong> You sign up with Apple, Google or email, in the app or on pacr.life. The same account works in both.</li>
         <li><strong>One person, one account.</strong> Use your real name or a name people who run with you would recognise. Don&apos;t pretend to be someone else, and don&apos;t make accounts to get around a ban.</li>
         <li><strong>Keep it secure.</strong> You are responsible for what happens on your account. Tell us at <a href="mailto:support@pacr.life">support@pacr.life</a> if you think someone else is using it.</li>
       </UL>
@@ -252,6 +252,6 @@ export const TERMS_SECTIONS: LegalSection[] = [
 export const TERMS: LegalDoc = {
   overline: "Legal",
   title: "Terms of service.",
-  dates: ["Effective · 10 November 2026", "Last updated · 10 November 2026"],
+  dates: ["Effective · 10 November 2026", "Last updated · 20 November 2026"],
   sections: TERMS_SECTIONS,
 };

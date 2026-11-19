@@ -114,7 +114,7 @@ export function AppPage() {
         <SecHead overline="Get started" title="From download to your first run" />
         <Steps items={[
           { icon: "download", title: "Get the app", body: "Free on the App Store and Google Play." },
-          { icon: "log-in", title: "Make your account", body: "Sign up with Apple, Google or email. The same account signs you in on pacr.life." },
+          { icon: "log-in", title: "Make your account", body: "Sign up with Apple, Google or email, in the app or on pacr.life. It's the same account in both places." },
           { icon: "users-round", title: "Find a squad or a plan", body: "Join a squad in your city, or build a training plan." },
           { icon: "navigation", title: "Go for a run", body: "Start a run, or turn up to a group run and check in." },
         ]} />
@@ -127,7 +127,7 @@ export function AppPage() {
         <Faq items={[
           { q: "Is pacr free?", a: "Yes. pacr is free to use today, apart from event tickets. Paid tickets carry a 5% pacr fee and 18% GST on that fee, shown before you pay." },
           { q: "Which phones does it work on?", a: "iPhone and Android." },
-          { q: "Can I use pacr on the web?", a: "Yes. Browse squads, runs and events on pacr.life, and sign in with your app account. Accounts are made in the app." },
+          { q: "Can I use pacr on the web?", a: "Yes. Browse squads, runs and events on pacr.life, and sign in or sign up there. It's the same account as in the app." },
           { q: "Does the coach talk to me during a run?", a: "Yes. The voice coach speaks your splits and pace while you run." },
           { q: "Is live sharing a safety service?", a: "No. It's a convenience: it updates only while your phone has a connection, and it notifies nobody. In an emergency, call 112." },
           { q: "Does pacr sell my data?", a: "No. We never sell your data, and there are no ads. The privacy policy has the details." },

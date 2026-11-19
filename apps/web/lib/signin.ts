@@ -3,12 +3,14 @@
 // storageKey "pacr.web.auth", flowType "pkce", detectSessionInUrl false).
 //
 // The methods are the app's own, and only those: the 6-digit email code
-// (verified with type "email") and Continue with Apple / Google. The website
-// recognises an account the app made; it must never make one. Email gets that
-// from shouldCreateUser: false. Apple and Google can't (an OAuth sign-in
-// creates the auth user on the way back), so finishProviderSignIn() checks
-// for the profile the app writes at sign-up and, when there is none, signs
-// straight back out and says accounts are made in the app.
+// (verified with type "email") and Continue with Apple / Google. Each one
+// signs in an existing account or makes a new one, as in the app. A new
+// account has no public.users row yet; hasProfile() spots that and /signin
+// asks for a name and gender, which createProfile() saves with the app's own
+// create_my_profile + set_my_gender (pacr migrations 20261027120000 and
+// 20261020120000), so a web sign-up has what an app sign-up has on the server
+// and signs straight into the app. (Age, weight and height stay app-only:
+// they live on the phone, for heart-rate zones and calories.)
 //
 // Browser only: every function here reads window.location or the session.
 import type { User } from "@supabase/supabase-js";
@@ -68,7 +70,6 @@ export async function signOut(): Promise<void> {
 export function sendErrorText(m?: string | null): string {
   const s = (m ?? "").toLowerCase();
   if (s.includes("rate") || s.includes("too many")) return "Too many codes requested. Wait a few minutes, then try again.";
-  if (s.includes("signups not allowed") || s.includes("not found")) return "No pacr account uses that email. Accounts are made in the app.";
   if (s.includes("invalid") && s.includes("email")) return "That email address looks wrong.";
   return "Couldn't send the code. Try again in a moment.";
 }
@@ -83,7 +84,7 @@ export function verifyErrorText(m?: string | null): string {
 // ── Email and code ──────────────────────────────────────────────────────────
 
 export async function sendCode(email: string): Promise<Result> {
-  const { error } = await getSupabase().auth.signInWithOtp({ email, options: { shouldCreateUser: false } });
+  const { error } = await getSupabase().auth.signInWithOtp({ email, options: { shouldCreateUser: true } });
   return error ? { ok: false, text: sendErrorText(error.message) } : { ok: true };
 }
 
@@ -110,8 +111,9 @@ export async function startProviderSignIn(provider: Provider, next: string | nul
 
 /**
  * The return trip from Apple or Google. Null when this page load isn't one;
- * otherwise { ok } once the PKCE code is exchanged and the account is one the
- * app made, or { ok: false, text } to show on the form ("" for a cancel).
+ * otherwise { ok, user } once the PKCE code is exchanged (a new account may
+ * still need its name: hasProfile), or { ok: false, text } to show on the
+ * form ("" for a cancel).
  * The query is cleaned either way (keeping `next`), so a reload or Back
  * doesn't replay a spent code.
  */
@@ -144,17 +146,47 @@ async function finish(): Promise<Result | null> {
   const user = data?.session?.user;
   if (error || !user) return { ok: false, text: "Couldn't sign you in. Try again, or use your email." };
 
-  // The app writes public.users when an account finishes sign-up. No row means
-  // this Apple/Google account isn't one the app knows. A failed lookup is not
-  // that answer (RLS still guards every page), so let them in.
-  const { data: profile, error: lookupError } = await sb.from("users").select("id").eq("id", user.id).maybeSingle();
-  if (!lookupError && !profile) {
-    const provider = PROVIDER_NAMES[String(user.app_metadata?.provider)] ?? "that";
-    await sb.auth.signOut();
-    return {
-      ok: false,
-      text: `No pacr account uses that ${provider} account. Accounts are made in the app: sign up there, then sign in here. If you signed up with your email, use it below.`,
-    };
-  }
   return { ok: true, user };
+}
+
+// ── New accounts ────────────────────────────────────────────────────────────
+
+/**
+ * Whether the account has finished sign-up: the app (or createProfile below)
+ * writes its public.users row then. False = a new account that still needs a
+ * name; null = the lookup failed, which isn't that answer (RLS still guards
+ * every page), so callers carry on.
+ */
+export async function hasProfile(userId: string): Promise<boolean | null> {
+  const { data, error } = await getSupabase().from("users").select("id").eq("id", userId).maybeSingle();
+  if (error) return null;
+  return !!data;
+}
+
+/** The name Apple or Google sent with the account, to start the name field with. */
+export function suggestedName(user: User | null | undefined): string {
+  const m = user?.user_metadata ?? {};
+  return String(m.full_name ?? m.name ?? "").trim().slice(0, 32);
+}
+
+export type Gender = "female" | "male" | "other";
+
+/**
+ * Make the account's public.users row with this name, then record its gender
+ * (null = prefer not to say): the app's onboarding, in the same order, since
+ * set_my_gender writes nothing until the row exists. An existing row is left
+ * alone (renames are Settings' job). The gender is best-effort, as in the
+ * app: the name is what finishes sign-up.
+ */
+export async function createProfile(name: string, gender: Gender | null): Promise<{ ok: true } | { ok: false; text: string }> {
+  const sb = getSupabase();
+  const { data, error } = await sb.rpc("create_my_profile", { p_name: name.trim() });
+  if (error) return { ok: false, text: "Couldn't save your profile. Try again in a moment." };
+  const res = data as { ok?: boolean; reason?: string } | null;
+  if (!res?.ok) {
+    if (res?.reason === "blocked_content") return { ok: false, text: "That name has a word pacr doesn't allow." };
+    return { ok: false, text: "Use 1 to 32 characters." };
+  }
+  if (gender) await sb.rpc("set_my_gender", { p_gender: gender }).then(() => undefined, () => undefined);
+  return { ok: true };
 }

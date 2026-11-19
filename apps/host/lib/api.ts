@@ -141,12 +141,17 @@ function isRealAccount(user: { email?: string | null; is_anonymous?: boolean }):
   return !!user.email || user.is_anonymous === false;
 }
 
-/** The signed-in runner, or null when there is no session. */
+/**
+ * The signed-in runner, or null when there is no session or the account
+ * hasn't finished sign-up (no public.users row yet): either way the caller
+ * sends it to /signin, which asks a new account for its name and comes back.
+ */
 export async function sessionMe(): Promise<Me | null> {
   const { data } = await sb().auth.getSession();
   const user = data.session?.user;
   if (!user) return null;
-  const { data: row } = await sb().from("users").select("display_name, handle, avatar_path").eq("id", user.id).maybeSingle();
+  const { data: row, error } = await sb().from("users").select("display_name, handle, avatar_path").eq("id", user.id).maybeSingle();
+  if (!error && !row) return null;
   const r = row as { display_name: string | null; handle: string | null; avatar_path: string | null } | null;
   return { id: user.id, name: r?.display_name ?? "You", handle: r?.handle ?? null, avatarPath: r?.avatar_path ?? null, hasEmail: !!user.email };
 }

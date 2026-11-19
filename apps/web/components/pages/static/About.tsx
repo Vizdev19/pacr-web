@@ -36,7 +36,7 @@ export function About() {
           <ul className="rules" style={{ gap: "var(--space-3)" }}>
             <li>pacr is free to use today, apart from event tickets.</li>
             <li>We never sell your data, and there are no ads.</li>
-            <li>Accounts are made in the app, with Apple, Google or email, and the same account signs you in on pacr.life.</li>
+            <li>Sign up in the app or on pacr.life, with Apple, Google or email. It&apos;s the same account in both places.</li>
             <li>Email support@pacr.life and a human will reply.</li>
           </ul>
           <div className="row" style={{ marginTop: "var(--space-6)" }}>
