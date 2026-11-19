@@ -329,7 +329,7 @@ function reasonOf(message: string | undefined | null, code?: string | null): Edi
 /** Every refusal in plain words: a past-tense-free title and what to do about it. */
 export function editorFailCopy(reason: EditorFail): { title: string; body: string } {
   switch (reason) {
-    case "email_required": return { title: "Add an email first", body: "Hosting needs an email on your pacr account, so runners and pacr can reach you." };
+    case "email_required": return { title: "Add an email first", body: "Hosting needs an email on your pacr account, so pacr can reach you about your events. Add one in the pacr app: Settings, then Email." };
     case "organizer_not_approved": return { title: "Not approved yet", body: "You can create events once pacr approves your organizer account." };
     case "squad_not_verified": return { title: "Squad not verified", body: "Only verified squads host events. The squad’s owner can ask for the badge in Settings." };
     case "host_suspended": return { title: "Hosting is paused", body: "This organizer account is paused. Write to support@pacr.life." };
