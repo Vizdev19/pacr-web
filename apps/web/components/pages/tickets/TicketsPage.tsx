@@ -2,6 +2,10 @@
 // /tickets: ui_kits/website/Account.jsx (TicketsPage) on my_tickets,
 // my_past_tickets and my_event_order. /tickets?o=<order ref> opens a booking:
 // one tab per seat, each with the QR the gate scans (lib/tickets.ts).
+//
+// Above the upcoming tickets, "Waiting for the host": requests at events whose
+// host approves each runner (my_event_requests). They are not tickets: no
+// seat, no QR, and a database from before requests simply has none.
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button, Card, Icon, Media, TrustTag } from "@/components/ds/core";
 import { OrderSummary, TicketCard } from "@/components/ds/content";
@@ -15,8 +19,9 @@ import { encodeRef } from "@/lib/refs";
 import { whenLine } from "@/lib/format";
 import { orderAnswers } from "@/lib/seatAnswers";
 import {
-  holderName, money, myCheckinCode, myEventOrder, myPastTickets, myTickets, offLine, refundLine, releaseFreeTicket, seatQrs,
-  type Order, type PastTicket, type Ticket,
+  holderName, money, myCheckinCode, myEventOrder, myEventRequests, myPastTickets, myTickets, offLine, refundLine, releaseFreeTicket, seatQrs,
+  withdrawEventRequest,
+  type Order, type PastTicket, type Ticket, type TicketRequest,
 } from "@/lib/tickets";
 
 const POLL_MS = 8000;
@@ -63,6 +68,31 @@ function Tickets({ uid, orderRef, past }: { uid: string; orderRef: string | null
     holderName(uid).then(setHolder);
   }, [uid]);
 
+  // Requests the host hasn't answered, for the list only (a booking's own page
+  // never shows them). Read once, and again after one is withdrawn.
+  const toast = useToast();
+  const [waiting, setWaiting] = useState<TicketRequest[]>([]);
+  const [waitKey, setWaitKey] = useState(0);
+  const [withdrawing, setWithdrawing] = useState<TicketRequest | null>(null);
+  const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    if (orderRef) return;
+    let alive = true;
+    myEventRequests().then(r => { if (alive) setWaiting(r); });
+    return () => { alive = false; };
+  }, [orderRef, waitKey]);
+
+  async function withdraw() {
+    if (!withdrawing || busy) return;
+    setBusy(true);
+    const fail = await withdrawEventRequest(withdrawing.eventId);
+    setBusy(false); setWithdrawing(null);
+    if (fail) toast({ title: fail.title, message: fail.body, tone: "error" });
+    else toast({ title: "Request withdrawn" });
+    // Either way both lists are read again: a request that was gone may have become a ticket.
+    setWaitKey(k => k + 1); reload();
+  }
+
   const open = useMemo(() => (orderRef && up ? up.find(t => encodeRef(t.orderId) === orderRef) ?? null : null), [orderRef, up]);
 
   // While a seat can still be scanned, often enough that the scan at the gate
@@ -86,12 +116,42 @@ function Tickets({ uid, orderRef, past }: { uid: string; orderRef: string | null
   return <div className="pw-container" style={{ paddingTop: 24, paddingBottom: 64, maxWidth: 960 }}>
     <div className="sec-h"><h1 className="t-h1">Your tickets</h1>
       <SegmentedControl value={when} onChange={setWhen} label="Which tickets" options={[{ id: "upcoming", label: "Upcoming" }, { id: "past", label: "Past" }]} /></div>
+    {when === "upcoming" && waiting.length ? <section className="stack" style={{ marginBottom: "var(--space-8)" }} aria-labelledby="waiting-for-host">
+      <div><h2 className="t-h4" id="waiting-for-host" style={{ margin: 0 }}>Waiting for the host</h2>
+        <p className="t-body-s t-secondary" style={{ margin: "var(--space-1) 0 0" }}>The host approves each runner. Your ticket shows up here once they approve.</p></div>
+      {waiting.map(r => <RequestRow key={r.orderId} r={r} onWithdraw={() => setWithdrawing(r)} />)}
+    </section> : null}
     {when === "upcoming"
       ? up.length ? <div className="stack">{up.map(t => <OrderRow key={t.orderId} t={t} />)}</div>
         : <EmptyState boxed icon="ticket" title="No upcoming tickets." body="Book an event and your entry shows here, ready to scan on the day." action="Browse events" href="/events" />
       : old.length ? <div className="stack">{old.map(p => <PastRow key={p.eventId + p.startsAt} p={p} />)}</div>
         : <EmptyState boxed icon="ticket" title="No past events yet." body="Events you've been to show up here." action="Browse events" href="/events" />}
+    <Dialog open={!!withdrawing} onClose={() => setWithdrawing(null)} title="Withdraw your request?"
+      actions={<><Button variant="secondary" onClick={() => setWithdrawing(null)}>Keep it</Button><Button variant="destructive" loading={busy} onClick={() => void withdraw()}>Withdraw request</Button></>}>
+      <p style={{ margin: 0 }}>The host won&apos;t see your request for {withdrawing?.title} any more. You can ask again while registration is open.</p>
+    </Dialog>
   </div>;
+}
+
+/** A request the host hasn't answered. Not a link as a whole: it carries its own two actions. */
+function RequestRow({ r, onWithdraw }: { r: TicketRequest; onWithdraw: () => void }) {
+  return <Card>
+    <div className="row" style={{ flexWrap: "nowrap", gap: 16, alignItems: "flex-start" }}>
+      <div style={{ width: 56, flex: "none" }}><Media ratio="2:3" radius={6} src={poster(r)} alt="" /></div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <b>{r.title}</b>
+        <div className="t-caption">{whenLine(r.startsAt, r.timezone)}{r.placeName ? ` · ${r.placeName}` : ""}</div>
+        <div className="t-body-s" style={{ marginTop: 4 }}>{r.tierName || "General"}{r.qty > 1 ? ` · ${r.qty} tickets` : ""}</div>
+        {r.answersMissing > 0 ? <div className="t-caption" style={{ marginTop: 4 }}>
+          {r.answersMissing === 1 ? "One answer for the host is" : `${r.answersMissing} answers for the host are`} still missing. Add {r.answersMissing === 1 ? "it" : "them"} on the event page.</div> : null}
+        <div className="row" style={{ gap: 8, marginTop: "var(--space-3)" }}>
+          <Button size="sm" variant="secondary" iconRight="arrow-right" href={eventHref(r.eventId)}>Event page</Button>
+          <Button size="sm" variant="ghost" onClick={onWithdraw}>Withdraw</Button>
+        </div>
+      </div>
+      <TrustTag kind="request-sent" size="sm" />
+    </div>
+  </Card>;
 }
 
 function OrderRow({ t }: { t: Ticket }) {

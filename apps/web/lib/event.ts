@@ -30,6 +30,8 @@ export type EventRaw = {
   results_url?: string | null;
   /** What the host asks for each ticket at booking (pacr 20270125120000; absent before it). */
   questions?: { required?: boolean }[] | null;
+  /** The host approves each runner: a free booking is a request (pacr 20270129120000; absent before it). */
+  requires_approval?: boolean | null;
   place: { name: string | null; address: string | null; lat: number | null; lng: number | null; google_place_id: string | null } | null;
   meet_note: string | null; visibility: string; status: string; women_only: boolean; refund_note: string | null;
   is_paid: boolean; cancelled_at: string | null; cancel_reason: string | null;
@@ -45,6 +47,10 @@ export type EventRaw = {
     order_id?: string; order_status?: string; hold_expires_at?: string | null; qty?: number; tier_id?: string | null;
     unit_minor?: number; fee_minor?: number; gst_minor?: number; total_minor?: number;
   } | null;
+  /** The runner's own request, waiting on the host: no ticket yet (pacr 20270129120000; absent before it). */
+  my_request?: { order_id?: string; tier_id?: string | null; qty?: number; requested_at?: string; answers_missing?: number } | null;
+  /** The host declined this runner, who can't ask again here (pacr 20270129120000; absent before it). */
+  request_declined?: boolean | null;
 };
 
 // ─── What the page draws: the same event with every id taken out ─────────────
@@ -64,6 +70,8 @@ export type EventView = {
   resultsUrl: string | null;
   /** How many details the host asks for each ticket (answered at booking: SeatQuestions). */
   questionCount: number;
+  /** The host approves each runner: a free ticket is asked for (request_event_ticket), not booked. */
+  requiresApproval: boolean;
   place: { name: string | null; address: string | null; lat: number | null; lng: number | null; placeId: string | null };
   meetNote: string | null; status: string; cancelled: boolean; cancelReason: string | null; womenOnly: boolean;
   refundNote: string | null; isPaid: boolean;
@@ -91,6 +99,7 @@ export function eventView(e: EventRaw, ref: string): EventView {
     startsAt: e.starts_at, endsAt: e.ends_at, timezone: e.timezone ?? null,
     resultsUrl: typeof e.results_url === "string" && /^https:\/\/\S+$/i.test(e.results_url) ? e.results_url : null,
     questionCount: Array.isArray(e.questions) ? e.questions.length : 0,
+    requiresApproval: e.requires_approval === true,
     place: {
       name: e.place?.name ?? null, address: e.place?.address ?? null,
       lat: e.place?.lat == null ? null : Number(e.place.lat), lng: e.place?.lng == null ? null : Number(e.place.lng),
@@ -165,6 +174,23 @@ export function eventWhen(startsAt: string, endsAt?: string | null, tz?: string 
   return `${s} – ${a.ymd === b.ymd ? b.time : `${dayLine(endsAt, tz)} · ${b.time}`}${zoneNote(startsAt, tz)}`;
 }
 
+/** A request waiting on the host, as the runner's own browser holds it. The ids are for the RPCs, never drawn. */
+export type RequestView = { orderId: string | null; tierId: string | null; qty: number; requestedAt: string | null; answersMissing: number };
+
+/** get_event's my_request, or null: none waiting, signed out, or a database from before requests. */
+export function requestOf(e: EventRaw): RequestView | null {
+  const r = e.my_request;
+  if (!r || typeof r !== "object") return null;
+  return {
+    orderId: typeof r.order_id === "string" ? r.order_id : null, tierId: typeof r.tier_id === "string" ? r.tier_id : null,
+    qty: Math.max(1, num(r.qty) || 1), requestedAt: typeof r.requested_at === "string" ? r.requested_at : null,
+    answersMissing: num(r.answers_missing),
+  };
+}
+
+/** The host declined this runner's request, and approval is still on. */
+export const requestDeclined = (e: EventRaw) => e.request_declined === true;
+
 export const isOver = (e: { status: string; endsAt: string; startsAt: string }, now: number) =>
   e.status === "ended" || new Date(e.endsAt || e.startsAt).getTime() < now;
 
@@ -184,11 +210,13 @@ export function whoFor(e: EventView): string[] {
 }
 
 // ─── reserve_event_ticket's refusals (the app's eventFailCopy) ───────────────
+// request_event_ticket answers the same ones; withdraw_event_request adds no_request.
 
 const FAILS = [
   "not_allowed", "email_required", "not_found", "not_published", "event_cancelled", "event_over", "sales_closed",
   "sold_out", "already_have_ticket", "women_only", "not_member", "too_many_holds",
   "invalid_qty", "not_enough_seats", "sales_paused", "sales_not_open",
+  "approval_required", "request_declined", "no_request",
 ] as const;
 export type EventFail = (typeof FAILS)[number] | "error";
 export const failOf = (message: string | undefined): EventFail => FAILS.find(f => (message ?? "").includes(f)) ?? "error";
@@ -208,6 +236,9 @@ export function failCopy(reason: EventFail): { title: string; body: string } {
     case "email_required": return { title: "Sign in again", body: "You've been signed out. Sign in again to get a ticket." };
     case "too_many_holds": return { title: "Let's give it a little while", body: "Spots at this event have been held for you a few times without a payment going through, so we can't hold another just yet. If money did leave your account, don't pay again: the ticket will turn up in Your tickets. Otherwise, try again in a couple of hours." };
     case "sales_paused": return { title: "Ticket sales are paused", body: "pacr has paused ticket sales for a short while. Nothing was charged. Please try again a little later." };
+    case "approval_required": return { title: "This page is out of date", body: "This event's host now approves each runner. Reload the page and ask for a spot." };
+    case "request_declined": return { title: "Request not approved", body: "The host couldn't give you a spot at this event." };
+    case "no_request": return { title: "No request to withdraw", body: "The host has already answered it, or it was withdrawn. The page is up to date now." };
     case "not_found": case "not_published": return { title: "We can't find that event", body: "It may have been removed, or it isn't open to you." };
     case "not_allowed": return { title: "You can't get a ticket here", body: "This event isn't taking tickets from your account." };
     default: return { title: "Something went wrong", body: "Check your connection and try again." };

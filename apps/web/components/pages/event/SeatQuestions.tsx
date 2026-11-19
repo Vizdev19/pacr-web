@@ -25,10 +25,12 @@ const PHONE = /^[+0-9][0-9 ()-]{5,19}$/;
  * The questions of one booking, with a save button. Mount it with
  * `key={orderId}`: it reads the booking once, when it appears.
  */
-export function SeatQuestions({ orderId, cta, onDone }: {
+export function SeatQuestions({ orderId, cta, request = false, onDone }: {
   orderId: string;
   /** What the button says: "Continue to payment", "Save". */
   cta: string;
+  /** The booking is a request the host hasn't answered: there is no ticket yet, and Your tickets can't open it. */
+  request?: boolean;
   /** Saved, with nothing required left out. */
   onDone: () => void;
 }) {
@@ -102,7 +104,9 @@ export function SeatQuestions({ orderId, cta, onDone }: {
   const locked = !data.open || busy;
   return <form noValidate className="stack" style={{ gap: "var(--space-5)" }} onSubmit={ev => { ev.preventDefault(); void save(); }}>
     <p className="t-secondary" style={{ margin: 0 }}>
-      The host asks these for {data.qty > 1 ? "each ticket" : "your ticket"}. You can change them from Your tickets until the event starts.
+      {request
+        ? `The host asks these for ${data.qty > 1 ? "each ticket" : "your ticket"}, and reads them when deciding. You can change them on this page until the event starts.`
+        : `The host asks these for ${data.qty > 1 ? "each ticket" : "your ticket"}. You can change them from Your tickets until the event starts.`}
     </p>
     {Array.from({ length: data.qty }, (_, i) => i + 1).map(seq => <div key={seq} className="stack" style={{ gap: "var(--space-4)" }}>
       {data.qty > 1 ? <h3 className="t-h4" style={{ margin: 0 }}>Ticket {seq} of {data.qty}</h3> : null}
@@ -142,8 +146,13 @@ export function SeatQuestions({ orderId, cta, onDone }: {
 }
 
 /** The questions in a sheet of their own: after a free booking, or to change answers later. */
-export function SeatQuestionsSheet({ orderId, cta = "Save", onClose, onDone }: { orderId: string | null; cta?: string; onClose: () => void; onDone: () => void }) {
+export function SeatQuestionsSheet({ orderId, cta = "Save", request = false, onClose, onDone }: {
+  orderId: string | null; cta?: string;
+  /** For a request waiting on the host (see SeatQuestions). */
+  request?: boolean;
+  onClose: () => void; onDone: () => void;
+}) {
   return <BottomSheet open={!!orderId} onClose={onClose} title="A few details">
-    {orderId ? <SeatQuestions key={orderId} orderId={orderId} cta={cta} onDone={onDone} /> : null}
+    {orderId ? <SeatQuestions key={orderId} orderId={orderId} cta={cta} request={request} onDone={onDone} /> : null}
   </BottomSheet>;
 }

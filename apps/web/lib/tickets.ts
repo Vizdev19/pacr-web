@@ -11,12 +11,17 @@
 //   my_checkin_code   the runner's own check-in code
 //   release_free_ticket  give a free booking back (the only cancel a buyer has;
 //                     paid tickets are refunded by the host)
+//   my_event_requests  requests still waiting on a host who approves each
+//                     runner (20270129120000_event_approval.sql). They have no
+//                     seats, so my_tickets never lists them
+//   withdraw_event_request  take a waiting request back
 //
 // The QR is exactly what the app's My tickets screen encodes
 // (app/event-tickets.tsx): "PACR1:<code>". A booking of one seat shows the
 // runner's personal code (my_checkin_code); a group booking shows each seat's
 // own code (event_tickets.code). The gate scanner (check_in_event_ticket)
 // takes both.
+import { failCopy, failOf } from "./event";
 import { getSupabase } from "./supabase";
 
 export const QR_PREFIX = "PACR1:";
@@ -34,6 +39,12 @@ export type Ticket = {
 export type PastTicket = {
   eventId: string; title: string; startsAt: string; placeName: string | null; hasCover: boolean;
   tierName: string; checkedInAt: string | null; qty: number; checkedInCount: number;
+};
+
+/** A request the host hasn't answered yet: no seats, no QR. */
+export type TicketRequest = {
+  eventId: string; orderId: string; title: string; startsAt: string; timezone: string | null; placeName: string | null;
+  hasCover: boolean; tierName: string; qty: number; answersMissing: number;
 };
 
 export type Order = {
@@ -113,6 +124,29 @@ export async function releaseFreeTicket(eventId: string): Promise<{ title: strin
   if (/event_over/.test(m)) return { title: "This event is over", body: "It has already started or finished." };
   if (/no_ticket/.test(m)) return { title: "No ticket to give back", body: "This booking was already cancelled. Refresh to see it." };
   return { title: "Couldn't give your spot back", body: "Check your connection and try again." };
+}
+
+/**
+ * The runner's requests still waiting on a host, soonest event first. A
+ * database from before requests has no such function, and a read that fails
+ * says the same: nothing waiting, so the page is as it always was.
+ */
+export async function myEventRequests(): Promise<TicketRequest[]> {
+  const { data, error } = await getSupabase().rpc("my_event_requests");
+  if (error || !Array.isArray(data)) return [];
+  return (data as Row[]).filter(r => str(r?.event_id) && str(r.order_id)).map(r => ({
+    eventId: String(r.event_id), orderId: String(r.order_id), title: String(r.title ?? ""), startsAt: String(r.starts_at),
+    timezone: str(r.timezone), placeName: str(r.place_name), hasCover: !!str(r.cover_path), tierName: String(r.tier_name ?? ""),
+    qty: Math.max(1, num(r.qty) || 1), answersMissing: num(r.answers_missing),
+  }));
+}
+
+/** Take a waiting request back. Null on success, else what to say. */
+export async function withdrawEventRequest(eventId: string): Promise<{ title: string; body: string } | null> {
+  const { error } = await getSupabase().rpc("withdraw_event_request", { p_event_id: eventId });
+  if (!error) return null;
+  return failOf(error.message) === "no_request" ? failCopy("no_request")
+    : { title: "Couldn't withdraw your request", body: "Check your connection and try again." };
 }
 
 /** Each seat's QR, as the app draws them. */
