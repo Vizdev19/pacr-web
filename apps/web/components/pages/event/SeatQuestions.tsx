@@ -21,12 +21,21 @@ type Draft = Record<string, { answer?: string; name?: string; phone?: string }>;
 const keyOf = (seq: number, questionId: string) => `${seq}:${questionId}`;
 const PHONE = /^[+0-9][0-9 ()-]{5,19}$/;
 
+// What was typed and not yet saved, kept for as long as the page is open, by
+// `draftKey` (the event). A paid booking's hold can run out mid-form: the
+// seats are held again as a new booking, and without this everything typed
+// would be gone. Saved answers come from the server; these lie over them.
+// Cleared once a save goes through. Never stored anywhere but this memory.
+const unsaved = new Map<string, Draft>();
+
 /**
  * The questions of one booking, with a save button. Mount it with
  * `key={orderId}`: it reads the booking once, when it appears.
  */
-export function SeatQuestions({ orderId, cta, request = false, onDone }: {
+export function SeatQuestions({ orderId, draftKey, cta, request = false, onDone }: {
   orderId: string;
+  /** Keep what is typed across a hold that runs out (see `unsaved`). */
+  draftKey?: string;
   /** What the button says: "Continue to payment", "Save". */
   cta: string;
   /** The booking is a request the host hasn't answered: there is no ticket yet, and Your tickets can't open it. */
@@ -47,14 +56,19 @@ export function SeatQuestions({ orderId, cta, request = false, onDone }: {
       if (!r) { setGot("error"); return; }
       const d: Draft = {};
       for (const a of r.answers) d[keyOf(a.seq, a.questionId)] = { answer: a.answer ?? undefined, name: a.name ?? undefined, phone: a.phone ?? undefined };
+      // What they had typed before a hold ran out, for the seats this booking still has.
+      const kept = draftKey ? unsaved.get(draftKey) : undefined;
+      if (kept) for (const [k, v] of Object.entries(kept)) if (Number(k.split(":")[0]) <= r.qty) d[k] = { ...d[k], ...v };
       setDraft(d); setGot(r);
     });
     return () => { alive = false; };
-  }, [orderId]);
+  }, [orderId, draftKey]);
 
   const data = got && got !== "error" ? got : null;
   const set = (seq: number, q: EventQuestion, p: { answer?: string; name?: string; phone?: string }) => {
-    setDraft(d => ({ ...d, [keyOf(seq, q.id)]: { ...d[keyOf(seq, q.id)], ...p } }));
+    const next = { ...draft, [keyOf(seq, q.id)]: { ...draft[keyOf(seq, q.id)], ...p } };
+    setDraft(next);
+    if (draftKey) unsaved.set(draftKey, next);
     setErr(null);
   };
 
@@ -94,6 +108,7 @@ export function SeatQuestions({ orderId, cta, request = false, onDone }: {
     const r = await saveOrderAnswers(orderId, list);
     setBusy(false);
     if (typeof r !== "number") { setErr(saveFailCopy(r)); return; }
+    if (draftKey) unsaved.delete(draftKey);
     if (r > 0) { setErr(r === 1 ? "One answer is still needed." : `${r} answers are still needed.`); return; }
     onDone();
   };

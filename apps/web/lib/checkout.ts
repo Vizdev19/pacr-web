@@ -18,6 +18,14 @@
 // the hold back. The order summary is still open behind it with its timer, so
 // the runner can pay again with the same hold; the hold goes back when they
 // close the summary (abandonOrder), or by itself when its ten minutes are up.
+//
+// Two rules keep the page honest and usable:
+//   - Nothing here waits for ever. Razorpay's script, each server call and
+//     Razorpay's window all have a time limit, so the summary can always be
+//     used or closed again.
+//   - Before saying a payment didn't happen (the window was closed, the hold
+//     ran out, the order is no longer waiting), the order is read back
+//     (settledOrder): a UPI payment can land after its window has gone.
 import { getSupabase } from "./supabase";
 
 /** A hold as reserve_event_ticket and get_event's my_payment describe it. Paise. */
@@ -28,6 +36,19 @@ export type Held = {
 
 type Row = Record<string, unknown>;
 const num = (v: unknown) => Number(v) || 0;
+
+/** `p`, or `late` if it hasn't answered in `ms`. */
+function within<T>(p: Promise<T>, ms: number, late: T): Promise<T> {
+  return new Promise<T>(resolve => {
+    const t = setTimeout(() => resolve(late), ms);
+    p.then(v => { clearTimeout(t); resolve(v); }, () => { clearTimeout(t); resolve(late); });
+  });
+}
+const SCRIPT_MS = 15_000;
+const CALL_MS = 20_000;
+const READ_MS = 10_000;
+/** How long past the hold's end Razorpay's window is waited for before the page takes over again. */
+const WINDOW_GRACE_S = 60;
 
 /** A reserved order out of either RPC's JSON, or null when it isn't one. */
 export function heldOf(raw: unknown): Held | null {
@@ -91,16 +112,18 @@ type RazorpayCtor = new (options: Record<string, unknown>) => RazorpayWindow;
 const SCRIPT = "https://checkout.razorpay.com/v1/checkout.js";
 let loading: Promise<RazorpayCtor | null> | null = null;
 
-/** Razorpay's script, fetched the first time someone pays. Null when it can't load (offline, blocked). */
+/** Razorpay's script, fetched the first time someone pays. Null when it can't load (offline, blocked, too slow). */
 function loadRazorpay(): Promise<RazorpayCtor | null> {
   const have = () => (window as unknown as { Razorpay?: RazorpayCtor }).Razorpay ?? null;
   if (have()) return Promise.resolve(have());
   loading ??= new Promise<RazorpayCtor | null>(resolve => {
     const s = document.createElement("script");
     s.src = SCRIPT; s.async = true;
-    s.onload = () => resolve(have());
-    // A failed load isn't kept: the next tap on Pay tries again.
-    s.onerror = () => { s.remove(); loading = null; resolve(null); };
+    // A load that failed, stalled or brought nothing isn't kept: the next tap on Pay tries again.
+    const end = (got: RazorpayCtor | null) => { clearTimeout(slow); if (!got) { s.remove(); loading = null; } resolve(got); };
+    const slow = setTimeout(() => end(have()), SCRIPT_MS);
+    s.onload = () => end(have());
+    s.onerror = () => end(null);
     document.head.appendChild(s);
   });
   return loading;
@@ -115,6 +138,10 @@ function openCheckout(Razorpay: RazorpayCtor, init: CheckoutInit): Promise<{ pai
     // The window stays up after a failed try so the runner can pay another
     // way. If they close it after one, that was a decline, not a change of mind.
     let failedOnce = false;
+    // It closes itself when the hold does. If it never says how it ended, the
+    // page takes over a minute after that rather than wait on it for ever.
+    const guard = setTimeout(() => done({ closed: "declined" }), (Math.max(0, Math.floor(init.expires_in)) + WINDOW_GRACE_S) * 1000);
+    const done = (r: { paid: CheckoutSuccess } | { closed: "cancelled" | "declined" }) => { clearTimeout(guard); resolve(r); };
     try {
       const rzp = new Razorpay({
         key: init.key_id,
@@ -127,13 +154,13 @@ function openCheckout(Razorpay: RazorpayCtor, init: CheckoutInit): Promise<{ pai
         theme: { color: "#0E2B1D" },
         // The window closes itself when the hold does (seconds).
         timeout: Math.floor(init.expires_in),
-        handler: (data: CheckoutSuccess) => resolve({ paid: data ?? {} }),
-        modal: { ondismiss: () => resolve({ closed: failedOnce ? "declined" : "cancelled" }) },
+        handler: (data: CheckoutSuccess) => done({ paid: data ?? {} }),
+        modal: { ondismiss: () => done({ closed: failedOnce ? "declined" : "cancelled" }) },
       });
       rzp.on("payment.failed", () => { failedOnce = true; });
       rzp.open();
     } catch {
-      resolve({ closed: "declined" });
+      done({ closed: "declined" });
     }
   });
 }
@@ -142,7 +169,11 @@ function openCheckout(Razorpay: RazorpayCtor, init: CheckoutInit): Promise<{ pai
 
 type Call<T> = { ok: true; data: T } | { ok: false; status: number; error: string };
 
-async function checkoutCall<T>(body: Record<string, unknown>): Promise<Call<T>> {
+function checkoutCall<T>(body: Record<string, unknown>): Promise<Call<T>> {
+  return within(checkoutCallOnce<T>(body), CALL_MS, { ok: false, status: 0, error: "timeout" });
+}
+
+async function checkoutCallOnce<T>(body: Record<string, unknown>): Promise<Call<T>> {
   try {
     const { data, error } = await getSupabase().functions.invoke("event-checkout", { body });
     if (!error) return { ok: true, data: data as T };
@@ -160,19 +191,34 @@ async function checkoutCall<T>(body: Record<string, unknown>): Promise<Call<T>> 
   }
 }
 
-/** The order as the server has it now: confirmed, refunded, reserved, expired… */
-async function orderStatus(orderId: string): Promise<string | null> {
-  try {
-    const { data, error } = await getSupabase().rpc("my_event_order", { p_order_id: orderId });
-    return error ? null : ((data as { status?: string } | null)?.status ?? null);
-  } catch {
-    return null;
-  }
+/** The order as the server has it now: confirmed, refunded, reserved, expired… Null when it can't be read. */
+function orderStatus(orderId: string): Promise<string | null> {
+  const read = async () => {
+    try {
+      const { data, error } = await getSupabase().rpc("my_event_order", { p_order_id: orderId });
+      return error ? null : ((data as { status?: string } | null)?.status ?? null);
+    } catch {
+      return null;
+    }
+  };
+  return within(read(), READ_MS, null);
+}
+
+/**
+ * Has a payment already settled this order? "confirmed": the tickets are
+ * theirs. "refunded": paid, no ticket, money going back. Null: neither (still
+ * waiting, lapsed, or it couldn't be read). Asked before the page says a
+ * payment didn't happen, and while one is still being confirmed.
+ */
+export async function settledOrder(orderId: string): Promise<"confirmed" | "refunded" | null> {
+  const st = await orderStatus(orderId);
+  return st === "confirmed" || st === "refunded" ? st : null;
 }
 
 /** Give a hold back. Best effort: it lapses by itself anyway. */
 export async function abandonOrder(orderId: string): Promise<void> {
-  try { await getSupabase().rpc("abandon_event_order", { p_order_id: orderId }); } catch { /* the hold runs out on its own */ }
+  const give = async () => { try { await getSupabase().rpc("abandon_event_order", { p_order_id: orderId }); } catch { /* the hold runs out on its own */ } };
+  await within(give(), READ_MS, undefined);
 }
 
 const sleep = (ms: number) => new Promise<void>(r => setTimeout(r, ms));
@@ -194,12 +240,18 @@ async function waitForOrder(orderId: string, forMs = 40_000): Promise<"confirmed
  * Pay for a reserved order. `onStage` says what to show: "checkout" while
  * Razorpay's window is up, "confirming" once the money has gone and the
  * ticket is being made. Only "hold_expired" gives the hold back here (see the
- * note at the top); the caller reserves again.
+ * note at the top); the caller reserves again. It always answers: every wait
+ * in it has a time limit.
  */
 export async function payForOrder(orderId: string, onStage?: (stage: "checkout" | "confirming") => void): Promise<PayOutcome> {
   // Both at once: the script is usually there by the time the order is.
   const [Razorpay, init] = await Promise.all([loadRazorpay(), checkoutCall<CheckoutInit>({ action: "init", order_id: orderId })]);
   if (!init.ok) {
+    // "No longer waiting" is also what an order says once an earlier payment has landed.
+    if (init.error === "hold_expired" || init.error === "not_reserved") {
+      const done = await settledOrder(orderId);
+      if (done) return { kind: done };
+    }
     const reason: PayFail = init.status === 503 ? "unavailable"
       : init.status === 502 ? "gateway"
       : init.error === "sales_paused" ? "paused"
@@ -219,7 +271,12 @@ export async function payForOrder(orderId: string, onStage?: (stage: "checkout" 
 
   onStage?.("checkout");
   const sheet = await openCheckout(Razorpay, init.data);
-  if ("closed" in sheet) return sheet.closed === "cancelled" ? { kind: "cancelled" } : { kind: "failed", reason: "declined" };
+  if ("closed" in sheet) {
+    // Closed without a payment handed back. One made in a UPI or bank app may have landed all the same.
+    const done = await settledOrder(orderId);
+    if (done) return { kind: done };
+    return sheet.closed === "cancelled" ? { kind: "cancelled" } : { kind: "failed", reason: "declined" };
+  }
 
   onStage?.("confirming");
   const p = sheet.paid;

@@ -25,7 +25,7 @@ import { Breadcrumbs, SectionNav } from "@/components/ds/nav";
 import { Banner, Dialog, useToast } from "@/components/ds/overlays";
 import { OpenInAppButton, OpenInAppCard } from "@/components/pages/card/OpenInApp";
 import { signinHref, useAuth } from "@/lib/auth";
-import { heldOf, type Held } from "@/lib/checkout";
+import { abandonOrder, heldOf, settledOrder, type Held } from "@/lib/checkout";
 import {
   eventView, eventWhen, failCopy, failOf, isOver, money, priceLine, requestDeclined, requestOf, seatQr, spotsLeft, tierLeft, whoFor,
   type EventFail, type EventRaw, type EventView, type TierView,
@@ -85,6 +85,26 @@ function inAppBrowser(): string | null {
 }
 const noChange = () => () => {};
 
+// A payment that went through but whose ticket isn't made yet (Checkout's
+// "pending"): the order it is for, remembered for this tab so a reload still
+// says "confirming your payment" and not "finish paying". It is asked about
+// for ten minutes; Razorpay's webhook normally settles it in seconds.
+const CONFIRMING_KEY = "pacr.pay.confirming";
+const CONFIRMING_MS = 10 * 60_000;
+/** The order being confirmed for this event (`ref`), if this tab has one. */
+function readConfirming(ref: string): string | null {
+  try {
+    const v = JSON.parse(sessionStorage.getItem(CONFIRMING_KEY) ?? "null") as { order?: string; at?: number; ref?: string } | null;
+    return v && v.ref === ref && typeof v.order === "string" && typeof v.at === "number" && Date.now() - v.at < CONFIRMING_MS ? v.order : null;
+  } catch { return null; }
+}
+function writeConfirming(order: string | null, ref = "") {
+  try {
+    if (order) sessionStorage.setItem(CONFIRMING_KEY, JSON.stringify({ order, ref, at: Date.now() }));
+    else sessionStorage.removeItem(CONFIRMING_KEY);
+  } catch { /* private window: it lasts until the page is left */ }
+}
+
 const closeAt = (t: TierView, e: EventView) => t.salesCloseAt ?? e.startsAt;
 const closedNow = (t: TierView, e: EventView, now: number) => now >= new Date(closeAt(t, e)).getTime();
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
@@ -100,6 +120,8 @@ export function EventPage({ view: served, refStr, now }: { view: EventView | nul
   const [sheet, setSheet] = useState(false);
   /** Checkout is open on these held seats. */
   const [paying, setPaying] = useState<Paying | null>(null);
+  /** The order of a payment that went through and is still being confirmed: nothing offers to pay for it again. */
+  const [confirming, setConfirming] = useState<string | null>(() => (typeof window === "undefined" ? null : readConfirming(refStr)));
   /** The host's questions are open for this booking (a free one, a request, or to change answers); `then` shows the tickets after. */
   const [details, setDetails] = useState<{ orderId: string; then: boolean; request?: boolean } | null>(null);
   /** "Withdraw your request?" is open. */
@@ -129,6 +151,43 @@ export function EventPage({ view: served, refStr, now }: { view: EventView | nul
       .then(({ data }) => { if (alive && data?.display_name) setHolder(data.display_name); });
     return () => { alive = false; };
   }, [signedIn, auth.uid]);
+
+  /** "You're in": the booking's seats and their codes, in a sheet. */
+  const openSeats = useCallback(async () => {
+    setSheet(true); setSeats(null);
+    const { data, error } = await getSupabase().rpc("my_tickets");
+    if (error || !Array.isArray(data)) { setSeats("error"); return; }
+    // my_tickets is the one place a seat's code is read (20261210120000).
+    // The live booking first; a booking the host cancelled can be listed too.
+    const rows = (data as { event_id: string; tier_name: string | null; tickets: { seq: number; code: string; checked_in_at: string | null; status: string }[] | null }[])
+      .filter(r => r.event_id === id);
+    const row = rows.find(r => r.tickets?.some(t => t.status === "valid")) ?? rows[0];
+    setSeats((row?.tickets ?? []).filter(t => t.code).sort((a, b) => a.seq - b.seq).map(t => ({
+      seq: t.seq, code: t.code, checkedIn: !!t.checked_in_at, tierName: row?.tier_name ?? null,
+      status: t.status === "cancelled" || t.status === "refunded" ? t.status : "valid",
+    })));
+  }, [id]);
+
+  // While a payment is being confirmed the order is asked about every few
+  // seconds: confirmed shows the tickets, refunded says so. After ten minutes
+  // the page stops and shows whatever the event says then.
+  useEffect(() => {
+    if (!confirming || !signedIn) return;
+    let alive = true;
+    let asks = 0;
+    const end = () => { writeConfirming(null); setConfirming(null); setPaying(null); load(); };
+    const timer = setInterval(() => {
+      if (++asks > CONFIRMING_MS / 4000) { end(); return; }
+      void settledOrder(confirming).then(done => {
+        if (!alive || !done) return;
+        alive = false;
+        end();
+        if (done === "confirmed") { setSel(null); void openSeats(); }
+        else toast({ title: "Payment refunded", message: "We couldn’t make the ticket, so your money is on its way back to how you paid. It usually takes 5–7 working days." });
+      });
+    }, 4000);
+    return () => { alive = false; clearInterval(timer); };
+  }, [confirming, signedIn, load, toast, openSeats]);
 
   // A link opened from a post or a message often lands in that app's own
   // little browser, which can't hand over to the pacr app and forgets a
@@ -198,25 +257,10 @@ export function EventPage({ view: served, refStr, now }: { view: EventView | nul
   const onSale = (t: TierView) => !t.soldOut && t.saleState === "on_sale" && !closedNow(t, e, now);
   const freeOpen = e.tiers.some(t => t.priceMinor === 0 && onSale(t));
   const paidOpen = e.tiers.some(t => t.priceMinor > 0 && onSale(t));
-  const picked = sel && e.tiers[sel.tier] && !asked && !declined ? { tier: e.tiers[sel.tier], qty: sel.qty, id: tierIds?.[sel.tier] ?? null } : null;
+  const picked = sel && e.tiers[sel.tier] && !asked && !declined && !(signedIn && !mine && !!confirming) ? { tier: e.tiers[sel.tier], qty: sel.qty, id: tierIds?.[sel.tier] ?? null } : null;
   /** The picked ticket is asked for, not booked: a free one, at an event whose host approves each runner. */
   const asking = !!picked && e.requiresApproval && picked.tier.priceMinor === 0;
   const eligible = whoFor(e);
-
-  const openSeats = async () => {
-    setSheet(true); setSeats(null);
-    const { data, error } = await getSupabase().rpc("my_tickets");
-    if (error || !Array.isArray(data)) { setSeats("error"); return; }
-    // my_tickets is the one place a seat's code is read (20261210120000).
-    // The live booking first; a booking the host cancelled can be listed too.
-    const rows = (data as { event_id: string; tier_name: string | null; tickets: { seq: number; code: string; checked_in_at: string | null; status: string }[] | null }[])
-      .filter(r => r.event_id === id);
-    const row = rows.find(r => r.tickets?.some(t => t.status === "valid")) ?? rows[0];
-    setSeats((row?.tickets ?? []).filter(t => t.code).sort((a, b) => a.seq - b.seq).map(t => ({
-      seq: t.seq, code: t.code, checkedIn: !!t.checked_in_at, tierName: row?.tier_name ?? null,
-      status: t.status === "cancelled" || t.status === "refunded" ? t.status : "valid",
-    })));
-  };
 
   /** reserve_event_ticket, exactly the app's call: p_qty only when it says something. `ask` is the
    *  same call by its other name, request_event_ticket: the one that may make a request for the host to answer. */
@@ -269,10 +313,17 @@ export function EventPage({ view: served, refStr, now }: { view: EventView | nul
   /** Checkout's hold ran out: the same seats again, for a fresh ten minutes. */
   const holdAgain = async () => {
     if (!paying?.tierId) return failCopy("error");
-    const r = await reserve(paying.tierId, paying.held.qty);
+    let r = await reserve(paying.tierId, paying.held.qty);
+    // The same hold handed back: the server still counts it as running (this
+    // device's clock is ahead of it). Its time is all but gone, so it is given
+    // back and the seats are held afresh, as a new booking with a full ten minutes.
+    if (r.ok && heldOf(r.data)?.orderId === paying.held.orderId) {
+      await abandonOrder(paying.held.orderId);
+      r = await reserve(paying.tierId, paying.held.qty);
+    }
     if (!r.ok) { load(); return failCopy(r.reason); }
     const held = heldOf(r.data);
-    if (!held) { load(); return failCopy("error"); }
+    if (!held || held.orderId === paying.held.orderId) { load(); return failCopy("error"); }
     setPaying({ ...paying, held });
     return null;
   };
@@ -301,11 +352,13 @@ export function EventPage({ view: served, refStr, now }: { view: EventView | nul
   const holdNote = allSold && live && seatNow && seatNow.held > 0
     ? `${plural(seatNow.held, "spot is", "spots are")} being held while ${seatNow.held === 1 ? "a runner pays" : "runners pay"}. If a payment doesn’t go through, the spot is back within ${seatNow.minutes} minutes. Keep this page open: it checks for you.`
     : null;
-  const hold = signedIn && !mine ? mem?.hold ?? null : null;
+  // A payment being confirmed: the hold it paid for is not offered again, and nothing new is booked meanwhile.
+  const settling = signedIn && !mine && !!confirming;
+  const hold = signedIn && !mine && !settling ? mem?.hold ?? null : null;
   const panel = <TicketPanel holdNote={holdNote} e={e} now={now} auth={auth.status} tierIds={tierIds} mine={mine} holding={!!hold}
     sel={sel} setSel={setSel} busy={busy} onGet={() => void get()} onSeats={() => void openSeats()} anyOpen={freeOpen || paidOpen}
     onResume={() => { if (hold) setPaying(hold); }} onDetails={() => void openDetails()}
-    asked={asked} declined={declined} onWithdraw={() => setWithdrawAsk(true)}
+    settling={settling} asked={asked} declined={declined} onWithdraw={() => setWithdrawAsk(true)}
     onRequestDetails={() => { if (asked?.orderId) setDetails({ orderId: asked.orderId, then: false, request: true }); }} />;
 
   const sections = [
@@ -426,8 +479,9 @@ export function EventPage({ view: served, refStr, now }: { view: EventView | nul
 
     {paying ? <Checkout key={paying.held.orderId} held={paying.held} tierName={paying.tierName} e={e} askQuestions={e.questionCount > 0}
       onHoldAgain={holdAgain}
+      onPending={() => { writeConfirming(paying.held.orderId, refStr); setConfirming(paying.held.orderId); }}
       onClose={() => { setPaying(null); load(); }}
-      onConfirmed={() => { setPaying(null); setSel(null); load(); void openSeats(); }} /> : null}
+      onConfirmed={() => { writeConfirming(null); setConfirming(null); setPaying(null); setSel(null); load(); void openSeats(); }} /> : null}
 
     <SeatQuestionsSheet orderId={details?.orderId ?? null} request={!!details?.request}
       onClose={() => { const d = details; setDetails(null); if (d?.then) void openSeats(); else if (d?.request) load(); }}
@@ -441,7 +495,7 @@ function Fact({ label, value, note, first = false }: { label: string; value: str
 }
 
 function TicketPanel({ e, now, auth, tierIds, mine, holding, sel, setSel, busy, onGet, onSeats, anyOpen, holdNote, onResume, onDetails,
-  asked, declined, onWithdraw, onRequestDetails }: {
+  settling, asked, declined, onWithdraw, onRequestDetails }: {
   holdNote: string | null;
   e: EventView; now: number; auth: "loading" | "signed-in" | "signed-out"; tierIds: string[] | null; mine: Mine | null; holding: boolean;
   sel: { tier: number; qty: number } | null; setSel: (s: { tier: number; qty: number } | null) => void; busy: boolean;
@@ -449,12 +503,14 @@ function TicketPanel({ e, now, auth, tierIds, mine, holding, sel, setSel, busy, 
   /** A ticket type, free or paid, can be booked right now. */
   anyOpen: boolean;
   onResume: () => void; onDetails: () => void;
+  /** A payment went through and its ticket is still being made: nothing can be booked or paid meanwhile. */
+  settling: boolean;
   /** Their request, waiting on the host; or the host declined them. Neither is a ticket. */
   asked: Asked | null; declined: boolean;
   onWithdraw: () => void; onRequestDetails: () => void;
 }) {
   // A waiting request is changed by withdrawing it and asking again; a declined runner can't ask.
-  const canBook = auth === "signed-in" && !!tierIds && !mine && !asked && !declined;
+  const canBook = auth === "signed-in" && !!tierIds && !mine && !asked && !declined && !settling;
   const picked = sel && e.tiers[sel.tier] ? sel : null;
   const pickedTier = picked ? e.tiers[picked.tier] : null;
   const asks = e.questionCount > 0 && !e.cancelled && !isOver(e, now);
@@ -472,6 +528,8 @@ function TicketPanel({ e, now, auth, tierIds, mine, holding, sel, setSel, busy, 
       {asks && asked.answersMissing > 0 ? <p className="t-body-s t-secondary" style={{ margin: 0 }}>
         {asked.answersMissing === 1 ? "One answer for the host is" : `${asked.answersMissing} answers for the host are`} still missing.</p> : null}
     </div> : null}
+    {settling ? <div style={{ padding: "12px 0" }}><Banner tone="info" title="Confirming your payment">
+      Your payment went through and your tickets are being made. They show up here within a few minutes. Please don&apos;t pay again.</Banner></div> : null}
     {holding && !mine ? <div style={{ padding: "12px 0" }}><Banner tone="info" title="You have seats on hold"
       actions={<Button size="sm" onClick={onResume}>Finish paying</Button>}>Pay before the hold runs out, or the seats go back on sale.</Banner></div> : null}
     {e.tiers.map((t, i) => {
@@ -503,6 +561,7 @@ function TicketPanel({ e, now, auth, tierIds, mine, holding, sel, setSel, busy, 
         {asks && asked.orderId ? <Button block variant="secondary" onClick={onRequestDetails}>{asked.answersMissing > 0 ? "Add details" : "Add or change details"}</Button> : null}
         <Button block variant="ghost" onClick={onWithdraw}>Withdraw request</Button>
       </> : declined ? <p className="t-body-s t-secondary" style={{ margin: 0, textAlign: "center" }}>The host couldn&apos;t give you a spot at this event.</p>
+      : settling ? <Button block variant="ghost" href="/tickets">See your tickets</Button>
       : anyOpen ? (
         auth === "signed-out" ? <Button block size="lg" href={signinHref()}>{e.requiresApproval ? "Sign in to request a spot" : "Sign in to get tickets"}</Button>
         : <>
